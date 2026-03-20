@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 320" width="600" height="320">
+  <defs>
+    <style>
+      .box { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 2; rx: 8; }
+      .box-api { fill: #dbeafe; stroke: #2563eb; }
+      .box-db { fill: #fef3c7; stroke: #d97706; }
+      .box-dash { fill: #dcfce7; stroke: #16a34a; }
+      .text { font-family: system-ui,sans-serif; font-size: 14; fill: #334155; }
+      .text-title { font-weight: 600; font-size: 12; fill: #64748b; }
+      .arrow { stroke: #64748b; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect class="box" x="80" y="40" width="140" height="80"/>
+  <text x="150" y="65" class="text-title" text-anchor="middle">Windows Agent</text>
+  <text x="150" y="85" class="text" text-anchor="middle">C# .NET 8</text>
+  <text x="150" y="105" class="text" text-anchor="middle">Process " Event Log</text>
+  <text x="150" y="120" class="text" text-anchor="middle">Network " Heartbeat</text>
+
+  <rect class="box box-api" x="280" y="100" width="140" height="80"/>
+  <text x="350" y="125" class="text-title" text-anchor="middle">Node.js API</text>
+  <text x="350" y="145" class="text" text-anchor="middle">Express " Detection</text>
+  <text x="350" y="165" class="text" text-anchor="middle">Alerts " RBAC</text>
+
+  <rect class="box box-db" x="280" y="220" width="140" height="60"/>
+  <text x="350" y="245" class="text-title" text-anchor="middle">MySQL 8+</text>
+  <text x="350" y="265" class="text" text-anchor="middle">Events " Alerts " Rules</text>
+
+  <rect class="box box-dash" x="480" y="100" width="140" height="80"/>
+  <text x="550" y="125" class="text-title" text-anchor="middle">React Dashboard</text>
+  <text x="550" y="145" class="text" text-anchor="middle">SOC-style UI</text>
+  <text x="550" y="165" class="text" text-anchor="middle">Monitoring " Triage</text>
+
+  <path class="arrow" d="M220 80 L270 120"/>
+  <path class="arrow" d="M350 180 L350 220"/>
+  <path class="arrow" d="M420 140 L470 140"/>
+  <path class="arrow" d="M350 100 L350 80 L150 80 L150 120" stroke-dasharray="4 4"/>
+</svg>

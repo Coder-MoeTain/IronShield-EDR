@@ -1,28 +1,31 @@
-<div align="center">
-  <img src="assets/open-edr-banner.png" alt="IronShield EDR" width="100%">
-</div>
+<p align="center">
+  <img src="assets/banner.svg" alt="IronShield EDR" width="100%">
+</p>
 
-<br>
+<p align="center">
+  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
+  <img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg" alt="Node">
+  <img src="https://img.shields.io/badge/.NET-8.0-purple.svg" alt=".NET">
+  <img src="https://img.shields.io/badge/MySQL-8%2B-orange.svg" alt="MySQL">
+  <img src="https://img.shields.io/badge/React-18-61dafb.svg" alt="React">
+</p>
 
-<div align="center">
+<p align="center">
+  <strong>IronShield EDR</strong> — A defensive Windows Endpoint Detection and Response (EDR) platform<br>
+  for endpoint monitoring, security event analysis, and response simulation.
+</p>
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)
-![.NET](https://img.shields.io/badge/.NET-8.0-purple.svg)
-![MySQL](https://img.shields.io/badge/MySQL-8%2B-orange.svg)
-![React](https://img.shields.io/badge/React-18-61dafb.svg)
+<p align="center">
+  Built for lab and enterprise prototype use.
+</p>
 
-**IronShield EDR** — A defensive Windows Endpoint Detection and Response (EDR) platform for endpoint monitoring, security event analysis, and response simulation.
-
-Built for lab and enterprise prototype use.
-
-[Features](#-features) •
-[Quick Start](#-quick-start) •
-[Architecture](#-architecture) •
-[API](#-api-overview) •
-[Documentation](docs/)
-
-</div>
+<p align="center">
+  <a href="#-features">Features</a> •
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-architecture">Architecture</a> •
+  <a href="#-api-overview">API</a> •
+  <a href="docs/">Documentation</a>
+</p>
 
 ---
 
@@ -31,7 +34,7 @@ Built for lab and enterprise prototype use.
 IronShield EDR is a full-stack security platform that combines telemetry collection, rule-based detection, real-time response actions, and a SOC-style dashboard. Deploy agents on Windows endpoints, ingest events, and analyze threats with built-in antivirus correlation and investigation workflows.
 
 | Component | Tech Stack | Description |
-|-----------|------------|-------------|
+|:----------|:-----------|:------------|
 | **Windows Agent** | C# .NET 8 | Collects process events, Windows Event Log, network telemetry; sends to backend |
 | **Backend API** | Node.js + Express | Event ingestion, detection engine, alerts, RBAC |
 | **Database** | MySQL 8+ | Endpoints, events, alerts, rules, investigations |
@@ -53,6 +56,10 @@ IronShield EDR is a full-stack security platform that combines telemetry collect
 - **Antivirus Module** — File scanning, signatures, heuristics, quarantine
 
 ### Dashboard Highlights
+
+<p align="center">
+  <img src="assets/dashboard-preview.svg" alt="Dashboard Preview" width="700">
+</p>
 
 - **Process Monitor** — Suspect process detection with suspicious path indicators
 - **Process Tree** — Visualize process hierarchy from normalized events
@@ -150,9 +157,9 @@ Start-Service EDR.Agent
 
 ## 🏗 Architecture
 
-<div align="center">
-  <img src="assets/architecture-diagram.png" alt="Architecture" width="600">
-</div>
+<p align="center">
+  <img src="assets/architecture.svg" alt="Architecture Diagram" width="600">
+</p>
 
 ```
 ┌─────────────────┐     HTTPS      ┌─────────────────┐
@@ -179,7 +186,7 @@ Start-Service EDR.Agent
 ### Agent API
 
 | Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
+|:-------|:---------|:-----|:------------|
 | POST | `/api/agent/register` | Registration token | Register new endpoint |
 | POST | `/api/agent/heartbeat` | Agent key | Send heartbeat |
 | POST | `/api/agent/events/batch` | Agent key | Upload event batch |
@@ -192,7 +199,7 @@ Start-Service EDR.Agent
 ### Admin API (JWT)
 
 | Method | Endpoint | Description |
-|--------|----------|-------------|
+|:-------|:---------|:------------|
 | POST | `/api/auth/login` | Admin login |
 | GET | `/api/admin/dashboard/summary` | Dashboard stats |
 | GET | `/api/admin/endpoints` | List endpoints |
@@ -241,8 +248,6 @@ MIT License
 
 ---
 
-<div align="center">
+<p align="center">
   <sub>Built with ❤️ for the security community</sub>
-</div>
-#   I r o n S h i e l d - E D R  
- 
+</p>
