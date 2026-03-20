@@ -128,13 +128,29 @@ Dashboard runs on **http://localhost:5173**
 
 ### 4. Windows Agent
 
+**Option A: Installer (recommended)**
+
+```powershell
+# Run as Administrator
+cd agent-csharp
+.\Install-Agent.ps1 -ServerUrl "http://localhost:3001" -RegistrationToken "your-token-from-.env"
+```
+
+Or use the batch wrapper:
+
+```cmd
+install-agent.cmd https://edr.example.com your-registration-token
+```
+
+**Option B: Manual run**
+
 ```bash
 cd agent-csharp
 dotnet build
 dotnet run --project src/EDR.Agent.Service -- --console
 ```
 
-Create `config.json`:
+Create `config.json` in the agent directory:
 
 ```json
 {
@@ -145,12 +161,18 @@ Create `config.json`:
 }
 ```
 
-**Install as Windows Service:**
+**Legacy service install:**
 
 ```powershell
 # Run as Administrator
 .\install-service.ps1
 Start-Service EDR.Agent
+```
+
+**Uninstall:**
+
+```powershell
+.\Install-Agent.ps1 -Uninstall
 ```
 
 ---

@@ -31,7 +31,7 @@ async function getSummary(tenantId = null) {
       `SELECT COUNT(*) as count FROM raw_events WHERE DATE(created_at) = CURDATE()`
     ),
     AlertService.getSummary(tenantId),
-    AlertService.list({ limit: 10, offset: 0, tenantId }),
+    AlertService.list({ limit: 25, offset: 0, tenantId }),
     Promise.all([
       db.queryOne(
         `SELECT
@@ -45,7 +45,7 @@ async function getSummary(tenantId = null) {
          LEFT JOIN endpoints e ON e.id = c.endpoint_id
          WHERE c.status IN ('open', 'investigating')
          ORDER BY c.updated_at DESC
-         LIMIT 5`
+         LIMIT 15`
       ),
     ]).then(([countRow, recentRows]) => ({
       count: countRow,
@@ -63,6 +63,24 @@ async function getSummary(tenantId = null) {
   const invCount = invData.count || {};
   const recentInvestigations = invData.recent || [];
 
+  // Time-series data for charts (last 24 hours, hourly buckets)
+  const [eventsOverTime, alertsOverTime] = await Promise.all([
+    db.query(
+      `SELECT DATE_FORMAT(timestamp, '%Y-%m-%d %H:00') as hour, COUNT(*) as count
+       FROM normalized_events
+       WHERE timestamp >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+       GROUP BY hour
+       ORDER BY hour ASC`
+    ),
+    db.query(
+      `SELECT DATE_FORMAT(first_seen, '%Y-%m-%d %H:00') as hour, COUNT(*) as count
+       FROM alerts
+       WHERE first_seen >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+       GROUP BY hour
+       ORDER BY hour ASC`
+    ),
+  ]);
+
   return {
     endpoints: {
       total: Number(ep.total) || 0,
@@ -71,7 +89,8 @@ async function getSummary(tenantId = null) {
     },
     eventsToday: Number(eventsTodayRow?.count) || 0,
     eventsTotal: eventSummary?.total || 0,
-    eventTypes: eventSummary?.byType?.slice(0, 6) || [],
+    eventTypes: eventSummary?.byType?.slice(0, 10) || [],
+    eventSources: eventSummary?.bySource?.slice(0, 10) || [],
     alertSummary: alertSummary || {},
     recentAlerts: recentAlerts || [],
     investigations: {
@@ -81,6 +100,8 @@ async function getSummary(tenantId = null) {
     recentInvestigations,
     triagePending: Number(triagePendingRow?.count) || 0,
     suspectCount24h: suspectSummary?.suspect_count_24h || 0,
+    eventsOverTime: eventsOverTime || [],
+    alertsOverTime: alertsOverTime || [],
   };
 }
 

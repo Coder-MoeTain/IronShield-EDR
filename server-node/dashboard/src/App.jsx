@@ -35,6 +35,8 @@ import AvSignatures from './pages/AvSignatures';
 import AvMalwareAlerts from './pages/AvMalwareAlerts';
 import AvMalwareAlertDetail from './pages/AvMalwareAlertDetail';
 import AvFileReputation from './pages/AvFileReputation';
+import EnterpriseSettings from './pages/EnterpriseSettings';
+import TenantManagement from './pages/TenantManagement';
 
 function PrivateRoute({ children }) {
   const { token } = useAuth();
@@ -84,6 +86,8 @@ export default function App() {
           <Route path="av/reputation" element={<AvFileReputation />} />
           <Route path="av/malware-alerts" element={<AvMalwareAlerts />} />
           <Route path="av/malware-alerts/:id" element={<AvMalwareAlertDetail />} />
+          <Route path="enterprise" element={<EnterpriseSettings />} />
+          <Route path="tenants" element={<TenantManagement />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

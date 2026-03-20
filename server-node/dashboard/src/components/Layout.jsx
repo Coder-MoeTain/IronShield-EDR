@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import GlobalSearch from './GlobalSearch';
+import TenantSwitcher from './TenantSwitcher';
 import styles from './Layout.module.css';
 
 const MENU_ITEMS = [
   { to: '/', end: true, icon: '📊', label: 'Dashboard' },
+  { to: '/alerts', icon: '⚠', label: 'Alert Queue' },
   {
     label: 'Assets',
     icon: '🖥',
@@ -27,7 +29,6 @@ const MENU_ITEMS = [
     label: 'Detection',
     icon: '⚠',
     children: [
-      { to: '/alerts', icon: '⚠', label: 'Alerts' },
       { to: '/detection-rules', icon: '📜', label: 'Rules' },
     ],
   },
@@ -54,6 +55,14 @@ const MENU_ITEMS = [
     children: [
       { to: '/policies', icon: '⚙', label: 'Policies' },
       { to: '/audit-logs', icon: '📋', label: 'Audit' },
+    ],
+  },
+  {
+    label: 'Enterprise',
+    icon: '🏢',
+    children: [
+      { to: '/enterprise', icon: '🏢', label: 'Settings' },
+      { to: '/tenants', icon: '🏢', label: 'Tenants' },
     ],
   },
   {
@@ -156,6 +165,7 @@ export default function Layout() {
       </aside>
       <main className={styles.main}>
         <div className={styles.mainHeader}>
+          <TenantSwitcher />
           <GlobalSearch />
         </div>
         <Outlet />

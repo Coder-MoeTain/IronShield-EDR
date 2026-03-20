@@ -65,6 +65,34 @@ async function listRetentionPolicies(req, res, next) {
   }
 }
 
+async function createRetentionPolicy(req, res, next) {
+  try {
+    const id = await RetentionService.createPolicy(req.body || {}, req.tenantId);
+    res.status(201).json({ id });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateRetentionPolicy(req, res, next) {
+  try {
+    await RetentionService.updatePolicy(req.params.id, req.body || {}, req.tenantId);
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deleteRetentionPolicy(req, res, next) {
+  try {
+    const deleted = await RetentionService.deletePolicy(req.params.id, req.tenantId);
+    if (!deleted) return res.status(404).json({ error: 'Policy not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function runRetention(req, res, next) {
   try {
     const { totalDeleted } = await RetentionService.runAllPolicies(req.tenantId);
@@ -107,6 +135,9 @@ module.exports = {
   createNotificationChannel,
   updateNotificationChannel,
   listRetentionPolicies,
+  createRetentionPolicy,
+  updateRetentionPolicy,
+  deleteRetentionPolicy,
   runRetention,
   listAgentReleases,
   createAgentRelease,

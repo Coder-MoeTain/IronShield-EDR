@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using EDR.Agent.Core.Models;
 
 namespace EDR.Agent.Core.Response;
@@ -42,6 +43,7 @@ public class CommandPollingService
 
     private class PendingActionsResponse
     {
+        [JsonPropertyName("actions")]
         public List<ResponseAction> Actions { get; set; } = new();
     }
 }

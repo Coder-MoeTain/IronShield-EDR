@@ -21,7 +21,8 @@ async function getTenantIdsForUser(userId) {
   return ids.length > 0 ? [...new Set(ids)] : null;
 }
 
-async function getEffectiveTenantId(user) {
+async function getEffectiveTenantId(user, overrideTenantId = null) {
+  if (overrideTenantId != null) return parseInt(overrideTenantId, 10) || null;
   if (!user) return null;
   if (user.role === 'super_admin') return null;
   if (user.tenantId) return user.tenantId;
@@ -34,10 +35,63 @@ function getTenantFilter(tenantId) {
   return { sql: ' AND e.tenant_id = ?', params: [tenantId] };
 }
 
+async function list() {
+  return db.query('SELECT id, name, slug, is_active, created_at FROM tenants ORDER BY name');
+}
+
+async function getById(id) {
+  return db.queryOne('SELECT id, name, slug, is_active, created_at, updated_at FROM tenants WHERE id = ?', [id]);
+}
+
+async function create(data) {
+  const { name, slug } = data || {};
+  if (!name) throw new Error('name required');
+  const rawSlug = slug || name;
+  const s = String(rawSlug).toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'tenant';
+  const result = await db.execute(
+    'INSERT INTO tenants (name, slug) VALUES (?, ?)',
+    [name, s]
+  );
+  return result.insertId;
+}
+
+async function update(id, data) {
+  const existing = await getById(id);
+  if (!existing) return null;
+  const { name, slug, is_active } = data || {};
+  const updates = [];
+  const params = [];
+  if (name !== undefined) { updates.push('name = ?'); params.push(name); }
+  if (slug !== undefined) { updates.push('slug = ?'); params.push(String(slug).toLowerCase().replace(/[^a-z0-9-]/g, '-')); }
+  if (is_active !== undefined) { updates.push('is_active = ?'); params.push(!!is_active); }
+  if (updates.length === 0) return id;
+  params.push(id);
+  await db.execute(`UPDATE tenants SET ${updates.join(', ')} WHERE id = ?`, params);
+  return id;
+}
+
+async function deleteById(id) {
+  const existing = await getById(id);
+  if (!existing) return false;
+  await db.execute('DELETE FROM tenants WHERE id = ?', [id]);
+  return true;
+}
+
+async function getEndpointCount(tenantId) {
+  const [row] = await db.query('SELECT COUNT(*) as count FROM endpoints WHERE tenant_id = ?', [tenantId]);
+  return row?.count ?? 0;
+}
+
 module.exports = {
   getDefaultTenant,
   getTenantIdsForUser,
   getEffectiveTenantId,
   getTenantFilter,
+  list,
+  getById,
+  create,
+  update,
+  deleteById,
+  getEndpointCount,
   DEFAULT_TENANT_ID,
 };

@@ -20,8 +20,8 @@ public class AgentConfig
     /// <summary>Event batch upload interval in seconds</summary>
     public int EventBatchIntervalSeconds { get; set; } = 30;
 
-    /// <summary>Command polling interval in seconds (Phase 2)</summary>
-    public int CommandPollIntervalSeconds { get; set; } = 60;
+    /// <summary>Command polling interval in seconds (Phase 2). Lower = faster kill/response actions.</summary>
+    public int CommandPollIntervalSeconds { get; set; } = 15;
 
     /// <summary>Max events per batch</summary>
     public int MaxEventsPerBatch { get; set; } = 100;

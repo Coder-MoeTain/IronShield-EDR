@@ -28,6 +28,10 @@ async function list(filters = {}) {
   `;
   const params = [];
 
+  if (filters.tenantId != null) {
+    sql += ' AND e.tenant_id = ?';
+    params.push(filters.tenantId);
+  }
   if (filters.endpointId) {
     sql += ' AND ne.endpoint_id = ?';
     params.push(filters.endpointId);

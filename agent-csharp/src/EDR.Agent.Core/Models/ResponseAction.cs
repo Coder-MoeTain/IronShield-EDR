@@ -22,11 +22,14 @@ public class ResponseAction
     {
         get
         {
-            if (!Parameters.HasValue || !Parameters.Value.TryGetProperty("process_id", out var p))
+            if (!Parameters.HasValue) return null;
+            var p = Parameters.Value;
+            // Support both snake_case (process_id) and camelCase (processId)
+            if (!p.TryGetProperty("process_id", out var prop) && !p.TryGetProperty("processId", out prop))
                 return null;
-            if (p.TryGetInt32(out var pid))
+            if (prop.TryGetInt32(out var pid))
                 return pid;
-            if (p.ValueKind == JsonValueKind.String && int.TryParse(p.GetString(), out pid))
+            if (prop.ValueKind == JsonValueKind.String && int.TryParse(prop.GetString(), out pid))
                 return pid;
             return null;
         }

@@ -4,7 +4,7 @@
   "AgentKey": null,
   "HeartbeatIntervalMinutes": 5,
   "EventBatchIntervalSeconds": 30,
-  "CommandPollIntervalSeconds": 60,
+  "CommandPollIntervalSeconds": 15,
   "MaxEventsPerBatch": 100,
   "MaxRetries": 5,
   "LocalQueuePath": "queue"

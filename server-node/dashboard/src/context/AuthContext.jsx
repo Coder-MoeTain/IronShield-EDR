@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const AuthContext = createContext(null);
 
 const TOKEN_KEY = 'edr_token';
 const USER_KEY = 'edr_user';
+const TENANT_KEY = 'edr_selected_tenant';
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
@@ -15,6 +16,20 @@ export function AuthProvider({ children }) {
       return null;
     }
   });
+  const [selectedTenantId, setSelectedTenantIdState] = useState(() => {
+    const v = localStorage.getItem(TENANT_KEY);
+    return v ? parseInt(v, 10) : null;
+  });
+
+  const setSelectedTenantId = useCallback((id) => {
+    if (id == null) {
+      localStorage.removeItem(TENANT_KEY);
+      setSelectedTenantIdState(null);
+    } else {
+      localStorage.setItem(TENANT_KEY, String(id));
+      setSelectedTenantIdState(id);
+    }
+  }, []);
 
   const login = async (username, password) => {
     const res = await fetch('/api/auth/login', {
@@ -37,23 +52,26 @@ export function AuthProvider({ children }) {
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(TENANT_KEY);
     setToken(null);
     setUser(null);
+    setSelectedTenantIdState(null);
   };
 
-  const api = (path, options = {}) => {
-    return fetch(path, {
-      ...options,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  };
+  const api = useCallback((path, options = {}) => {
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+    if (user?.role === 'super_admin' && selectedTenantId != null) {
+      headers['X-Tenant-Id'] = String(selectedTenantId);
+    }
+    return fetch(path, { ...options, headers });
+  }, [token, user?.role, selectedTenantId]);
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout, api }}>
+    <AuthContext.Provider value={{ token, user, login, logout, api, selectedTenantId, setSelectedTenantId }}>
       {children}
     </AuthContext.Provider>
   );

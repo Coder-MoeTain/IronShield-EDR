@@ -251,7 +251,6 @@ public class AgentWorker
 
         while (!ct.IsCancellationRequested)
         {
-            await Task.Delay(TimeSpan.FromSeconds(pollInterval), ct);
             try
             {
                 var actions = await poller.GetPendingAsync(ct);
@@ -303,6 +302,7 @@ public class AgentWorker
             {
                 Console.WriteLine($"[Agent] Command poll error: {ex.Message}");
             }
+            await Task.Delay(TimeSpan.FromSeconds(pollInterval), ct);
         }
     }
 

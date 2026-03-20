@@ -42,7 +42,7 @@ export default function Events() {
     endpointId: searchParams.get('endpointId') || '',
     hostname: searchParams.get('hostname') || '',
     eventType: searchParams.get('eventType') || '',
-    eventSource: '',
+    eventSource: searchParams.get('eventSource') || '',
     username: '',
     processName: '',
     dateFrom: '',

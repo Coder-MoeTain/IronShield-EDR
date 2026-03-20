@@ -154,6 +154,7 @@ async function getProcessTree(req, res, next) {
 async function processMonitor(req, res, next) {
   try {
     const filters = {
+      tenantId: req.tenantId,
       endpointId: req.query.endpointId,
       hostname: req.query.hostname,
       processName: req.query.processName,

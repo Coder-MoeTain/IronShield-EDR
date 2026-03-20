@@ -97,14 +97,25 @@ router.post('/iocs', phase4.createIoc);
 router.delete('/iocs/:id', phase4.deleteIoc);
 router.get('/iocs/matches', phase4.getIocMatches);
 
-// Phase 6: Notification channels, retention, agent releases
+// Tenant management (super_admin for create/update/delete)
+const tenantController = require('../controllers/tenantController');
+router.get('/tenants', tenantController.listTenants);
+router.get('/tenants/:id', tenantController.getTenant);
+router.post('/tenants', requireAnyPermission('*'), tenantController.createTenant);
+router.patch('/tenants/:id', requireAnyPermission('*'), tenantController.updateTenant);
+router.delete('/tenants/:id', requireAnyPermission('*'), tenantController.deleteTenant);
+
+// Phase 6: Enterprise - Notification channels, retention, agent releases
 const phase6 = require('../controllers/phase6Controller');
 router.get('/notification-channels', phase6.listNotificationChannels);
-router.post('/notification-channels', phase6.createNotificationChannel);
-router.patch('/notification-channels/:id', phase6.updateNotificationChannel);
+router.post('/notification-channels', requireAnyPermission('*', 'manage_integrations'), phase6.createNotificationChannel);
+router.patch('/notification-channels/:id', requireAnyPermission('*', 'manage_integrations'), phase6.updateNotificationChannel);
 router.get('/retention-policies', phase6.listRetentionPolicies);
-router.post('/retention-policies/run', phase6.runRetention);
+router.post('/retention-policies', requireAnyPermission('*', 'manage_tenants'), phase6.createRetentionPolicy);
+router.patch('/retention-policies/:id', requireAnyPermission('*', 'manage_tenants'), phase6.updateRetentionPolicy);
+router.delete('/retention-policies/:id', requireAnyPermission('*', 'manage_tenants'), phase6.deleteRetentionPolicy);
+router.post('/retention-policies/run', requireAnyPermission('*', 'manage_tenants'), phase6.runRetention);
 router.get('/agent-releases', phase6.listAgentReleases);
-router.post('/agent-releases', phase6.createAgentRelease);
+router.post('/agent-releases', requireAnyPermission('*'), phase6.createAgentRelease);
 
 module.exports = router;
