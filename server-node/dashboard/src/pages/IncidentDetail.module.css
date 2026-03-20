@@ -1,0 +1,30 @@
+.container { display: flex; flex-direction: column; gap: 1.5rem; }
+.header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; }
+.back { color: var(--text-muted); font-size: 0.9rem; display: block; margin-bottom: 0.5rem; }
+.back:hover { color: var(--accent-blue); }
+.title { font-size: 1.5rem; font-weight: 600; }
+.actions { display: flex; gap: 0.5rem; }
+.actionBtn { padding: 0.5rem 1rem; background: var(--accent-blue); color: white; border-radius: 6px; }
+.actionBtn:disabled { opacity: 0.6; }
+.actionBtnSecondary { padding: 0.5rem 1rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+.card { background: var(--bg-glass); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; box-shadow: var(--shadow-sm); }
+.card h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-secondary); }
+.card dl { display: grid; gap: 0.5rem; }
+.card dt { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
+.card dd { font-size: 0.95rem; }
+.badge { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; }
+.critical { background: rgba(220, 38, 38, 0.15); color: #b91c1c; }
+.high { background: rgba(217, 119, 6, 0.15); color: #b45309; }
+.medium { background: rgba(37, 99, 235, 0.15); color: #1d4ed8; }
+.low { background: rgba(100, 116, 139, 0.15); color: var(--text-muted); }
+.mono { font-family: 'JetBrains Mono', monospace; }
+.description { font-size: 0.9rem; line-height: 1.5; margin-top: 0.5rem; }
+.alertList { list-style: none; padding: 0; margin: 0; }
+.alertList li { padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+.alertList li:last-child { border-bottom: none; }
+.severityBadge { display: inline-block; padding: 0.15rem 0.4rem; margin-right: 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+.alertMeta { display: block; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+.empty { color: var(--text-muted); font-size: 0.9rem; }
+.loading, .error { padding: 2rem; color: var(--text-muted); }

@@ -1,0 +1,40 @@
+{
+  "name": "edr-platform-backend",
+  "version": "1.0.0",
+  "description": "IronShield EDR Platform - Node.js Backend API",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "seed-admin": "node scripts/seed-admin.js",
+    "seed-rules": "node scripts/seed-rules.js",
+    "seed-alerts": "node scripts/seed-alerts.js",
+    "process-events": "node scripts/process-unprocessed-events.js",
+    "worker": "node src/worker.js",
+    "seed-phase5": "node scripts/seed-phase5.js",
+    "migrate-phase6": "node scripts/migrate-phase6.js",
+    "migrate-endpoint-metrics": "node scripts/migrate-endpoint-metrics.js",
+    "seed-phase6": "node scripts/seed-phase6.js",
+    "run-retention": "node scripts/run-retention.js",
+    "build-dashboard": "cd dashboard && npm install && npm run build"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "bullmq": "^5.71.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "ioredis": "^5.10.1",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.6.5",
+    "nodemailer": "^6.10.1",
+    "pino": "^8.17.2",
+    "pino-pretty": "^10.3.1",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "ServerUrl": "https://edr.example.com",
+  "RegistrationToken": "your-registration-token-from-server",
+  "AgentKey": null,
+  "HeartbeatIntervalMinutes": 5,
+  "EventBatchIntervalSeconds": 30,
+  "CommandPollIntervalSeconds": 60,
+  "MaxEventsPerBatch": 100,
+  "MaxRetries": 5,
+  "LocalQueuePath": "queue"
+}

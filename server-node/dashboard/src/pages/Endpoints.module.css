@@ -1,0 +1,106 @@
+.title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+.tableWrap {
+  background: var(--bg-glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.table th {
+  background: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.table tr:hover {
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.hostname {
+  font-weight: 500;
+}
+
+.os {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.statusOnline {
+  background: rgba(22, 163, 74, 0.15);
+  color: #15803d;
+}
+
+.statusOffline {
+  background: rgba(220, 38, 38, 0.15);
+  color: #b91c1c;
+}
+
+.statusUnknown {
+  background: rgba(100, 116, 139, 0.15);
+  color: var(--text-muted);
+}
+
+.viewLink {
+  color: var(--accent-blue);
+}
+
+.deleteBtn {
+  padding: 0.25rem 0.5rem;
+  background: transparent;
+  border: 1px solid rgba(220, 38, 38, 0.5);
+  border-radius: 4px;
+  color: #b91c1c;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.deleteBtn:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.1);
+}
+
+.deleteBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading,
+.empty {
+  color: var(--text-muted);
+  padding: 2rem;
+}

@@ -1,0 +1,32 @@
+.container { display: flex; flex-direction: column; gap: 1rem; }
+.header { display: flex; justify-content: space-between; align-items: center; }
+.title { font-size: 1.5rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+.titleIcon { color: var(--accent-red); font-size: 1.2rem; }
+.refreshBtn { padding: 0.5rem 1rem; background: rgba(255, 255, 255, 0.8); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); }
+.refreshBtn:hover { background: var(--accent-blue); color: white; border-color: var(--accent-blue); }
+.filters { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.filters select { padding: 0.5rem 0.75rem; background: rgba(255, 255, 255, 0.8); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); }
+.tableWrap { background: var(--bg-glass); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; box-shadow: var(--shadow-sm); }
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { padding: 0.65rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+.table th { background: rgba(255, 255, 255, 0.6); font-weight: 500; font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); }
+.row { cursor: pointer; transition: background 0.15s; }
+.row:hover { background: rgba(37, 99, 235, 0.05); }
+.timeCell { white-space: nowrap; }
+.timeFull { display: block; font-size: 0.75rem; color: var(--text-muted); }
+.titleCell { max-width: 280px; }
+.mono { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+.badge { padding: 0.2rem 0.45rem; border-radius: 4px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; }
+.critical { background: rgba(220, 38, 38, 0.15); color: #b91c1c; }
+.high { background: rgba(217, 119, 6, 0.15); color: #b45309; }
+.medium { background: rgba(37, 99, 235, 0.15); color: #1d4ed8; }
+.low { background: rgba(100, 116, 139, 0.15); color: var(--text-muted); }
+.statusBadge { padding: 0.2rem 0.45rem; border-radius: 6px; font-size: 0.7rem; }
+.statusOpen { background: rgba(217, 119, 6, 0.15); color: #b45309; }
+.statusInvestigating { background: rgba(37, 99, 235, 0.15); color: #1d4ed8; }
+.statusResolved { background: rgba(22, 163, 74, 0.15); color: #15803d; }
+.statusClosed { background: rgba(100, 116, 139, 0.15); color: var(--text-muted); }
+.actionsCell { white-space: nowrap; }
+.quickBtn { padding: 0.25rem 0.5rem; margin-right: 0.25rem; font-size: 0.75rem; background: rgba(255, 255, 255, 0.8); border: 1px solid var(--border); border-radius: 6px; color: var(--text-secondary); cursor: pointer; }
+.quickBtn:hover { background: var(--accent-blue); color: white; border-color: var(--accent-blue); }
+.loading, .empty { padding: 2rem; color: var(--text-muted); text-align: center; }

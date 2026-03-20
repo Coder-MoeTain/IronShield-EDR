@@ -1,0 +1,294 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.titleIcon {
+  color: var(--accent-cyan);
+  font-size: 1.2rem;
+}
+
+.headerActions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.rawLink {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.rawLink:hover {
+  color: var(--accent-blue);
+}
+
+.refreshBtn {
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+}
+
+.refreshBtn:hover {
+  background: var(--accent-blue);
+  color: white;
+  border-color: var(--accent-blue);
+}
+
+.statsBar {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.statCard {
+  flex: 1;
+  min-width: 80px;
+  padding: 1rem;
+  background: var(--bg-glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  box-shadow: var(--shadow-sm);
+}
+
+.statCard:hover {
+  border-color: var(--accent-blue);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.statValue {
+  display: block;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.statLabel {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.statToday .statValue {
+  color: var(--accent-cyan);
+}
+
+.filters {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filters input,
+.filters select {
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.filters input {
+  width: 120px;
+}
+
+.tableWrap {
+  background: var(--bg-glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow-x: auto;
+  box-shadow: var(--shadow-sm);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.table th {
+  background: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.eventRow {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.eventRow:hover {
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.timeCell {
+  white-space: nowrap;
+}
+
+.timeAgo {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.timeFull {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.typeBadge {
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.typeProcess {
+  background: rgba(37, 99, 235, 0.15);
+  color: #1d4ed8;
+}
+
+.typeNetwork {
+  background: rgba(22, 163, 74, 0.15);
+  color: #15803d;
+}
+
+.typeFile {
+  background: rgba(217, 119, 6, 0.15);
+  color: #b45309;
+}
+
+.typeRegistry {
+  background: rgba(99, 102, 241, 0.15);
+  color: #4f46e5;
+}
+
+.typeAuth {
+  background: rgba(219, 39, 119, 0.15);
+  color: #be185d;
+}
+
+.typeOther {
+  background: rgba(100, 116, 139, 0.15);
+  color: var(--text-muted);
+}
+
+.sourceCell {
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.processCell {
+  max-width: 140px;
+}
+
+.processName {
+  font-weight: 500;
+}
+
+.parentCell {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmdCell {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.82rem;
+}
+
+.actionsCell {
+  white-space: nowrap;
+}
+
+.quickBtn {
+  padding: 0.25rem 0.5rem;
+  margin-right: 0.25rem;
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.quickBtn:hover {
+  background: var(--accent-blue);
+  color: white;
+  border-color: var(--accent-blue);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+.pagination button {
+  padding: 0.4rem 0.8rem;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+}
+
+.pagination button:hover:not(:disabled) {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.loading,
+.empty {
+  padding: 2rem;
+  color: var(--text-muted);
+  text-align: center;
+}

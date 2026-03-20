@@ -1,0 +1,51 @@
+# Open EDR Platform - Docker Compose
+# Runs MySQL 8 and Node.js backend
+
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: edr-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-edr_root_password}
+      MYSQL_DATABASE: edr_platform
+      MYSQL_USER: ${MYSQL_USER:-edr_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-edr_password}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./server-node
+      dockerfile: Dockerfile
+    container_name: edr-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER:-edr_user}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-edr_password}
+      DB_NAME: edr_platform
+      JWT_SECRET: ${JWT_SECRET:-change-this-jwt-secret-in-production}
+      AGENT_REGISTRATION_TOKEN: ${AGENT_REGISTRATION_TOKEN:-change-this-registration-token}
+    ports:
+      - "3000:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql_data:

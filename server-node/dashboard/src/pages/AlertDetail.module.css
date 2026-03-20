@@ -1,0 +1,300 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.back {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.back:hover {
+  color: var(--accent-blue);
+}
+
+.headerMain {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.headerBadges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.severityBadge { }
+.critical { background: rgba(220, 38, 38, 0.15); color: #b91c1c; }
+.high { background: rgba(217, 119, 6, 0.15); color: #b45309; }
+.medium { background: rgba(37, 99, 235, 0.15); color: #1d4ed8; }
+.low { background: rgba(100, 116, 139, 0.15); color: var(--text-muted); }
+
+.statusBadge {
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.statusNew { background: rgba(217, 119, 6, 0.15); color: #b45309; }
+.statusInvestigating { background: rgba(37, 99, 235, 0.15); color: #1d4ed8; }
+.statusClosed { background: rgba(22, 163, 74, 0.15); color: #15803d; }
+.statusFalsePositive { background: rgba(100, 116, 139, 0.15); color: var(--text-muted); }
+
+.mitreBadge {
+  padding: 0.2rem 0.4rem;
+  background: rgba(99, 102, 241, 0.15);
+  color: #4f46e5;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-family: monospace;
+}
+
+.confBadge {
+  padding: 0.2rem 0.4rem;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--text-muted);
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+.quickActions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 1rem;
+  background: var(--bg-glass);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.quickLabel {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-right: 0.5rem;
+}
+
+.quickActionBtn {
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.quickActionBtn:hover {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: white;
+}
+
+.actionMsg {
+  font-size: 0.85rem;
+  color: var(--accent-green);
+  margin-left: 0.5rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.card h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.card dl {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.card dt {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.card dd {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.ip {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.mitreTactic {
+  color: var(--text-secondary);
+}
+
+.mitreTechnique {
+  color: #c4b5fd;
+  font-family: monospace;
+}
+
+.assigned {
+  margin-bottom: 1rem;
+}
+
+.assigned label,
+.statusActions label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.assigned input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+}
+
+.statusActions {
+  margin-bottom: 1rem;
+}
+
+.statusBtns {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.statusBtns button {
+  padding: 0.4rem 0.75rem;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.statusBtns button:hover {
+  border-color: var(--accent-blue);
+}
+
+.statusBtns button.active {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: white;
+}
+
+.notesTitle {
+  margin-top: 1.25rem !important;
+}
+
+.notesList {
+  list-style: none;
+  margin: 0 0 1rem 0;
+  padding: 0;
+}
+
+.noteItem {
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  border-left: 3px solid var(--accent-blue);
+}
+
+.noteMeta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.noteItem p {
+  margin: 0.35rem 0 0 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.noNotes {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.card textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  background: var(--accent-blue);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+.loading,
+.error {
+  padding: 2rem;
+  color: var(--text-muted);
+}

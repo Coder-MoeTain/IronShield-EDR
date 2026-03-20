@@ -1,0 +1,6 @@
+{
+  "ServerUrl": "http://localhost:3001",
+  "RegistrationToken": "change-this-registration-token",
+  "HeartbeatIntervalMinutes": 5,
+  "EventBatchIntervalSeconds": 30
+}
