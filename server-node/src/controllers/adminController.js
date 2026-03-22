@@ -8,7 +8,18 @@ const AuditLogService = require('../services/AuditLogService');
 const AlertService = require('../services/AlertService');
 const ResponseActionService = require('../services/ResponseActionService');
 const DashboardService = require('../services/DashboardService');
+const MsspService = require('../services/MsspService');
+const SavedViewService = require('../services/SavedViewService');
+const AnomalyService = require('../services/AnomalyService');
+const SiemExportService = require('../services/SiemExportService');
+const HostGroupService = require('../services/HostGroupService');
+const HuntService = require('../services/HuntService');
+const SensorHealthService = require('../services/SensorHealthService');
+const DetectionSuppressionService = require('../services/DetectionSuppressionService');
+const PlaybookService = require('../services/PlaybookService');
+const ProcessTimelineService = require('../services/ProcessTimelineService');
 const db = require('../utils/db');
+const DetectionRuleService = require('../services/DetectionRuleService');
 
 async function dashboardSummary(req, res, next) {
   try {
@@ -23,6 +34,9 @@ async function listEndpoints(req, res, next) {
   try {
     const filters = { ...req.query };
     if (req.tenantId != null) filters.tenantId = req.tenantId;
+    if (req.query.hostGroupId != null && req.query.hostGroupId !== '') {
+      filters.hostGroupId = req.query.hostGroupId;
+    }
     const endpoints = await EndpointService.list(filters);
     res.json(endpoints);
   } catch (err) {
@@ -58,39 +72,10 @@ async function getEndpointMetrics(req, res, next) {
   }
 }
 
-async function setEndpointTestMetrics(req, res, next) {
+async function msspOverview(req, res, next) {
   try {
-    const { id } = req.params;
-    const endpoint = await EndpointService.getById(id, req.tenantId);
-    if (!endpoint) {
-      return res.status(404).json({ error: 'Endpoint not found' });
-    }
-    const { cpu_percent, ram_percent, disk_percent } = req.body || {};
-    const c = cpu_percent ?? null;
-    const r = ram_percent ?? null;
-    const d = disk_percent ?? null;
-
-    // Update endpoints table (if columns exist)
-    try {
-      await db.query(
-        `UPDATE endpoints SET cpu_percent = COALESCE(?, cpu_percent), ram_percent = COALESCE(?, ram_percent), disk_percent = COALESCE(?, disk_percent) WHERE id = ?`,
-        [c, r, d, id]
-      );
-    } catch (e) {
-      // Columns may not exist - run: mysql < database/schema-endpoint-metrics.sql
-    }
-
-    // Insert into endpoint_metrics so metrics history and getById fallback work
-    try {
-      await db.execute(
-        `INSERT INTO endpoint_metrics (endpoint_id, cpu_percent, ram_percent, disk_percent) VALUES (?, ?, ?, ?)`,
-        [id, c, r, d]
-      );
-    } catch (e) {
-      // Table may not exist
-    }
-
-    res.json({ ok: true, message: 'Test metrics updated. Refresh the page.' });
+    const overview = await MsspService.getOverview(req.tenantId);
+    res.json(overview);
   } catch (err) {
     next(err);
   }
@@ -108,6 +93,125 @@ async function deleteEndpoint(req, res, next) {
       return res.status(500).json({ error: 'Failed to delete endpoint' });
     }
     res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function patchEndpoint(req, res, next) {
+  try {
+    const updated = await EndpointService.patch(req.params.id, req.body || {}, req.tenantId);
+    if (!updated) return res.status(404).json({ error: 'Endpoint not found' });
+    res.json(updated);
+  } catch (err) {
+    if (err.message && /Invalid|not in tenant/i.test(err.message)) {
+      return res.status(400).json({ error: err.message });
+    }
+    next(err);
+  }
+}
+
+async function listHostGroups(req, res, next) {
+  try {
+    const groups = await HostGroupService.list(req.tenantId);
+    res.json(groups);
+  } catch (err) {
+    if (err.code === 'ER_NO_SUCH_TABLE') return res.json([]);
+    next(err);
+  }
+}
+
+async function createHostGroup(req, res, next) {
+  try {
+    const { name, description } = req.body || {};
+    const id = await HostGroupService.create({
+      name,
+      description,
+      tenantId: req.tenantId,
+    });
+    res.status(201).json({ id });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateHostGroup(req, res, next) {
+  try {
+    const ok = await HostGroupService.update(req.params.id, req.body || {}, req.tenantId);
+    if (!ok) return res.status(404).json({ error: 'Host group not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deleteHostGroup(req, res, next) {
+  try {
+    const ok = await HostGroupService.remove(req.params.id, req.tenantId);
+    if (!ok) return res.status(404).json({ error: 'Host group not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function listHuntQueries(req, res, next) {
+  try {
+    const rows = await HuntService.list();
+    res.json(rows);
+  } catch (err) {
+    if (err.code === 'ER_NO_SUCH_TABLE') return res.json([]);
+    next(err);
+  }
+}
+
+async function createHuntQuery(req, res, next) {
+  try {
+    const { name, query_params } = req.body || {};
+    const id = await HuntService.create({
+      name,
+      query_params,
+      created_by: req.user?.username || null,
+    });
+    res.status(201).json({ id });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deleteHuntQuery(req, res, next) {
+  try {
+    const ok = await HuntService.remove(req.params.id);
+    if (!ok) return res.status(404).json({ error: 'Hunt not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function runHuntQuery(req, res, next) {
+  try {
+    const result = await HuntService.runHunt(req.params.id, req.tenantId);
+    if (!result) return res.status(404).json({ error: 'Hunt not found' });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function runHuntAdhoc(req, res, next) {
+  try {
+    const result = await HuntService.runAdhoc(req.body || {}, req.tenantId);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getSensorHealth(req, res, next) {
+  try {
+    const data = await SensorHealthService.getHealth(req.tenantId);
+    res.json(data);
   } catch (err) {
     next(err);
   }
@@ -139,7 +243,8 @@ async function getEvent(req, res, next) {
 
 async function listNormalizedEvents(req, res, next) {
   try {
-    const filters = req.query;
+    const filters = { ...req.query };
+    if (req.tenantId != null) filters.tenantId = req.tenantId;
     const events = await NormalizedEventService.list(filters);
     const total = await NormalizedEventService.count(filters);
     const summary = await NormalizedEventService.getSummary();
@@ -214,6 +319,20 @@ async function updateAlertStatus(req, res, next) {
   }
 }
 
+async function patchAlert(req, res, next) {
+  try {
+    const body = { ...(req.body || {}) };
+    if (body.suppression_reason != null && String(body.suppression_reason).trim()) {
+      body.suppressed_by = body.suppressed_by ?? req.user?.username ?? null;
+    }
+    const updated = await AlertService.patch(req.params.id, body, req.tenantId);
+    if (!updated) return res.status(404).json({ error: 'Alert not found' });
+    res.json(updated);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function addAlertNote(req, res, next) {
   try {
     const { id } = req.params;
@@ -242,7 +361,8 @@ async function createResponseAction(req, res, next) {
       id,
       action_type,
       parameters,
-      req.user?.username || 'unknown'
+      req.user?.username || 'unknown',
+      req.tenantId
     );
     res.status(201).json({ id: actionId });
   } catch (err) {
@@ -282,13 +402,182 @@ async function updateDetectionRule(req, res, next) {
   }
 }
 
+async function listSavedViews(req, res, next) {
+  try {
+    const userId = req.user?.userId;
+    const views = await SavedViewService.list(userId, req.query.page);
+    res.json(views);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function createSavedView(req, res, next) {
+  try {
+    const userId = req.user?.userId;
+    const id = await SavedViewService.create(userId, req.body);
+    res.status(201).json({ id });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deleteSavedView(req, res, next) {
+  try {
+    const userId = req.user?.userId;
+    const ok = await SavedViewService.remove(userId, req.params.id);
+    if (!ok) return res.status(404).json({ error: 'Saved view not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getAnomalies(req, res, next) {
+  try {
+    const data = await AnomalyService.getRareProcessPaths(req.query);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function exportSiemAlerts(req, res, next) {
+  try {
+    res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="ironshield-alerts.ndjson"');
+    await SiemExportService.streamAlertsNdjson(res, { ...req.query, tenantId: req.tenantId });
+    res.end();
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function listSuppressions(req, res, next) {
+  try {
+    const rows = await DetectionSuppressionService.list(req.tenantId);
+    res.json(rows);
+  } catch (err) {
+    if (err.code === 'ER_NO_SUCH_TABLE') return res.json([]);
+    next(err);
+  }
+}
+
+async function createSuppression(req, res, next) {
+  try {
+    const id = await DetectionSuppressionService.create(req.body || {}, req.user?.username, req.tenantId);
+    res.status(201).json({ id });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function patchSuppression(req, res, next) {
+  try {
+    const ok = await DetectionSuppressionService.update(req.params.id, req.body || {}, req.tenantId);
+    if (!ok) return res.status(404).json({ error: 'Suppression not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deleteSuppression(req, res, next) {
+  try {
+    const ok = await DetectionSuppressionService.remove(req.params.id, req.tenantId);
+    if (!ok) return res.status(404).json({ error: 'Suppression not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function listPlaybooks(req, res, next) {
+  try {
+    const rows = await PlaybookService.list(req.tenantId);
+    res.json(rows);
+  } catch (err) {
+    if (err.code === 'ER_NO_SUCH_TABLE') return res.json([]);
+    next(err);
+  }
+}
+
+async function createPlaybook(req, res, next) {
+  try {
+    const id = await PlaybookService.create(req.body || {}, req.user?.username, req.tenantId);
+    res.status(201).json({ id });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deletePlaybook(req, res, next) {
+  try {
+    const ok = await PlaybookService.remove(req.params.id, req.tenantId);
+    if (!ok) return res.status(404).json({ error: 'Playbook not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function runPlaybook(req, res, next) {
+  try {
+    const { endpoint_id } = req.body || {};
+    if (!endpoint_id) return res.status(400).json({ error: 'endpoint_id required' });
+    const result = await PlaybookService.execute(
+      req.params.id,
+      parseInt(endpoint_id, 10),
+      req.user?.username || 'unknown',
+      req.tenantId
+    );
+    res.json(result);
+  } catch (err) {
+    if (err.message && /not found|scope|Invalid/i.test(err.message)) {
+      return res.status(400).json({ error: err.message });
+    }
+    next(err);
+  }
+}
+
+async function getProcessTimeline(req, res, next) {
+  try {
+    const endpoint = await EndpointService.getById(req.params.id, req.tenantId);
+    if (!endpoint) return res.status(404).json({ error: 'Endpoint not found' });
+    const events = await ProcessTimelineService.getTimeline(req.params.id, req.query, req.tenantId);
+    res.json({ endpoint_id: parseInt(req.params.id, 10), events });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   dashboardSummary,
   listEndpoints,
   getEndpoint,
+  patchEndpoint,
   getEndpointMetrics,
-  setEndpointTestMetrics,
+  msspOverview,
   deleteEndpoint,
+  listHostGroups,
+  createHostGroup,
+  updateHostGroup,
+  deleteHostGroup,
+  listHuntQueries,
+  createHuntQuery,
+  deleteHuntQuery,
+  runHuntQuery,
+  runHuntAdhoc,
+  getSensorHealth,
+  listSuppressions,
+  createSuppression,
+  patchSuppression,
+  deleteSuppression,
+  listPlaybooks,
+  createPlaybook,
+  deletePlaybook,
+  runPlaybook,
+  getProcessTimeline,
   listEvents,
   getEvent,
   listAuditLogs,
@@ -296,11 +585,19 @@ module.exports = {
   getAlertsSummary,
   getAlert,
   updateAlertStatus,
+  patchAlert,
   addAlertNote,
   getAlertNotes,
+  listSavedViews,
+  createSavedView,
+  deleteSavedView,
+  getAnomalies,
+  exportSiemAlerts,
   createResponseAction,
   listResponseActions,
   listDetectionRules,
+  getDetectionRule,
+  createDetectionRule,
   updateDetectionRule,
   listNormalizedEvents,
   getNormalizedEvent,

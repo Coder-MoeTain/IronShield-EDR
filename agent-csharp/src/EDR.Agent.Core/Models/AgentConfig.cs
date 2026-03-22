@@ -11,6 +11,11 @@ public class AgentConfig
     /// <summary>Bootstrap token for initial registration</summary>
     public string RegistrationToken { get; set; } = "";
 
+    /// <summary>
+    /// Optional tenant slug (Falcon-style customer / CID enrollment). Must match a tenant on the server; sent at registration only.
+    /// </summary>
+    public string? TenantSlug { get; set; }
+
     /// <summary>Agent key received after registration (persisted)</summary>
     public string? AgentKey { get; set; }
 
@@ -31,4 +36,10 @@ public class AgentConfig
 
     /// <summary>Local queue path (JSON file or directory)</summary>
     public string LocalQueuePath { get; set; } = "queue";
+
+    /// <summary>Optional path prefixes allowed for run_script response (e.g. C:\\IronShield\\Scripts\\)</summary>
+    public List<string> ScriptAllowlistPrefixes { get; set; } = new();
+
+    /// <summary>Optional SHA-256 hex hashes; when non-empty, script file must match one of these (in addition to path prefix).</summary>
+    public List<string> ScriptAllowlistSha256 { get; set; } = new();
 }

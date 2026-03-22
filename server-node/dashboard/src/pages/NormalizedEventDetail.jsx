@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
 import styles from './NormalizedEventDetail.module.css';
 
 export default function NormalizedEventDetail() {
@@ -56,20 +57,28 @@ export default function NormalizedEventDetail() {
   const linkedAlerts = event.linkedAlerts || [];
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <div>
-          <Link to="/events" className={styles.back}>← Events</Link>
-          <h1 className={styles.title}>Event #{event.id}</h1>
-        </div>
-        <div className={styles.quickActions}>
-          <Link to={`/endpoints/${event.endpoint_id}`} className={styles.actionBtn}>Endpoint</Link>
-          <Link to={`/endpoints/${event.endpoint_id}/process-tree`} className={styles.actionBtn}>Process Tree</Link>
-          <button onClick={() => doAction('investigate')} className={styles.actionBtn}>
-            Create Investigation
+    <PageShell
+      kicker="Explore"
+      title={`Event #${event.id}`}
+      description={`${event.event_type || 'Event'} · ${event.hostname || event.endpoint_hostname || ''}`}
+      actions={
+        <>
+          <Link to="/events" className="falcon-btn falcon-btn-ghost">
+            ← Events
+          </Link>
+          <Link to={`/endpoints/${event.endpoint_id}`} className="falcon-btn falcon-btn-ghost">
+            Endpoint
+          </Link>
+          <Link to={`/endpoints/${event.endpoint_id}/process-tree`} className="falcon-btn falcon-btn-ghost">
+            Process tree
+          </Link>
+          <button type="button" onClick={() => doAction('investigate')} className="falcon-btn falcon-btn-primary">
+            Create investigation
           </button>
-        </div>
-      </div>
+        </>
+      }
+    >
+    <div className={styles.container}>
 
       <div className={styles.grid}>
         <div className={styles.card}>
@@ -137,5 +146,6 @@ export default function NormalizedEventDetail() {
         </pre>
       </div>
     </div>
+    </PageShell>
   );
 }

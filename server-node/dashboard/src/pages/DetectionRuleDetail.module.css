@@ -1,0 +1,69 @@
+.meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--bg-secondary, var(--surface-elevated));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.mono {
+  font-size: 0.9rem;
+}
+
+.on {
+  color: var(--accent-green, #16a34a);
+  font-weight: 600;
+}
+
+.off {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.mitre {
+  margin-bottom: 1.25rem;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--brand-red, #e01e37);
+  background: rgba(224, 30, 55, 0.06);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.section {
+  margin-top: 0.5rem;
+}
+
+.h3 {
+  font-size: 1rem;
+  margin-bottom: 0.35rem;
+}
+
+.hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 0.65rem;
+}
+
+.pre {
+  margin: 0;
+  padding: 1rem;
+  overflow: auto;
+  max-height: 420px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-tertiary, #0f1117);
+}

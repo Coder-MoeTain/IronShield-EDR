@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
+import FalconTableShell from '../components/FalconTableShell';
+import FalconEmptyState from '../components/FalconEmptyState';
+import FalconPagination from '../components/FalconPagination';
+import { falconSeverityClass } from '../utils/falconUi';
 import styles from './Alerts.module.css';
 
 export default function Investigations() {
@@ -30,14 +35,7 @@ export default function Investigations() {
       .catch(() => setEndpoints([]));
   }, []);
 
-  const severityClass = (s) => {
-    if (s === 'critical') return styles.critical;
-    if (s === 'high') return styles.high;
-    if (s === 'medium') return styles.medium;
-    return styles.low;
-  };
-
-  if (loading && cases.length === 0) return <div className={styles.loading}>Loading...</div>;
+  if (loading && cases.length === 0) return <PageShell loading loadingLabel="Loading investigations…" />;
 
   const createCase = async () => {
     if (!newTitle.trim()) return;
@@ -59,11 +57,17 @@ export default function Investigations() {
   };
 
   return (
+    <PageShell
+      kicker="Respond"
+      title="Investigation cases"
+      description="SOC cases linked to endpoints and alerts — track status from open to closed."
+      actions={
+        <button type="button" className="falcon-btn falcon-btn-primary" onClick={() => setShowCreate(!showCreate)}>
+          + New case
+        </button>
+      }
+    >
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h1 className={styles.title}>Investigation Cases</h1>
-        <button onClick={() => setShowCreate(!showCreate)}>+ New Case</button>
-      </div>
       {showCreate && (
         <div className={styles.card} style={{ marginBottom: 16 }}>
           <h3>Create Investigation</h3>
@@ -78,44 +82,66 @@ export default function Investigations() {
           <button onClick={createCase}>Create</button>
         </div>
       )}
-      <div className={styles.filters}>
-        <select value={filters.status} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value, offset: 0 }))}>
-          <option value="">All statuses</option>
-          <option value="open">Open</option>
-          <option value="investigating">Investigating</option>
-          <option value="resolved">Resolved</option>
-          <option value="closed">Closed</option>
-        </select>
-      </div>
-      <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Case ID</th>
-              <th>Title</th>
-              <th>Hostname</th>
-              <th>Severity</th>
-              <th>Status</th>
-              <th>Updated</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {cases.map((c) => (
-              <tr key={c.id}>
-                <td className="mono">{c.case_id}</td>
-                <td className={styles.titleCell}>{c.title}</td>
-                <td>{c.hostname ? <Link to={`/endpoints/${c.endpoint_id}`}>{c.hostname}</Link> : '-'}</td>
-                <td><span className={`${styles.badge} ${severityClass(c.severity)}`}>{c.severity}</span></td>
-                <td><span className={styles.status}>{c.status}</span></td>
-                <td className="mono">{new Date(c.updated_at).toLocaleString()}</td>
-                <td><Link to={`/investigations/${c.id}`}>View</Link></td>
+      <FalconTableShell
+        toolbar={(
+          <div className={`${styles.filters} falcon-filter-bar`}>
+            <select value={filters.status} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value, offset: 0 }))}>
+              <option value="">All statuses</option>
+              <option value="open">Open</option>
+              <option value="investigating">Investigating</option>
+              <option value="resolved">Resolved</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+        )}
+        footer={(
+          <FalconPagination
+            offset={filters.offset}
+            limit={filters.limit}
+            pageItemCount={cases.length}
+            onPrev={() => setFilters((f) => ({ ...f, offset: Math.max(0, f.offset - f.limit) }))}
+            onNext={() => setFilters((f) => ({ ...f, offset: f.offset + f.limit }))}
+            onLimitChange={(newLimit) => setFilters((f) => ({ ...f, limit: newLimit, offset: 0 }))}
+            pageSizeOptions={[25, 50, 100]}
+          />
+        )}
+      >
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Case ID</th>
+                <th>Title</th>
+                <th>Hostname</th>
+                <th>Severity</th>
+                <th>Status</th>
+                <th>Updated</th>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {cases.length === 0 && <p className={styles.empty}>No investigation cases.</p>}
-      </div>
+            </thead>
+            <tbody>
+              {cases.map((c) => (
+                <tr key={c.id}>
+                  <td className="mono">{c.case_id}</td>
+                  <td className={styles.titleCell}>{c.title}</td>
+                  <td>{c.hostname ? <Link to={`/endpoints/${c.endpoint_id}`}>{c.hostname}</Link> : '-'}</td>
+                  <td><span className={falconSeverityClass(c.severity)}>{c.severity}</span></td>
+                  <td><span className={styles.status}>{c.status}</span></td>
+                  <td className="mono">{new Date(c.updated_at).toLocaleString()}</td>
+                  <td><Link to={`/investigations/${c.id}`}>View</Link></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {cases.length === 0 && (
+            <FalconEmptyState
+              title="No investigation cases"
+              description="Create a case from an alert or use + New case. Cases track status from open through closed."
+            />
+          )}
+        </div>
+      </FalconTableShell>
     </div>
+    </PageShell>
   );
 }

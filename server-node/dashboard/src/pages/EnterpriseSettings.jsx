@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
 import styles from './EnterpriseSettings.module.css';
 
 const TABS = [
@@ -98,17 +99,16 @@ export default function EnterpriseSettings() {
   };
 
   if (loading && channels.length === 0 && retentionPolicies.length === 0 && agentReleases.length === 0) {
-    return <div className={styles.loading}>Loading enterprise settings...</div>;
+    return <PageShell loading loadingLabel="Loading enterprise settings…" />;
   }
 
   return (
+    <PageShell
+      kicker="Enterprise"
+      title="Enterprise settings"
+      description="Notification channels, data retention, and agent release artifacts for managed tenants."
+    >
     <div className={styles.container}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>
-          <span className={styles.titleIcon}>🏢</span> Enterprise Settings
-        </h1>
-      </header>
-
       <div className={styles.tabs}>
         {TABS.map((t) => (
           <button
@@ -263,6 +263,7 @@ export default function EnterpriseSettings() {
         />
       )}
     </div>
+    </PageShell>
   );
 }
 

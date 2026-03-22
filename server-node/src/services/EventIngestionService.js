@@ -25,8 +25,8 @@ async function processUnprocessed(endpointId, limit = 100) {
   for (const rawEvent of inserted) {
     const norm = EventNormalizationService.normalize(rawEvent);
     const insertResult = await db.execute(
-      `INSERT INTO normalized_events (raw_event_id, endpoint_id, hostname, username, timestamp, event_source, event_type, process_name, process_path, process_id, parent_process_name, parent_process_id, command_line, file_hash_sha256, source_ip, destination_ip, destination_port, protocol, raw_event_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO normalized_events (raw_event_id, endpoint_id, hostname, username, timestamp, event_source, event_type, process_name, process_path, process_id, parent_process_name, parent_process_id, command_line, file_hash_sha256, source_ip, destination_ip, destination_port, protocol, dns_query, dns_query_type, registry_key, registry_value_name, image_loaded_path, raw_event_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         toNull(rawEvent.id),
         toNull(norm.endpoint_id),
@@ -46,6 +46,11 @@ async function processUnprocessed(endpointId, limit = 100) {
         toNull(norm.destination_ip),
         toNull(norm.destination_port),
         toNull(norm.protocol),
+        toNull(norm.dns_query),
+        toNull(norm.dns_query_type),
+        toNull(norm.registry_key),
+        toNull(norm.registry_value_name),
+        toNull(norm.image_loaded_path),
         JSON.stringify(norm.raw_event_json || {}),
       ]
     );

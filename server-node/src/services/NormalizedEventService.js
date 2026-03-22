@@ -38,6 +38,18 @@ async function list(filters = {}) {
     sql += ' AND ne.process_name LIKE ?';
     params.push(`%${String(filters.processName)}%`);
   }
+  if (filters.commandLine) {
+    sql += ' AND ne.command_line LIKE ?';
+    params.push(`%${String(filters.commandLine)}%`);
+  }
+  if (filters.dnsQuery) {
+    sql += ' AND ne.dns_query LIKE ?';
+    params.push(`%${String(filters.dnsQuery)}%`);
+  }
+  if (filters.tenantId != null) {
+    sql += ' AND e.tenant_id = ?';
+    params.push(filters.tenantId);
+  }
   if (filters.dateFrom) {
     sql += ' AND ne.timestamp >= ?';
     params.push(filters.dateFrom);
@@ -67,7 +79,8 @@ async function getById(id) {
 }
 
 async function count(filters = {}) {
-  let sql = 'SELECT COUNT(*) as total FROM normalized_events ne WHERE 1=1';
+  let sql = `SELECT COUNT(*) as total FROM normalized_events ne
+    JOIN endpoints e ON e.id = ne.endpoint_id WHERE 1=1`;
   const params = [];
 
   if (filters.endpointId) {
@@ -93,6 +106,18 @@ async function count(filters = {}) {
   if (filters.processName) {
     sql += ' AND ne.process_name LIKE ?';
     params.push(`%${String(filters.processName)}%`);
+  }
+  if (filters.commandLine) {
+    sql += ' AND ne.command_line LIKE ?';
+    params.push(`%${String(filters.commandLine)}%`);
+  }
+  if (filters.dnsQuery) {
+    sql += ' AND ne.dns_query LIKE ?';
+    params.push(`%${String(filters.dnsQuery)}%`);
+  }
+  if (filters.tenantId != null) {
+    sql += ' AND e.tenant_id = ?';
+    params.push(filters.tenantId);
   }
   if (filters.dateFrom) {
     sql += ' AND ne.timestamp >= ?';

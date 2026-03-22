@@ -3,80 +3,113 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import GlobalSearch from './GlobalSearch';
 import TenantSwitcher from './TenantSwitcher';
+import ThemeToggle from './ThemeToggle';
+import {
+  IconActivity,
+  IconDetections,
+  IconHosts,
+  IconNetwork,
+  IconExplore,
+  IconRules,
+  IconRespond,
+  IconIntel,
+  IconConfig,
+  IconEnterprise,
+  IconShield,
+  IconTerminal,
+  IconGraph,
+} from './NavIcons';
 import styles from './Layout.module.css';
 
+/** Falcon-style IA: activity-first, detections, hosts, explore, respond, intel. */
 const MENU_ITEMS = [
-  { to: '/', end: true, icon: '📊', label: 'Dashboard' },
-  { to: '/alerts', icon: '⚠', label: 'Alert Queue' },
+  { to: '/', end: true, Icon: IconActivity, label: 'Activity' },
+  { to: '/alerts', Icon: IconDetections, label: 'Detections' },
   {
-    label: 'Assets',
-    icon: '🖥',
+    label: 'Hosts',
+    Icon: IconHosts,
     children: [
-      { to: '/endpoints', icon: '🖥', label: 'Endpoints' },
-      { to: '/network', icon: '🌐', label: 'Network' },
+      { to: '/endpoints', Icon: IconHosts, label: 'All hosts' },
+      { to: '/sensor-health', Icon: IconHosts, label: 'Sensor health' },
+      { to: '/host-groups', Icon: IconHosts, label: 'Host groups' },
+      { to: '/network', Icon: IconNetwork, label: 'Network activity' },
     ],
   },
   {
-    label: 'Events',
-    icon: '◈',
+    label: 'Explore',
+    Icon: IconExplore,
     children: [
-      { to: '/events', icon: '◈', label: 'Events' },
-      { to: '/raw-events', icon: '📄', label: 'Raw Events' },
-      { to: '/process-monitor', icon: '◉', label: 'Process Monitor' },
+      { to: '/events', Icon: IconExplore, label: 'Events' },
+      { to: '/raw-events', Icon: IconExplore, label: 'Raw events' },
+      { to: '/process-monitor', Icon: IconExplore, label: 'Process monitor' },
+      { to: '/hunting', Icon: IconExplore, label: 'Hunting' },
     ],
   },
   {
     label: 'Detection',
-    icon: '⚠',
+    Icon: IconRules,
+    children: [{ to: '/detection-rules', Icon: IconRules, label: 'Detection rules' }],
+  },
+  {
+    label: 'Respond',
+    Icon: IconRespond,
     children: [
-      { to: '/detection-rules', icon: '📜', label: 'Rules' },
+      { to: '/investigations', Icon: IconRespond, label: 'Investigations' },
+      { to: '/incidents', Icon: IconRespond, label: 'Incidents' },
+      { to: '/triage', Icon: IconRespond, label: 'Triage' },
+      { to: '/rtr', Icon: IconTerminal, label: 'Real Time Response' },
     ],
   },
   {
-    label: 'Response',
-    icon: '🔍',
+    label: 'Advanced',
+    Icon: IconGraph,
     children: [
-      { to: '/investigations', icon: '🔍', label: 'Investigations' },
-      { to: '/incidents', icon: '🔥', label: 'Incidents' },
-      { to: '/triage', icon: '🔬', label: 'Triage' },
+      { to: '/threat-graph', Icon: IconGraph, label: 'Threat graph' },
+      { to: '/analytics-detections', Icon: IconExplore, label: 'Detection analytics' },
+      { to: '/falcon/identity', Icon: IconIntel, label: 'Identity (roadmap)' },
+      { to: '/falcon/exposure', Icon: IconNetwork, label: 'Exposure (roadmap)' },
+      { to: '/falcon/managed-hunting', Icon: IconExplore, label: 'Managed hunting (roadmap)' },
+      { to: '/falcon/prevention-deep', Icon: IconShield, label: 'Deep prevention (roadmap)' },
+      { to: '/falcon/integrations', Icon: IconEnterprise, label: 'Integrations (roadmap)' },
     ],
   },
   {
-    label: 'Threat Intel',
-    icon: '🎯',
+    label: 'Intel',
+    Icon: IconIntel,
     children: [
-      { to: '/risk', icon: '📊', label: 'Risk' },
-      { to: '/iocs', icon: '🎯', label: 'IOCs' },
+      { to: '/risk', Icon: IconIntel, label: 'Risk' },
+      { to: '/iocs', Icon: IconIntel, label: 'IOCs' },
     ],
   },
   {
     label: 'Configuration',
-    icon: '⚙',
+    Icon: IconConfig,
     children: [
-      { to: '/policies', icon: '⚙', label: 'Policies' },
-      { to: '/audit-logs', icon: '📋', label: 'Audit' },
+      { to: '/policies', Icon: IconConfig, label: 'Policies' },
+      { to: '/audit-logs', Icon: IconConfig, label: 'Audit & activity' },
     ],
   },
   {
     label: 'Enterprise',
-    icon: '🏢',
+    Icon: IconEnterprise,
     children: [
-      { to: '/enterprise', icon: '🏢', label: 'Settings' },
-      { to: '/tenants', icon: '🏢', label: 'Tenants' },
+      { to: '/mssp', Icon: IconEnterprise, label: 'MSSP operations' },
+      { to: '/enterprise', Icon: IconEnterprise, label: 'Settings' },
+      { to: '/tenants', Icon: IconEnterprise, label: 'Tenants' },
     ],
   },
   {
-    label: 'Antivirus',
-    icon: '🛡',
+    label: 'Next-gen AV',
+    Icon: IconShield,
     children: [
-      { to: '/av', icon: '🛡', label: 'Overview' },
-      { to: '/av/detections', icon: '📋', label: 'Detections' },
-      { to: '/av/quarantine', icon: '📦', label: 'Quarantine' },
-      { to: '/av/scan-tasks', icon: '🔍', label: 'Scan Tasks' },
-      { to: '/av/policies', icon: '📜', label: 'Policies' },
-      { to: '/av/signatures', icon: '✍', label: 'Signatures' },
-      { to: '/av/malware-alerts', icon: '⚠', label: 'Malware Alerts' },
-      { to: '/av/reputation', icon: '⭐', label: 'Reputation' },
+      { to: '/av', Icon: IconShield, label: 'Overview' },
+      { to: '/av/detections', Icon: IconShield, label: 'Malware detections' },
+      { to: '/av/quarantine', Icon: IconShield, label: 'Quarantine' },
+      { to: '/av/scan-tasks', Icon: IconShield, label: 'Scan tasks' },
+      { to: '/av/policies', Icon: IconShield, label: 'AV policies' },
+      { to: '/av/signatures', Icon: IconShield, label: 'Signatures' },
+      { to: '/av/malware-alerts', Icon: IconShield, label: 'Malware alerts' },
+      { to: '/av/reputation', Icon: IconShield, label: 'Reputation' },
     ],
   },
 ];
@@ -84,21 +117,23 @@ const MENU_ITEMS = [
 function NavMenuItem({ item }) {
   const location = useLocation();
   const paths = item.children?.map((c) => c.to) ?? [];
-  const isActive = paths.some((p) => location.pathname === p || location.pathname.startsWith(p + '/'));
+  const isActive = paths.some((p) => location.pathname === p || location.pathname.startsWith(`${p}/`));
   const [expanded, setExpanded] = useState(isActive);
+  const GroupIcon = item.Icon;
 
   useEffect(() => {
     if (isActive && !expanded) setExpanded(true);
   }, [isActive]);
 
   if (item.to) {
+    const ItemIcon = item.Icon;
     return (
       <NavLink
         to={item.to}
         end={item.end}
         className={({ isActive: active }) => (active ? styles.navActive : '')}
       >
-        <span className={styles.navIcon}>{item.icon}</span>
+        <span className={styles.navIcon}>{ItemIcon ? <ItemIcon /> : null}</span>
         {item.label}
       </NavLink>
     );
@@ -111,24 +146,27 @@ function NavMenuItem({ item }) {
         className={`${styles.navGroupBtn} ${isActive ? styles.navGroupActive : ''}`}
         onClick={() => setExpanded((e) => !e)}
       >
-        <span className={styles.navIcon}>{item.icon}</span>
+        <span className={styles.navIcon}>{GroupIcon ? <GroupIcon /> : null}</span>
         {item.label}
         <span className={styles.navChevron}>{expanded ? '▾' : '▸'}</span>
       </button>
       <div className={styles.navSubmenu}>
-        {item.children.map((child) => (
-          <NavLink
-            key={child.to}
-            to={child.to}
-            end={child.to === '/av'}
-            className={({ isActive: childActive }) =>
-              `${styles.navSubItem} ${childActive ? styles.navActive : ''}`
-            }
-          >
-            <span className={styles.navIcon}>{child.icon}</span>
-            {child.label}
-          </NavLink>
-        ))}
+        {item.children.map((child) => {
+          const ChildIcon = child.Icon;
+          return (
+            <NavLink
+              key={child.to}
+              to={child.to}
+              end={child.to === '/av'}
+              className={({ isActive: childActive }) =>
+                `${styles.navSubItem} ${childActive ? styles.navActive : ''}`
+              }
+            >
+              <span className={styles.navIcon}>{ChildIcon ? <ChildIcon /> : null}</span>
+              {child.label}
+            </NavLink>
+          );
+        })}
       </div>
     </div>
   );
@@ -145,10 +183,18 @@ export default function Layout() {
 
   return (
     <div className={styles.layout}>
+      <a href="#main-content" className="falcon-skip-link">
+        Skip to main content
+      </a>
       <aside className={styles.sidebar}>
         <div className={styles.logo}>
-          <img src="/logo.svg" alt="IronShield EDR" className={styles.logoImg} />
-          <span>IronShield EDR</span>
+          <span className={styles.logoMark} aria-hidden>
+            <IconShield />
+          </span>
+          <div className={styles.logoText}>
+            <span className={styles.logoTitle}>IronShield</span>
+            <span className={styles.logoSub}>Endpoint Detection &amp; Response</span>
+          </div>
         </div>
         <nav className={styles.nav}>
           {MENU_ITEMS.map((item) => (
@@ -160,15 +206,20 @@ export default function Layout() {
         <div className={styles.user}>
           <span className={styles.userName}>{user?.username}</span>
           <span className={styles.userRole}>{user?.role}</span>
-          <button onClick={handleLogout} className={styles.logout}>Logout</button>
+          <button type="button" onClick={handleLogout} className={styles.logout}>
+            Sign out
+          </button>
         </div>
       </aside>
-      <main className={styles.main}>
+      <main id="main-content" className={styles.main} tabIndex={-1}>
         <div className={styles.mainHeader}>
           <TenantSwitcher />
           <GlobalSearch />
+          <ThemeToggle />
         </div>
-        <Outlet />
+        <div className={styles.content}>
+          <Outlet />
+        </div>
       </main>
     </div>
   );

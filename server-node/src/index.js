@@ -57,6 +57,16 @@ const server = app.listen(config.port, () => {
   logger.info({ port: config.port, env: config.env }, 'EDR Backend started');
 });
 
+// Phase B: periodic alert correlation (when not using only inline correlation on ingest)
+const CorrelationService = require('./services/CorrelationService');
+const corrMs = parseInt(process.env.CORRELATION_INTERVAL_MS || '300000', 10);
+if (!Number.isNaN(corrMs) && corrMs > 0) {
+  setInterval(() => {
+    CorrelationService.correlateRecentAlerts().catch(() => {});
+  }, corrMs);
+  logger.info({ intervalMs: corrMs }, 'Alert correlation scheduler enabled');
+}
+
 process.on('SIGTERM', () => {
   server.close(() => logger.info('Server closed'));
 });

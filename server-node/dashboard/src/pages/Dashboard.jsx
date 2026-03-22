@@ -16,6 +16,8 @@ import {
 import { Line, Doughnut } from 'react-chartjs-2';
 import { useAuth } from '../context/AuthContext';
 import ReportSearch from '../components/ReportSearch';
+import PageShell from '../components/PageShell';
+import { falconSeverityClass } from '../utils/falconUi';
 import styles from './Dashboard.module.css';
 
 ChartJS.register(
@@ -31,14 +33,15 @@ ChartJS.register(
   Filler
 );
 
+/* CrowdStrike Falcon–class chart palette (dark-console contrast) */
 const CHART_COLORS = {
-  blue: 'rgba(37, 99, 235, 0.8)',
-  blueFill: 'rgba(37, 99, 235, 0.1)',
-  red: 'rgba(220, 38, 38, 0.8)',
-  amber: 'rgba(217, 119, 6, 0.8)',
-  green: 'rgba(22, 163, 74, 0.8)',
-  cyan: 'rgba(8, 145, 178, 0.8)',
-  slate: 'rgba(100, 116, 139, 0.8)',
+  blue: 'rgba(94, 176, 255, 0.92)',
+  blueFill: 'rgba(94, 176, 255, 0.14)',
+  red: 'rgba(224, 30, 55, 0.92)',
+  amber: 'rgba(251, 191, 36, 0.88)',
+  green: 'rgba(52, 211, 153, 0.9)',
+  cyan: 'rgba(34, 211, 238, 0.88)',
+  slate: 'rgba(148, 163, 184, 0.72)',
 };
 
 function timeAgo(date) {
@@ -70,12 +73,16 @@ const chartOptions = {
   scales: {
     x: {
       grid: { display: false },
-      ticks: { maxTicksLimit: 8, font: { size: 10 } },
+      ticks: {
+        maxTicksLimit: 8,
+        font: { size: 10, family: "'IBM Plex Mono', monospace" },
+        color: '#8b939e',
+      },
     },
     y: {
       beginAtZero: true,
-      grid: { color: 'rgba(148, 163, 184, 0.2)' },
-      ticks: { font: { size: 10 } },
+      grid: { color: 'rgba(128, 128, 128, 0.18)' },
+      ticks: { font: { size: 10, family: "'IBM Plex Mono', monospace" }, color: '#8b939e' },
     },
   },
 };
@@ -126,13 +133,6 @@ export default function Dashboard() {
     return () => clearInterval(t);
   }, []);
 
-  const severityClass = (s) => {
-    if (s === 'critical') return styles.critical;
-    if (s === 'high') return styles.high;
-    if (s === 'medium') return styles.medium;
-    return styles.low;
-  };
-
   // Build 24h labels (fill gaps with 0)
   const eventsChartData = useMemo(() => {
     if (!summary?.eventsOverTime?.length) return null;
@@ -166,7 +166,7 @@ export default function Dashboard() {
           label: 'Alerts',
           data: values,
           borderColor: CHART_COLORS.red,
-          backgroundColor: 'rgba(220, 38, 38, 0.15)',
+          backgroundColor: 'rgba(224, 30, 55, 0.14)',
           fill: true,
           tension: 0.3,
         },
@@ -273,9 +273,10 @@ export default function Dashboard() {
 
   if (loading && !summary)
     return (
-      <div className={styles.loading}>
-        <div className={styles.loader} />
-        <p>Loading dashboard...</p>
+      <div className={`${styles.loading} ui-page`}>
+        <div className="ui-loading" role="status">
+          Loading dashboard
+        </div>
       </div>
     );
   if (error && !summary)
@@ -291,29 +292,25 @@ export default function Dashboard() {
   const inv = summary?.investigations || {};
 
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <div className={styles.headerLeft}>
-          <h1 className={styles.title}>
-            <span className={styles.titleIcon}>🛡</span>
-            Security Overview
-          </h1>
-          <div className={styles.headerMeta}>
-            {lastUpdate && (
-              <span className={styles.lastUpdate}>
-                Updated {timeAgo(lastUpdate)}
-                <span className={`${styles.liveDot} ${liveIndicator ? styles.livePulse : ''}`} />
-              </span>
-            )}
-          </div>
-        </div>
-        <div className={styles.headerActions}>
-          <button onClick={fetchData} className={styles.refreshBtn} title="Refresh now">
+    <PageShell
+      kicker="Overview"
+      title="Activity"
+      description="Console overview — sensor volume, detections, and host posture (24h windows where applicable)."
+      actions={(
+        <>
+          {lastUpdate && (
+            <span className={styles.lastUpdate} style={{ marginRight: '0.5rem' }}>
+              Updated {timeAgo(lastUpdate)}
+              <span className={`${styles.liveDot} ${liveIndicator ? styles.livePulse : ''}`} />
+            </span>
+          )}
+          <button type="button" onClick={fetchData} className="falcon-btn falcon-btn-ghost" title="Refresh now">
             ↻ Refresh
           </button>
-        </div>
-      </header>
-
+        </>
+      )}
+    >
+    <div className={styles.container}>
       <div className={styles.statsBar}>
         <span className={styles.statsItem}>
           <strong>{(summary?.eventsTotal ?? 0).toLocaleString()}</strong> total events
@@ -324,7 +321,7 @@ export default function Dashboard() {
         </span>
         <span className={styles.statsDivider}>·</span>
         <span className={styles.statsItem}>
-          <strong>{ep.online ?? 0}/{ep.total || 0}</strong> endpoints online
+          <strong>{ep.online ?? 0}/{ep.total || 0}</strong> hosts online
         </span>
         <span className={styles.statsDivider}>·</span>
         <span className={styles.statsItem}>
@@ -335,7 +332,7 @@ export default function Dashboard() {
       <section className={styles.kpiRow}>
         <div className={styles.kpiCard} onClick={() => navigate('/endpoints')}>
           <span className={styles.kpiValue}>{ep.total ?? 0}</span>
-          <span className={styles.kpiLabel}>Endpoints</span>
+          <span className={styles.kpiLabel}>Hosts</span>
         </div>
         <div className={`${styles.kpiCard} ${styles.kpiOnline}`} onClick={() => navigate('/endpoints')}>
           <span className={styles.kpiValue}>{ep.online ?? 0}</span>
@@ -506,7 +503,7 @@ export default function Dashboard() {
                         </Link>
                       </td>
                       <td>
-                        <span className={`${styles.badge} ${severityClass(a.severity)}`}>{a.severity}</span>
+                        <span className={falconSeverityClass(a.severity)}>{a.severity}</span>
                       </td>
                       <td>
                         <span className={styles.statusBadge}>{a.status}</span>
@@ -517,7 +514,7 @@ export default function Dashboard() {
               </table>
             ) : (
               <div className={styles.empty}>
-                {searchAlerts ? 'No matching alerts.' : 'No recent alerts.'} <Link to="/alerts">View alert queue</Link>
+                {searchAlerts ? 'No matching alerts.' : 'No recent alerts.'} <Link to="/alerts">View detections</Link>
               </div>
             )}
           </div>
@@ -589,7 +586,7 @@ export default function Dashboard() {
           </Link>
           <Link to="/alerts" className={styles.actionCard}>
             <span className={styles.actionIcon}>⚠</span>
-            <span>Alert Queue</span>
+            <span>Detections</span>
           </Link>
           <Link to="/events" className={styles.actionCard}>
             <span className={styles.actionIcon}>◈</span>
@@ -636,5 +633,6 @@ export default function Dashboard() {
         </footer>
       )}
     </div>
+    </PageShell>
   );
 }

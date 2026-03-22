@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
+import { falconSeverityClass } from '../utils/falconUi';
 import styles from './AvOverview.module.css';
 
 export default function AvSignatures() {
@@ -15,18 +17,13 @@ export default function AvSignatures() {
       .finally(() => setLoading(false));
   }, [api]);
 
-  const severityClass = (s) => {
-    if (s === 'critical') return styles.critical;
-    if (s === 'high') return styles.high;
-    if (s === 'medium') return styles.medium;
-    return styles.low;
-  };
-
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <h1 className={styles.title}><span className={styles.titleIcon}>🛡</span> Signatures</h1>
-      </header>
+    <PageShell
+      kicker="Antivirus"
+      title="Signatures"
+      description="Hash and heuristic definitions used for on-endpoint malware detection."
+    >
+      <div className={styles.container}>
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead>
@@ -61,6 +58,7 @@ export default function AvSignatures() {
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </PageShell>
   );
 }

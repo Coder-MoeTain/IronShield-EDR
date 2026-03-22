@@ -257,10 +257,10 @@ public class SystemInfoService
     /// <summary>
     /// Get registration payload (same as heartbeat for initial registration).
     /// </summary>
-    public object GetRegistrationPayload(string? agentVersion = null)
+    public object GetRegistrationPayload(string? agentVersion = null, string? tenantSlug = null)
     {
         var payload = GetHeartbeatPayload(agentVersion);
-        return new Dictionary<string, object?>
+        var dict = new Dictionary<string, object?>
         {
             ["hostname"] = payload.Hostname,
             ["os_version"] = payload.OsVersion,
@@ -269,5 +269,8 @@ public class SystemInfoService
             ["mac_address"] = payload.MacAddress,
             ["agent_version"] = payload.AgentVersion ?? "1.0.0",
         };
+        if (!string.IsNullOrWhiteSpace(tenantSlug))
+            dict["tenant_slug"] = tenantSlug.Trim();
+        return dict;
     }
 }

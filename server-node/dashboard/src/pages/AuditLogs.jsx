@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
 import styles from './AuditLogs.module.css';
 
 export default function AuditLogs() {
@@ -15,11 +16,14 @@ export default function AuditLogs() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className={styles.loading}>Loading...</div>;
+  if (loading) return <PageShell loading loadingLabel="Loading audit logs…" />;
 
   return (
-    <div>
-      <h1 className={styles.title}>Audit Logs</h1>
+    <PageShell
+      kicker="Configuration"
+      title="Audit & activity"
+      description="Administrator and API actions for compliance review."
+    >
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead>
@@ -45,6 +49,6 @@ export default function AuditLogs() {
         </table>
         {logs.length === 0 && <p className={styles.empty}>No audit logs.</p>}
       </div>
-    </div>
+    </PageShell>
   );
 }

@@ -82,6 +82,27 @@ async function getEndpointCount(tenantId) {
   return row?.count ?? 0;
 }
 
+/** Normalize slug for lookup (matches create() rules). */
+function normalizeTenantSlug(raw) {
+  if (raw == null || raw === '') return '';
+  const s = String(raw).toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  return s || '';
+}
+
+/**
+ * Resolve tenant id by slug, or null if not found / inactive.
+ * @param {string} slug
+ */
+async function getTenantIdBySlug(slug) {
+  const s = normalizeTenantSlug(slug);
+  if (!s) return null;
+  const row = await db.queryOne(
+    'SELECT id FROM tenants WHERE slug = ? AND is_active = 1',
+    [s]
+  );
+  return row?.id ?? null;
+}
+
 module.exports = {
   getDefaultTenant,
   getTenantIdsForUser,
@@ -93,5 +114,7 @@ module.exports = {
   update,
   deleteById,
   getEndpointCount,
+  getTenantIdBySlug,
+  normalizeTenantSlug,
   DEFAULT_TENANT_ID,
 };

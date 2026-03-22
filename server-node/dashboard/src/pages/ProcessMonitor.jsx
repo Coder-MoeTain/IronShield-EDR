@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
 import styles from './ProcessMonitor.module.css';
 
 export default function ProcessMonitor() {
@@ -70,10 +71,10 @@ export default function ProcessMonitor() {
       } else if (action === 'isolate') {
         r = await api(`/api/admin/endpoints/${proc.endpoint_id}/actions`, {
           method: 'POST',
-          body: JSON.stringify({ action_type: 'simulate_isolation' }),
+          body: JSON.stringify({ action_type: 'isolate_host' }),
         });
         if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`);
-        setActionMsg('Isolation simulated');
+        setActionMsg('Host isolation queued');
       } else if (action === 'triage') {
         r = await api(`/api/admin/endpoints/${proc.endpoint_id}/triage-request`, {
           method: 'POST',
@@ -111,19 +112,20 @@ export default function ProcessMonitor() {
     return <span className={`${styles.suspectBadge} ${cls}`}>{reason.replace('_', ' ')}</span>;
   };
 
-  if (loading && processes.length === 0) return <div className={styles.loading}>Loading process monitor...</div>;
+  if (loading && processes.length === 0) return <PageShell loading loadingLabel="Loading process monitor…" />;
 
   return (
+    <PageShell
+      kicker="Explore"
+      title="Process monitor"
+      description="Live and recent process activity with suspect highlighting and response shortcuts."
+      actions={
+        <button type="button" onClick={fetchData} className="falcon-btn falcon-btn-ghost">
+          ↻ Refresh
+        </button>
+      }
+    >
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>
-          <span className={styles.titleIcon}>◉</span> Process Monitor
-        </h1>
-        <div className={styles.headerActions}>
-          <button onClick={fetchData} className={styles.refreshBtn}>↻ Refresh</button>
-        </div>
-      </div>
-
       <div className={styles.statsBar}>
         <div className={styles.statCard}>
           <span className={styles.statValue}>{processes.length}</span>
@@ -139,7 +141,7 @@ export default function ProcessMonitor() {
         </div>
       </div>
 
-      <div className={styles.filters}>
+      <div className={`${styles.filters} falcon-filter-bar`}>
         <input
           placeholder="Hostname"
           value={filters.hostname}
@@ -241,7 +243,7 @@ export default function ProcessMonitor() {
                     type="button"
                     className={styles.actionBtn}
                     onClick={(e) => { e.stopPropagation(); doAction('isolate', proc); }}
-                    title="Simulate isolation"
+                    title="Isolate host (policy)"
                   >
                     Isolate
                   </button>
@@ -306,5 +308,6 @@ export default function ProcessMonitor() {
         </div>
       )}
     </div>
+    </PageShell>
   );
 }

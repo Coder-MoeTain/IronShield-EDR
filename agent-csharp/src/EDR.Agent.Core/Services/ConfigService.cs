@@ -51,6 +51,8 @@ public class ConfigService
             Config.RegistrationToken = token;
         if (Environment.GetEnvironmentVariable("EDR_AGENT_KEY") is { } key)
             Config.AgentKey = key;
+        if (Environment.GetEnvironmentVariable("EDR_TENANT_SLUG") is { } tslug && !string.IsNullOrWhiteSpace(tslug))
+            Config.TenantSlug = tslug.Trim();
 
         return Config;
     }

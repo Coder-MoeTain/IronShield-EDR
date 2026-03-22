@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
 import styles from './Risk.module.css';
 
 export default function Risk() {
@@ -31,17 +32,15 @@ export default function Risk() {
     return styles.low;
   };
 
-  if (loading) return <div className={styles.loading}>Loading risk scores...</div>;
+  if (loading) return <PageShell loading loadingLabel="Loading risk scores…" />;
 
   return (
+    <PageShell
+      kicker="Intel"
+      title="Endpoint risk"
+      description="Risk scores based on alert severity and count (new + investigating)."
+    >
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>
-          <span className={styles.titleIcon}>📊</span> Endpoint Risk
-        </h1>
-        <p className={styles.subtitle}>Risk scores based on alert severity and count (new + investigating)</p>
-      </div>
-
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead>
@@ -80,5 +79,6 @@ export default function Risk() {
         )}
       </div>
     </div>
+    </PageShell>
   );
 }

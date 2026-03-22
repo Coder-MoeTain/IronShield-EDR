@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ThemeToggle from '../components/ThemeToggle';
+import { IconShield } from '../components/NavIcons';
 import styles from './Login.module.css';
 
 export default function Login() {
@@ -27,11 +29,16 @@ export default function Login() {
 
   return (
     <div className={styles.page}>
+      <div className={styles.themeToggle}>
+        <ThemeToggle />
+      </div>
       <div className={styles.card}>
         <div className={styles.header}>
-          <span className={styles.icon}>🛡</span>
-          <h1>IronShield EDR</h1>
-          <p>Security Dashboard</p>
+          <div className={styles.brandMark} aria-hidden>
+            <IconShield />
+          </div>
+          <h1>IronShield</h1>
+          <p>Sign in to the EDR console</p>
         </div>
         <form onSubmit={handleSubmit} className={styles.form}>
           {error && <div className={styles.error}>{error}</div>}

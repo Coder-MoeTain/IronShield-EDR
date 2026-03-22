@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
 import styles from './Alerts.module.css';
 
 export default function Policies() {
@@ -16,11 +16,14 @@ export default function Policies() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className={styles.loading}>Loading...</div>;
+  if (loading) return <PageShell loading loadingLabel="Loading policies…" />;
 
   return (
-    <div>
-      <h1 className={styles.title}>Endpoint Policies</h1>
+    <PageShell
+      kicker="Configuration"
+      title="Endpoint policies"
+      description="Telemetry intervals, batching, and defaults applied to agent fleets."
+    >
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead>
@@ -37,7 +40,9 @@ export default function Policies() {
             {policies.map((p) => (
               <tr key={p.id}>
                 <td className={styles.titleCell}>{p.name}</td>
-                <td><span className={styles.badge}>{p.mode}</span></td>
+                <td>
+                  <span className={styles.badge}>{p.mode}</span>
+                </td>
                 <td>{p.telemetry_interval_seconds}</td>
                 <td>{p.batch_upload_size}</td>
                 <td>{p.heartbeat_interval_minutes}</td>
@@ -48,6 +53,6 @@ export default function Policies() {
         </table>
         {policies.length === 0 && <p className={styles.empty}>No policies. Run schema-phase3.sql.</p>}
       </div>
-    </div>
+    </PageShell>
   );
 }

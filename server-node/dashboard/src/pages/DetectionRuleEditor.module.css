@@ -1,0 +1,89 @@
+.form {
+  max-width: 720px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.input,
+.textarea,
+.code {
+  font-weight: 400;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-primary, inherit);
+  color: inherit;
+  font-family: inherit;
+}
+
+.code {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.row .field {
+  flex: 1;
+  min-width: 200px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.condHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.keys {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.35rem;
+  line-height: 1.5;
+}
+
+.keys code {
+  font-size: 0.72rem;
+  word-break: break-word;
+}
+
+.actions {
+  margin-top: 1rem;
+}
+
+.error {
+  padding: 0.75rem 1rem;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  color: #f87171;
+  font-size: 0.9rem;
+}

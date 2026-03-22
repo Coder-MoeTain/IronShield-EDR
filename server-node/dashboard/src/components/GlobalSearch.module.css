@@ -1,7 +1,7 @@
 .wrapper {
   position: relative;
   flex: 1;
-  max-width: 400px;
+  max-width: 420px;
 }
 
 .inputWrap {
@@ -11,15 +11,25 @@
 
 .input {
   flex: 1;
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem 0.95rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 0.9rem;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.input::placeholder {
+  color: var(--text-muted);
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--accent-blue);
+  border-color: rgba(224, 30, 55, 0.55);
+  box-shadow: 0 0 0 1px rgba(224, 30, 55, 0.2);
 }
 
 .results {
@@ -28,10 +38,10 @@
   left: 0;
   right: 0;
   margin-top: 4px;
-  background: var(--bg-primary);
+  background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border-radius: var(--radius-sm, 4px);
+  box-shadow: var(--shadow-md);
   max-height: 400px;
   overflow-y: auto;
   z-index: 100;
@@ -43,16 +53,17 @@
 
 .sectionTitle {
   padding: 4px 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.6875rem;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .item {
   padding: 8px 12px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.8125rem;
 }
 
 .item:hover {
@@ -72,5 +83,6 @@
   border-top: 1px solid var(--border);
   background: none;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
 }

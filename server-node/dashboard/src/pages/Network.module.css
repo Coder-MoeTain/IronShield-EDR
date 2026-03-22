@@ -4,6 +4,45 @@
   gap: 1rem;
 }
 
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.filterInput {
+  flex: 1;
+  min-width: 160px;
+  max-width: 280px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.85rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+}
+
+.filterApply {
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  border-radius: 6px;
+  color: var(--accent-blue);
+  cursor: pointer;
+}
+
+.filterApply:hover {
+  background: rgba(37, 99, 235, 0.2);
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
 .header {
   display: flex;
   justify-content: space-between;
@@ -141,10 +180,11 @@
 }
 
 .table th {
-  background: rgba(255, 255, 255, 0.6);
-  font-weight: 500;
-  font-size: 0.72rem;
+  background: rgba(255, 255, 255, 0.55);
+  font-weight: 600;
+  font-size: 0.68rem;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--text-muted);
   white-space: nowrap;
 }
@@ -171,9 +211,17 @@
   white-space: nowrap;
 }
 
-.logsSection h3 {
-  font-size: 1rem;
-  margin-bottom: 0.5rem;
+.logsSection h3,
+.logsHeading {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.logsHint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0 0 0.75rem;
 }
 
 .loading,

@@ -1,8 +1,7 @@
 -- =====================================================
 -- Network connections - for network activity tracking
+-- Run against your DB: mysql -u ... your_db < database/schema-network.sql
 -- =====================================================
-
-USE edr_platform;
 
 CREATE TABLE IF NOT EXISTS network_connections (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

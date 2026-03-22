@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
 import styles from './TenantManagement.module.css';
 
 export default function TenantManagement() {
@@ -71,26 +72,27 @@ export default function TenantManagement() {
   const canManage = user?.role === 'super_admin';
 
   if (loading && tenants.length === 0) {
-    return <div className={styles.loading}>Loading tenants...</div>;
+    return <PageShell loading loadingLabel="Loading tenants…" />;
   }
 
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>
-          <span className={styles.titleIcon}>🏢</span> Tenant Management
-        </h1>
-        {canManage && (
+    <PageShell
+      kicker="Enterprise"
+      title="Tenant management"
+      description="Multi-tenant scope, endpoint counts, and admin actions (super admin)."
+      actions={
+        canManage ? (
           <button
             type="button"
-            className={styles.btnPrimary}
+            className="falcon-btn falcon-btn-primary"
             onClick={() => setModal({ type: 'create' })}
           >
-            + Add Tenant
+            + Add tenant
           </button>
-        )}
-      </header>
-
+        ) : null
+      }
+    >
+    <div className={styles.container}>
       {msg.text && (
         <div className={`${styles.msg} ${msg.isError ? styles.msgError : ''}`}>{msg.text}</div>
       )}
@@ -212,6 +214,7 @@ export default function TenantManagement() {
         </div>
       )}
     </div>
+    </PageShell>
   );
 }
 

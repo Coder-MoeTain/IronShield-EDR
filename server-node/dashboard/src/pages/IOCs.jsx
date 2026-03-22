@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
+import FalconEmptyState from '../components/FalconEmptyState';
+import { falconSeverityClass } from '../utils/falconUi';
 import styles from './IOCs.module.css';
 
 export default function IOCs() {
@@ -55,23 +58,20 @@ export default function IOCs() {
     fetchData();
   };
 
-  const severityClass = (s) => {
-    if (s === 'critical') return styles.critical;
-    if (s === 'high') return styles.high;
-    if (s === 'medium') return styles.medium;
-    return styles.low;
-  };
-
-  if (loading && iocs.length === 0) return <div className={styles.loading}>Loading IOCs...</div>;
+  if (loading && iocs.length === 0) return <PageShell loading loadingLabel="Loading IOCs…" />;
 
   return (
+    <PageShell
+      kicker="Intel"
+      title="IOC watchlist"
+      description="Hash, IP, domain, and path indicators — matched during event ingestion."
+      actions={
+        <button type="button" onClick={() => setShowAdd(!showAdd)} className="falcon-btn falcon-btn-primary">
+          + Add IOC
+        </button>
+      }
+    >
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>
-          <span className={styles.titleIcon}>🎯</span> IOC Watchlist
-        </h1>
-        <button onClick={() => setShowAdd(!showAdd)} className={styles.addBtn}>+ Add IOC</button>
-      </div>
 
       {showAdd && (
         <div className={styles.addCard}>
@@ -117,7 +117,7 @@ export default function IOCs() {
                   <tr key={i.id}>
                     <td className={styles.mono}>{i.ioc_type}</td>
                     <td className={styles.valueCell} title={i.ioc_value}>{i.ioc_value?.slice(0, 40)}{(i.ioc_value?.length || 0) > 40 ? '…' : ''}</td>
-                    <td><span className={`${styles.badge} ${severityClass(i.severity)}`}>{i.severity}</span></td>
+                    <td><span className={falconSeverityClass(i.severity)}>{i.severity}</span></td>
                     <td>
                       <button onClick={() => deleteIoc(i.id)} className={styles.delBtn}>Delete</button>
                     </td>
@@ -162,11 +162,15 @@ export default function IOCs() {
                 </tbody>
               </table>
             ) : (
-              <div className={styles.empty}>No IOC matches yet. Hash matching runs during event ingestion.</div>
+              <FalconEmptyState
+                title="No IOC matches yet"
+                description="When telemetry matches a watchlist value, matches appear here with endpoint context."
+              />
             )}
           </div>
         </div>
       </div>
     </div>
+    </PageShell>
   );
 }

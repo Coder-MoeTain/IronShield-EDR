@@ -1,7 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
+import { falconSeverityClass } from '../utils/falconUi';
 import styles from './AlertDetail.module.css';
+
+function toDatetimeLocal(v) {
+  if (!v) return '';
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 export default function AlertDetail() {
   const { id } = useParams();
@@ -12,9 +22,22 @@ export default function AlertDetail() {
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(true);
   const [actionMsg, setActionMsg] = useState('');
+  const [suppressionReason, setSuppressionReason] = useState('');
 
   const fetchAlert = () => api(`/api/admin/alerts/${id}`).then((r) => r.json());
   const fetchNotes = () => api(`/api/admin/alerts/${id}/notes`).then((r) => r.json());
+
+  const patchAlert = async (body) => {
+    const r = await api(`/api/admin/alerts/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${r.status}`);
+    }
+    return r.json();
+  };
 
   useEffect(() => {
     Promise.all([fetchAlert(), fetchNotes()])
@@ -27,11 +50,23 @@ export default function AlertDetail() {
   }, [id]);
 
   const updateStatus = async (newStatus) => {
-    await api(`/api/admin/alerts/${id}/status`, {
-      method: 'POST',
-      body: JSON.stringify({ status: newStatus, assigned_to: alert?.assigned_to }),
-    });
-    setAlert((a) => (a ? { ...a, status: newStatus } : null));
+    const updated = await patchAlert({ status: newStatus });
+    setAlert(updated);
+  };
+
+  const markSuppressed = async () => {
+    if (!suppressionReason.trim()) {
+      setActionMsg('Enter a suppression reason');
+      return;
+    }
+    try {
+      const updated = await patchAlert({ suppression_reason: suppressionReason.trim() });
+      setAlert(updated);
+      setSuppressionReason('');
+      setActionMsg('Marked false positive');
+    } catch (e) {
+      setActionMsg(e.message || 'Suppress failed');
+    }
   };
 
   const addNote = async () => {
@@ -58,9 +93,9 @@ export default function AlertDetail() {
       } else if (action === 'isolate') {
         await api(`/api/admin/endpoints/${alert.endpoint_id}/actions`, {
           method: 'POST',
-          body: JSON.stringify({ action_type: 'simulate_isolation' }),
+          body: JSON.stringify({ action_type: 'isolate_host' }),
         });
-        setActionMsg('Isolation simulated');
+        setActionMsg('Host isolation queued');
       } else if (action === 'investigate') {
         const r = await api('/api/admin/investigations', {
           method: 'POST',
@@ -79,17 +114,14 @@ export default function AlertDetail() {
     }
   };
 
-  if (loading) return <div className={styles.loading}>Loading alert...</div>;
-  if (!alert) return <div className={styles.error}>Alert not found</div>;
-
-  const severityClass =
-    alert.severity === 'critical'
-      ? styles.critical
-      : alert.severity === 'high'
-        ? styles.high
-        : alert.severity === 'medium'
-          ? styles.medium
-          : styles.low;
+  if (loading) return <PageShell loading loadingLabel="Loading alert…" />;
+  if (!alert) {
+    return (
+      <PageShell kicker="Detections" title="Alert">
+        <div className={styles.error}>Alert not found</div>
+      </PageShell>
+    );
+  }
 
   const statusClass =
     alert.status === 'new'
@@ -101,15 +133,25 @@ export default function AlertDetail() {
           : styles.statusFalsePositive;
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <Link to="/alerts" className={styles.back}>
-          ← Alert Queue
+    <PageShell
+      kicker="Detections"
+      title={alert.title}
+      description={
+        alert.description && alert.description.length > 220
+          ? `${alert.description.slice(0, 220)}…`
+          : alert.description || undefined
+      }
+      actions={
+        <Link to="/alerts" className="falcon-btn falcon-btn-ghost">
+          ← Detections
         </Link>
+      }
+    >
+    <div className={styles.container}>
+      <div className={styles.header} style={{ borderBottom: 'none', paddingBottom: 0 }}>
         <div className={styles.headerMain}>
-          <h1 className={styles.title}>{alert.title}</h1>
           <div className={styles.headerBadges}>
-            <span className={`${styles.badge} ${styles.severityBadge} ${severityClass}`}>{alert.severity}</span>
+            <span className={falconSeverityClass(alert.severity)}>{alert.severity}</span>
             <span className={`${styles.statusBadge} ${statusClass}`}>{alert.status}</span>
             {alert.mitre_technique && (
               <span className={styles.mitreBadge} title={alert.mitre_tactic}>
@@ -118,6 +160,11 @@ export default function AlertDetail() {
             )}
             {alert.confidence != null && (
               <span className={styles.confBadge}>{Math.round(alert.confidence * 100)}% conf</span>
+            )}
+            {alert.risk_score != null && alert.risk_score !== '' && (
+              <span className={styles.confBadge} title="Heuristic risk (severity × confidence)">
+                Risk {Math.round(Number(alert.risk_score))}
+              </span>
             )}
           </div>
         </div>
@@ -154,6 +201,15 @@ export default function AlertDetail() {
             </dd>
             <dt>Assigned To</dt>
             <dd>{alert.assigned_to || '—'}</dd>
+            <dt>Team</dt>
+            <dd>{alert.assigned_team || '—'}</dd>
+            <dt>SLA due</dt>
+            <dd>
+              {alert.due_at ? new Date(alert.due_at).toLocaleString() : '—'}
+              {alert.sla_breached_at && (
+                <span className={styles.slaBreached}> (breached)</span>
+              )}
+            </dd>
             <dt>First Seen</dt>
             <dd>{new Date(alert.first_seen).toLocaleString()}</dd>
             <dt>Last Seen</dt>
@@ -178,17 +234,88 @@ export default function AlertDetail() {
             <input
               type="text"
               placeholder="Analyst name"
-              defaultValue={alert.assigned_to}
+              defaultValue={alert.assigned_to || ''}
+              key={`assign-${alert.id}-${alert.assigned_to}`}
               onBlur={(e) => {
                 const v = e.target.value.trim();
-                if (v !== alert.assigned_to) {
-                  api(`/api/admin/alerts/${id}/status`, {
-                    method: 'POST',
-                    body: JSON.stringify({ status: alert.status, assigned_to: v || null }),
-                  }).then(() => setAlert((a) => (a ? { ...a, assigned_to: v || null } : null)));
+                if (v !== (alert.assigned_to || '')) {
+                  patchAlert({ assigned_to: v || null }).then(setAlert).catch(() => {});
                 }
               }}
             />
+          </div>
+          <div className={styles.assigned}>
+            <label>Team</label>
+            <input
+              type="text"
+              placeholder="e.g. IR-1"
+              defaultValue={alert.assigned_team || ''}
+              key={`team-${alert.id}-${alert.assigned_team}`}
+              onBlur={(e) => {
+                const v = e.target.value.trim();
+                if (v !== (alert.assigned_team || '')) {
+                  patchAlert({ assigned_team: v || null }).then(setAlert).catch(() => {});
+                }
+              }}
+            />
+          </div>
+          <div className={styles.assigned}>
+            <label>SLA due (local time)</label>
+            <input
+              type="datetime-local"
+              defaultValue={toDatetimeLocal(alert.due_at)}
+              key={`due-${alert.id}-${alert.due_at}`}
+              onBlur={(e) => {
+                const v = e.target.value;
+                const iso = v ? new Date(v).toISOString() : null;
+                const prev = alert.due_at ? new Date(alert.due_at).toISOString() : null;
+                if (iso !== prev) {
+                  patchAlert({ due_at: iso }).then(setAlert).catch(() => {});
+                }
+              }}
+            />
+          </div>
+          <div className={styles.assigned}>
+            <label>SLA window (minutes from triage)</label>
+            <input
+              type="number"
+              min={0}
+              placeholder="240"
+              defaultValue={alert.sla_minutes != null ? alert.sla_minutes : ''}
+              key={`slam-${alert.id}-${alert.sla_minutes}`}
+              onBlur={(e) => {
+                const raw = e.target.value.trim();
+                const n = raw === '' ? null : parseInt(raw, 10);
+                if (n !== null && Number.isNaN(n)) return;
+                if (n !== alert.sla_minutes) {
+                  patchAlert({ sla_minutes: n }).then(setAlert).catch(() => {});
+                }
+              }}
+            />
+          </div>
+          {alert.status === 'false_positive' && alert.suppression_reason && (
+            <div className={styles.suppressionMeta}>
+              <strong>Suppression:</strong> {alert.suppression_reason}
+              {alert.suppressed_by && <span> — {alert.suppressed_by}</span>}
+              {alert.suppressed_at && (
+                <span className={styles.suppressionWhen}>
+                  {' '}
+                  · {new Date(alert.suppressed_at).toLocaleString()}
+                </span>
+              )}
+            </div>
+          )}
+          <div className={styles.suppressBox}>
+            <label>False positive — reason (sets status + audit)</label>
+            <textarea
+              value={suppressionReason}
+              onChange={(e) => setSuppressionReason(e.target.value)}
+              rows={2}
+              placeholder="Why this is benign / duplicate / expected…"
+            />
+            <button type="button" className={styles.btnSecondary} onClick={markSuppressed}>
+              Mark false positive
+            </button>
           </div>
           <div className={styles.statusActions}>
             <label>Status</label>
@@ -232,5 +359,6 @@ export default function AlertDetail() {
         </div>
       </div>
     </div>
+    </PageShell>
   );
 }

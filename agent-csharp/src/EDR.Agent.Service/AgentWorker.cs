@@ -6,6 +6,8 @@ using EDR.Agent.Core.Response;
 using EDR.Agent.Core.Services;
 using EDR.Agent.Core.Transport;
 using EDR.Agent.Core.Utils;
+using System.Diagnostics;
+using System.Text.Json;
 
 namespace EDR.Agent.Service;
 
@@ -31,6 +33,15 @@ public class AgentWorker
     private volatile int _effectiveBatchIntervalSeconds;
     private volatile int _effectiveBatchSize;
     private volatile int _effectivePollSeconds;
+
+    /// <summary>NGAV state from last AV poll (-1 = not yet loaded).</summary>
+    private volatile int _ngavSignatureCount = -1;
+    private volatile string? _ngavBundleVersion;
+    private volatile bool? _ngavRealtimeEnabled;
+
+    /// <summary>Last EDR (sensor) policy from management server — Phase 8 policy sync telemetry.</summary>
+    private int? _lastEdrPolicyId;
+    private DateTimeOffset? _lastEdrPolicySyncUtc;
 
     public AgentWorker(ConfigService configService, object? _)
     {
@@ -86,6 +97,7 @@ public class AgentWorker
 
         _updateChecker = new UpdateCheckService(_config.ServerUrl, AgentVersion);
         _ = SendImmediateHeartbeatAndNetworkAsync(_cts.Token);
+        _ = InitialPolicyFetchAsync(_cts.Token);
         _heartbeatTask = HeartbeatLoopAsync(_cts.Token);
         _uploadTask = UploadLoopAsync(_cts.Token);
         _collectTask = CollectLoopAsync(_cts.Token);
@@ -99,7 +111,7 @@ public class AgentWorker
 
     private async Task RegisterAsync(CancellationToken ct)
     {
-        var payload = _systemInfo.GetRegistrationPayload(AgentVersion);
+        var payload = _systemInfo.GetRegistrationPayload(AgentVersion, _config.TenantSlug);
         var token = _config.RegistrationToken;
         if (string.IsNullOrEmpty(token))
         {
@@ -127,6 +139,7 @@ public class AgentWorker
         {
             await Task.Delay(2000, ct);
             var payload = _systemInfo.GetHeartbeatPayload(AgentVersion);
+            EnrichSensorTelemetry(payload);
             await _transport.HeartbeatAsync(payload, ct);
             if (payload.Connections is { Count: > 0 } conns)
             {
@@ -146,6 +159,7 @@ public class AgentWorker
                 if (!string.IsNullOrEmpty(_config.AgentKey))
                 {
                     var payload = _systemInfo.GetHeartbeatPayload(AgentVersion);
+                    EnrichSensorTelemetry(payload);
                     await _transport.HeartbeatAsync(payload, ct);
                     if (payload.Connections is { Count: > 0 } conns)
                     {
@@ -246,7 +260,12 @@ public class AgentWorker
 
         var poller = new CommandPollingService(_config.ServerUrl, _config.AgentKey);
         var processExecutor = new ProcessResponseExecutor();
+        var hostIsolation = new HostIsolationService();
         var triageCollector = new TriageCollector();
+        var edrQuarantine = new EdrQuarantineService();
+        var networkBlock = new NetworkBlockService();
+        var scriptRunner = new ScriptRunner();
+        var rtrShell = new RtrShellExecutor();
         var pollInterval = _effectivePollSeconds > 0 ? _effectivePollSeconds : _config.CommandPollIntervalSeconds;
 
         while (!ct.IsCancellationRequested)
@@ -263,17 +282,22 @@ public class AgentWorker
                             var pid = action.ProcessId;
                             if (pid == null || pid == 0)
                             {
+                                Console.WriteLine("[Agent] kill_process: missing process_id in parameters (check server JSON / dashboard payload)");
                                 await poller.SubmitResultAsync(action.Id, false, "No process_id in action parameters", null, ct);
                             }
                             else
                             {
                                 var (ok, msg) = await processExecutor.ExecuteKillProcessAsync(pid.Value, ct);
+                                Console.WriteLine(ok
+                                    ? $"[Agent] kill_process PID {pid.Value}: {msg}"
+                                    : $"[Agent] kill_process PID {pid.Value} failed: {msg}");
                                 await poller.SubmitResultAsync(action.Id, ok, msg, null, ct);
                             }
                         }
                         else if (action.ActionType == "request_heartbeat")
                         {
                             var payload = _systemInfo.GetHeartbeatPayload(AgentVersion);
+                            EnrichSensorTelemetry(payload);
                             await _transport.HeartbeatAsync(payload, ct);
                             if (payload.Connections is { Count: > 0 } conns)
                             {
@@ -287,9 +311,49 @@ public class AgentWorker
                             var data = await triageCollector.CollectAsync("full", ct);
                             await poller.SubmitResultAsync(action.Id, true, "Triage collected", data, ct);
                         }
-                        else if (action.ActionType == "simulate_isolation" || action.ActionType == "mark_investigating")
+                        else if (action.ActionType == "isolate_host" || action.ActionType == "simulate_isolation")
+                        {
+                            var (isoOk, isoMsg) = await hostIsolation.ApplyIsolationAsync(_config.ServerUrl, ct);
+                            Console.WriteLine(isoOk
+                                ? $"[Agent] isolate_host: {isoMsg}"
+                                : $"[Agent] isolate_host failed: {isoMsg}");
+                            await poller.SubmitResultAsync(action.Id, isoOk, isoMsg, null, ct);
+                        }
+                        else if (action.ActionType == "lift_isolation")
+                        {
+                            var (liftOk, liftMsg) = await hostIsolation.RemoveIsolationAsync(ct);
+                            Console.WriteLine(liftOk
+                                ? $"[Agent] lift_isolation: {liftMsg}"
+                                : $"[Agent] lift_isolation failed: {liftMsg}");
+                            await poller.SubmitResultAsync(action.Id, liftOk, liftMsg, null, ct);
+                        }
+                        else if (action.ActionType == "quarantine_file")
+                        {
+                            var path = GetActionParam(action, "file_path");
+                            var (qOk, qMsg, sha) = await edrQuarantine.QuarantineFileAsync(path ?? "", ct);
+                            await poller.SubmitResultAsync(action.Id, qOk, qMsg, sha != null ? new { sha256 = sha } : null, ct);
+                        }
+                        else if (action.ActionType == "block_ip")
+                        {
+                            var ip = GetActionParam(action, "ip");
+                            var (bOk, bMsg) = await networkBlock.BlockOutboundIpAsync(ip ?? "", ct);
+                            await poller.SubmitResultAsync(action.Id, bOk, bMsg, null, ct);
+                        }
+                        else if (action.ActionType == "run_script")
+                        {
+                            var scriptPath = GetActionParam(action, "script_path");
+                            var (sOk, sMsg) = await scriptRunner.RunAllowlistedScriptAsync(_config, scriptPath, ct);
+                            await poller.SubmitResultAsync(action.Id, sOk, sMsg, null, ct);
+                        }
+                        else if (action.ActionType == "mark_investigating")
                         {
                             await poller.SubmitResultAsync(action.Id, true, "Acknowledged", null, ct);
+                        }
+                        else if (action.ActionType == "rtr_shell")
+                        {
+                            var cmd = GetActionParam(action, "command");
+                            var (rtrOk, rtrMsg, rtrRes) = await rtrShell.ExecuteAsync(cmd, ct);
+                            await poller.SubmitResultAsync(action.Id, rtrOk, rtrMsg, rtrRes, ct);
                         }
                     }
                     catch (Exception ex)
@@ -306,6 +370,13 @@ public class AgentWorker
         }
     }
 
+    private static string? GetActionParam(ResponseAction action, string key)
+    {
+        if (!action.Parameters.HasValue || action.Parameters.Value.ValueKind != JsonValueKind.Object) return null;
+        if (!action.Parameters.Value.TryGetProperty(key, out var p)) return null;
+        return p.ValueKind == JsonValueKind.String ? p.GetString() : p.ToString();
+    }
+
     private async Task TriageTaskPollLoopAsync(CancellationToken ct)
     {
         if (string.IsNullOrEmpty(_config.AgentKey)) return;
@@ -320,13 +391,7 @@ public class AgentWorker
             try
             {
                 var policy = await _transport.GetPolicyAsync(ct);
-                if (policy != null)
-                {
-                    _effectiveHeartbeatMinutes = policy.HeartbeatIntervalMinutes;
-                    _effectiveBatchIntervalSeconds = policy.TelemetryIntervalSeconds;
-                    _effectiveBatchSize = policy.BatchUploadSize;
-                    _effectivePollSeconds = policy.PollIntervalSeconds;
-                }
+                ApplyEndpointPolicy(policy);
 
                 var tasks = await triagePoller.GetPendingAsync(ct);
                 foreach (var task in tasks)
@@ -349,13 +414,42 @@ public class AgentWorker
         }
     }
 
+    /// <summary>Fetch EDR policy once so heartbeats can report policy id before the first triage poll.</summary>
+    private async Task InitialPolicyFetchAsync(CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(_config.AgentKey)) return;
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(4), ct);
+            var policy = await _transport.GetPolicyAsync(ct);
+            ApplyEndpointPolicy(policy);
+        }
+        catch
+        {
+            /* non-fatal */
+        }
+    }
+
+    private void ApplyEndpointPolicy(EndpointPolicy? policy)
+    {
+        if (policy == null) return;
+        _effectiveHeartbeatMinutes = policy.HeartbeatIntervalMinutes;
+        _effectiveBatchIntervalSeconds = policy.TelemetryIntervalSeconds;
+        _effectiveBatchSize = policy.BatchUploadSize;
+        _effectivePollSeconds = policy.PollIntervalSeconds;
+        _lastEdrPolicyId = policy.PolicyId;
+        _lastEdrPolicySyncUtc = DateTimeOffset.UtcNow;
+    }
+
     private async Task UpdateCheckLoopAsync(CancellationToken ct)
     {
         if (string.IsNullOrEmpty(_config.AgentKey) || _updateChecker == null) return;
 
+        var firstWait = true;
         while (!ct.IsCancellationRequested)
         {
-            await Task.Delay(TimeSpan.FromHours(24), ct);
+            await Task.Delay(firstWait ? TimeSpan.FromSeconds(45) : TimeSpan.FromHours(24), ct);
+            firstWait = false;
             try
             {
                 var update = await _updateChecker.CheckAsync(ct);
@@ -387,10 +481,15 @@ public class AgentWorker
                 var policy = await _transport.GetAvPolicyAsync(ct);
                 if (policy == null) continue;
 
+                _ngavRealtimeEnabled = policy.RealtimeEnabled;
+                var sigVer = await _transport.GetAvSignaturesVersionAsync(ct);
+                _ngavBundleVersion = sigVer?.Version;
+
                 var sigService = new SignatureUpdateService(_transport);
                 var signatures = await sigService.LoadOrFetchAsync(ct);
+                _ngavSignatureCount = signatures.Count;
                 await _transport.SubmitAvUpdateStatusAsync(
-                    signatures.Count > 0 ? "loaded" : "empty",
+                    _ngavBundleVersion ?? (signatures.Count > 0 ? "loaded" : "empty"),
                     "up_to_date",
                     null,
                     ct);
@@ -455,6 +554,58 @@ public class AgentWorker
             {
                 Console.WriteLine($"[Agent] AV task poll error: {ex.Message}");
             }
+        }
+    }
+
+    /// <summary>Falcon-style sensor telemetry on every heartbeat (queue backlog, uptime, containment, health).</summary>
+    private void EnrichSensorTelemetry(HeartbeatPayload? payload)
+    {
+        if (payload == null) return;
+        try
+        {
+            payload.QueueDepth = _queue.Count;
+            var proc = Process.GetCurrentProcess();
+            payload.ProcessUptimeSeconds = (int)Math.Max(0, (DateTime.UtcNow - proc.StartTime.ToUniversalTime()).TotalSeconds);
+            payload.HostIsolationActive = HostIsolationService.IsIsolationActive();
+            var q = payload.QueueDepth ?? 0;
+            payload.SensorOperationalStatus = q > 2000 ? "degraded" : "ok";
+
+            if (_updateChecker != null)
+            {
+                if (_updateChecker.LastCheckUtc.HasValue)
+                {
+                    payload.AgentUpdateStatus = _updateChecker.LastUpdateAvailable ? "update_available" : "up_to_date";
+                    payload.AvailableAgentVersion = _updateChecker.LastTargetVersion;
+                    payload.LastAgentUpdateCheckUtc = _updateChecker.LastCheckUtc.Value.ToString("O");
+                }
+                else
+                {
+                    payload.AgentUpdateStatus = "unknown";
+                }
+            }
+
+            if (_ngavSignatureCount >= 0)
+            {
+                payload.AvSignatureBundle = _ngavBundleVersion;
+                payload.AvRealtimeEnabled = _ngavRealtimeEnabled;
+                payload.AvSignatureCount = _ngavSignatureCount;
+                if (_ngavSignatureCount == 0)
+                    payload.AvPreventionStatus = "degraded";
+                else if (_ngavRealtimeEnabled == true)
+                    payload.AvPreventionStatus = "active";
+                else
+                    payload.AvPreventionStatus = "monitor_only";
+            }
+
+            if (_lastEdrPolicySyncUtc.HasValue)
+            {
+                payload.EdrPolicyId = _lastEdrPolicyId;
+                payload.LastEdrPolicySyncUtc = _lastEdrPolicySyncUtc.Value.ToString("O");
+            }
+        }
+        catch
+        {
+            // best-effort only
         }
     }
 }

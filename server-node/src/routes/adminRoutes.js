@@ -7,9 +7,11 @@ const adminController = require('../controllers/adminController');
 const { authAdmin } = require('../middleware/auth');
 const { attachTenant } = require('../middleware/tenantMiddleware');
 const { requirePermission, requireAnyPermission } = require('../middleware/rbac');
+const { tenantRateLimit } = require('../middleware/tenantRateLimit');
 
 router.use(authAdmin);
 router.use(attachTenant);
+router.use(tenantRateLimit);
 
 // Phase 7: Antivirus (mount early to avoid param route conflicts)
 const avController = require('../controllers/avController');
@@ -38,10 +40,30 @@ router.get('/av/malware-alerts/:id', avController.getMalwareAlert);
 router.get('/av/updates/status', avController.listUpdateStatus);
 
 router.get('/dashboard/summary', adminController.dashboardSummary);
+router.get('/mssp/overview', adminController.msspOverview);
 router.get('/endpoints', adminController.listEndpoints);
+router.get('/host-groups', adminController.listHostGroups);
+router.post('/host-groups', requireAnyPermission('actions:write', '*'), adminController.createHostGroup);
+router.patch('/host-groups/:id', requireAnyPermission('actions:write', '*'), adminController.updateHostGroup);
+router.delete('/host-groups/:id', requireAnyPermission('actions:write', '*'), adminController.deleteHostGroup);
+router.get('/hunt-queries', adminController.listHuntQueries);
+router.post('/hunt-queries', requireAnyPermission('alerts:write', '*'), adminController.createHuntQuery);
+router.delete('/hunt-queries/:id', requireAnyPermission('alerts:write', '*'), adminController.deleteHuntQuery);
+router.post('/hunt-queries/:id/run', requireAnyPermission('alerts:write', '*'), adminController.runHuntQuery);
+router.post('/hunt-queries/run-adhoc', requireAnyPermission('alerts:write', '*'), adminController.runHuntAdhoc);
+router.get('/sensors/health', adminController.getSensorHealth);
+router.get('/suppressions', adminController.listSuppressions);
+router.post('/suppressions', requireAnyPermission('rules:write', '*'), adminController.createSuppression);
+router.patch('/suppressions/:id', requireAnyPermission('rules:write', '*'), adminController.patchSuppression);
+router.delete('/suppressions/:id', requireAnyPermission('rules:write', '*'), adminController.deleteSuppression);
+router.get('/playbooks', adminController.listPlaybooks);
+router.post('/playbooks', requireAnyPermission('actions:write', '*'), adminController.createPlaybook);
+router.delete('/playbooks/:id', requireAnyPermission('actions:write', '*'), adminController.deletePlaybook);
+router.post('/playbooks/:id/run', requireAnyPermission('actions:write', '*'), adminController.runPlaybook);
 // RBAC: requirePermission applied to write operations (optional - super_admin bypasses)
+router.patch('/endpoints/:id', requireAnyPermission('actions:write', '*'), adminController.patchEndpoint);
+router.get('/endpoints/:id/process-timeline', adminController.getProcessTimeline);
 router.get('/endpoints/:id/metrics', adminController.getEndpointMetrics);
-router.post('/endpoints/:id/test-metrics', adminController.setEndpointTestMetrics);
 router.get('/endpoints/:id', adminController.getEndpoint);
 router.delete('/endpoints/:id', requireAnyPermission('actions:write', '*'), adminController.deleteEndpoint);
 router.get('/events', adminController.listEvents);
@@ -51,13 +73,30 @@ router.get('/normalized-events/:id', adminController.getNormalizedEvent);
 router.get('/audit-logs', adminController.listAuditLogs);
 router.get('/alerts', adminController.listAlerts);
 router.get('/alerts/summary', adminController.getAlertsSummary);
+router.get('/export/siem-alerts', requireAnyPermission('audit:read', '*'), adminController.exportSiemAlerts);
+router.get('/analytics/rare-paths', adminController.getAnomalies);
+router.get('/analytics/detections-summary', require('../controllers/analyticsMlController').detectionSummary);
+router.get('/threat-graph', require('../controllers/threatGraphController').getGraph);
+
+const rtrController = require('../controllers/rtrController');
+router.post('/rtr/sessions', requireAnyPermission('actions:write', '*'), rtrController.createSession);
+router.get('/rtr/sessions/:id', rtrController.getSession);
+router.post('/rtr/sessions/:id/close', requireAnyPermission('actions:write', '*'), rtrController.closeSession);
+router.post('/rtr/sessions/:id/commands', requireAnyPermission('actions:write', '*'), rtrController.postCommand);
+router.get('/rtr/sessions/:id/commands', rtrController.listCommands);
+router.get('/saved-views', adminController.listSavedViews);
+router.post('/saved-views', adminController.createSavedView);
+router.delete('/saved-views/:id', adminController.deleteSavedView);
 router.get('/alerts/:id', adminController.getAlert);
+router.patch('/alerts/:id', requireAnyPermission('alerts:write', '*'), adminController.patchAlert);
 router.post('/alerts/:id/status', requireAnyPermission('alerts:write', '*'), adminController.updateAlertStatus);
 router.post('/alerts/:id/notes', adminController.addAlertNote);
 router.get('/alerts/:id/notes', adminController.getAlertNotes);
 router.post('/endpoints/:id/actions', requireAnyPermission('actions:write', '*'), adminController.createResponseAction);
 router.get('/endpoints/:id/actions', adminController.listResponseActions);
 router.get('/detection-rules', adminController.listDetectionRules);
+router.get('/detection-rules/:id', adminController.getDetectionRule);
+router.post('/detection-rules', requireAnyPermission('rules:write', '*'), adminController.createDetectionRule);
 router.patch('/detection-rules/:id', requireAnyPermission('rules:write', '*'), adminController.updateDetectionRule);
 
 // Phase 3: Policies, Investigations, Triage, Process Tree, Search
@@ -81,6 +120,7 @@ const networkController = require('../controllers/networkController');
 router.get('/network/connections', networkController.listConnections);
 router.get('/network/outgoing-ips', networkController.getOutgoingIps);
 router.get('/network/traffic', networkController.getTrafficSummary);
+router.get('/network/summary', networkController.getNetworkSummary);
 router.get('/network/logs', networkController.getNetworkLogs);
 router.get('/process-monitor', phase3.processMonitor);
 router.get('/search/global', phase3.globalSearch);

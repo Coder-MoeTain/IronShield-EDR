@@ -4,6 +4,7 @@
  */
 const db = require('../utils/db');
 const logger = require('../utils/logger');
+const DetectionSuppressionService = require('./DetectionSuppressionService');
 
 async function getEnabledRules() {
   return db.query('SELECT * FROM detection_rules WHERE enabled = 1');
@@ -54,6 +55,26 @@ function evalCondition(key, value, norm) {
         !/services\.exe|svchost\.exe/i.test(norm.parent_process_name || '');
     case 'signed':
       return value === false && path.toLowerCase().includes('\\users\\') && !norm.file_hash_sha256;
+    case 'dns_query_contains': {
+      const dq = str(norm.dns_query);
+      if (Array.isArray(value)) return value.some((v) => dq.toLowerCase().includes(String(v).toLowerCase()));
+      return dq.toLowerCase().includes(String(value).toLowerCase());
+    }
+    case 'dns_query_length_gt': {
+      const dq = str(norm.dns_query);
+      const min = Number(value) || 0;
+      return dq.length > min;
+    }
+    case 'registry_key_contains': {
+      const rk = str(norm.registry_key);
+      if (Array.isArray(value)) return value.some((v) => rk.toUpperCase().includes(String(v).toUpperCase()));
+      return rk.toUpperCase().includes(String(value).toUpperCase());
+    }
+    case 'image_loaded_contains': {
+      const im = str(norm.image_loaded_path);
+      if (Array.isArray(value)) return value.some((v) => im.toLowerCase().includes(String(v).toLowerCase()));
+      return im.toLowerCase().includes(String(value).toLowerCase());
+    }
     default:
       return true;
   }
@@ -80,10 +101,14 @@ function matchesRule(rule, norm) {
 
 async function evaluateAndAlert(normalizedEvent) {
   const rules = await getEnabledRules();
+  const tenantId = await DetectionSuppressionService.getTenantIdForEndpoint(normalizedEvent.endpoint_id);
   const alerts = [];
 
   for (const rule of rules) {
     if (matchesRule(rule, normalizedEvent)) {
+      if (await DetectionSuppressionService.isSuppressed(normalizedEvent, rule, tenantId)) {
+        continue;
+      }
       alerts.push({
         endpoint_id: normalizedEvent.endpoint_id,
         rule_id: rule.id,

@@ -214,13 +214,27 @@ All admin endpoints require: `Authorization: Bearer <token>`
 
 ### GET /api/admin/alerts
 
-**Query params:** endpointId, severity, status, dateFrom, dateTo, limit, offset
+**Query params:** `endpointId`, `severity`, `status`, `assigned_to`, `assigned_team`, `dateFrom`, `dateTo`, `limit`, `offset`
 
-**Response:** Array of alert objects
+**Response:**
+```json
+{
+  "alerts": [ /* ... */ ],
+  "summary": { "new": 0, "investigating": 0, "total": 0 }
+}
+```
+
+---
+
+### PATCH /api/admin/alerts/:id
+
+Partial update (requires `alerts:write` or `*`). Fields: `status`, `assigned_to`, `assigned_team`, `due_at` (ISO datetime), `sla_minutes`, or **`suppression_reason`** (non-empty string sets status to `false_positive`, records `suppressed_by` / `suppressed_at`).
 
 ---
 
 ### POST /api/admin/alerts/:id/status
+
+Legacy status update (still supported).
 
 **Request:**
 ```json
@@ -229,6 +243,30 @@ All admin endpoints require: `Authorization: Bearer <token>`
   "assigned_to": "analyst1"
 }
 ```
+
+---
+
+### GET /api/admin/saved-views
+
+**Query params:** `page` (e.g. `detections`) — user-scoped saved filter presets.
+
+### POST /api/admin/saved-views
+
+**Request:** `{ "name": "My triage", "page": "detections", "filters": { "status": "new", "severity": "high" } }`
+
+### DELETE /api/admin/saved-views/:id
+
+---
+
+### GET /api/admin/export/siem-alerts
+
+NDJSON stream of alerts for SIEM pipelines (requires `audit:read` or `*`). Optional query: `since` (ISO or MySQL datetime).
+
+---
+
+### GET /api/admin/analytics/rare-paths
+
+Rare process paths for an endpoint (anomaly-style signal). **Query:** `endpointId` (required), `days`, `limit`, `maxCount`.
 
 ---
 
@@ -244,7 +282,49 @@ Create response action.
 }
 ```
 
-Action types: `kill_process`, `request_heartbeat`, `simulate_isolation`, `mark_investigating`, `collect_triage`
+Action types include: `kill_process`, `request_heartbeat`, `isolate_host`, `lift_isolation`, `mark_investigating`, `collect_triage`, `quarantine_file`, `block_ip`, `block_hash`, `run_script`
+
+### PATCH /api/admin/endpoints/:id
+
+Update endpoint metadata. **Body:** `{ "host_group_id": <number> | null }` (requires `migrate-cs-parity`).
+
+### GET /api/admin/host-groups
+
+List host (sensor) groups for the tenant.
+
+### POST /api/admin/host-groups
+
+**Body:** `{ "name": "...", "description": "..." }`
+
+### PATCH /api/admin/host-groups/:id
+
+### DELETE /api/admin/host-groups/:id
+
+### GET /api/admin/hunt-queries
+
+Saved threat-hunt definitions (`schema-phase4`).
+
+### POST /api/admin/hunt-queries
+
+**Body:** `{ "name": "...", "query_params": { "eventType": "", "hostname": "", "processName": "", "commandLine": "", "dnsQuery": "", "dateFrom": "", "dateTo": "", "limit": 50 } }`
+
+### DELETE /api/admin/hunt-queries/:id
+
+### POST /api/admin/hunt-queries/:id/run
+
+Execute a saved hunt; stores a row in `hunt_results`.
+
+### POST /api/admin/hunt-queries/run-adhoc
+
+**Body:** same shape as `query_params` above — run without saving.
+
+### GET /api/admin/sensors/health
+
+Aggregated sensor connectivity and agent version distribution.
+
+### MSSP operations
+
+- `GET /api/admin/mssp/overview` — Internal MSSP overview: per-tenant endpoint counts, online endpoints, open alerts, and open investigations. Scoped by tenant context (`X-Tenant-Id` for super_admin); global list when unscoped.
 
 **Response (201):**
 ```json

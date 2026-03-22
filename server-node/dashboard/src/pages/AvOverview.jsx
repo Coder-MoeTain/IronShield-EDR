@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
+import { falconSeverityClass } from '../utils/falconUi';
 import styles from './AvOverview.module.css';
 
 export default function AvOverview() {
@@ -83,30 +85,41 @@ export default function AvOverview() {
     }
   };
 
-  const severityClass = (s) => {
-    if (s === 'critical') return styles.critical;
-    if (s === 'high') return styles.high;
-    if (s === 'medium') return styles.medium;
-    return styles.low;
-  };
-
-  if (loading && !summary) return <div className={styles.loading}>Loading antivirus overview…</div>;
+  if (loading && !summary) {
+    return <PageShell loading loadingLabel="Loading antivirus overview…" />;
+  }
 
   if (apiError) {
     return (
-      <div className={styles.container}>
-        <h1 className={styles.title}><span className={styles.titleIcon}>🛡</span> Antivirus Overview</h1>
-        <div className={styles.apiError}>
-          <p>{apiError}</p>
-          <button className={styles.refreshBtn} onClick={load}>Retry</button>
+      <PageShell kicker="Antivirus" title="Antivirus overview" description="Summary of detections, quarantine, and scan activity.">
+        <div className={styles.container}>
+          <div className={styles.apiError}>
+            <p>{apiError}</p>
+            <button type="button" className="falcon-btn falcon-btn-primary" onClick={load}>Retry</button>
+          </div>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   const hasData = (summary?.total_detections ?? 0) > 0 || (summary?.quarantined_count ?? 0) > 0;
 
   return (
+    <PageShell
+      kicker="Antivirus"
+      title="Antivirus overview"
+      description="Detections, quarantine volume, pending scans, and recent activity."
+      actions={(
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button type="button" className="falcon-btn falcon-btn-primary" onClick={() => setRunScanOpen(true)}>
+            Run scan
+          </button>
+          <button type="button" className="falcon-btn falcon-btn-ghost" onClick={load} disabled={loading}>
+            {loading ? '…' : 'Refresh'}
+          </button>
+        </div>
+      )}
+    >
     <div className={styles.container}>
       {!hasData && (
         <div className={styles.emptyBanner}>
@@ -138,19 +151,6 @@ export default function AvOverview() {
           </div>
         </div>
       )}
-      <header className={styles.header}>
-        <h1 className={styles.title}>
-          <span className={styles.titleIcon}>🛡</span> Antivirus Overview
-        </h1>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <button className={styles.runScanBtn} onClick={() => setRunScanOpen(true)}>
-            Run Scan
-          </button>
-          <button className={styles.refreshBtn} onClick={load} disabled={loading}>
-            {loading ? '…' : 'Refresh'}
-          </button>
-        </div>
-      </header>
 
       {runScanOpen && (
         <div className={styles.modalOverlay} onClick={() => !runScanCreating && setRunScanOpen(false)}>
@@ -265,7 +265,7 @@ export default function AvOverview() {
                     </td>
                     <td>{d.detection_name || '-'}</td>
                     <td>
-                      <span className={`${styles.badge} ${severityClass(d.severity)}`}>
+                      <span className={falconSeverityClass(d.severity)}>
                         {d.severity || 'medium'}
                       </span>
                     </td>
@@ -287,5 +287,6 @@ export default function AvOverview() {
         <Link to="/av/reputation" className={styles.quickLink}>File Reputation</Link>
       </div>
     </div>
+    </PageShell>
   );
 }

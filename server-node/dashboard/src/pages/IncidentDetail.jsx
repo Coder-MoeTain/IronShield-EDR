@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
 import styles from './IncidentDetail.module.css';
 
 export default function IncidentDetail() {
@@ -32,8 +33,14 @@ export default function IncidentDetail() {
     }
   };
 
-  if (loading) return <div className={styles.loading}>Loading incident...</div>;
-  if (!incident) return <div className={styles.error}>Incident not found</div>;
+  if (loading) return <PageShell loading loadingLabel="Loading incident…" />;
+  if (!incident) {
+    return (
+      <PageShell kicker="Respond" title="Incident">
+        <div className={styles.error}>Incident not found</div>
+      </PageShell>
+    );
+  }
 
   const severityClass =
     incident.severity === 'critical' ? styles.critical :
@@ -41,30 +48,33 @@ export default function IncidentDetail() {
     incident.severity === 'medium' ? styles.medium : styles.low;
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <div>
-          <Link to="/incidents" className={styles.back}>← Incidents</Link>
-          <h1 className={styles.title}>{incident.incident_id} – {incident.title}</h1>
-        </div>
-        <div className={styles.actions}>
+    <PageShell
+      kicker="Respond"
+      title={`${incident.incident_id} – ${incident.title}`}
+      actions={
+        <>
+          <Link to="/incidents" className="falcon-btn falcon-btn-ghost">
+            ← Incidents
+          </Link>
           {incident.status === 'open' && (
-            <button onClick={() => updateStatus('investigating')} disabled={statusUpdating} className={styles.actionBtn}>
-              Start Investigating
+            <button type="button" onClick={() => updateStatus('investigating')} disabled={statusUpdating} className="falcon-btn falcon-btn-primary">
+              Start investigating
             </button>
           )}
           {incident.status === 'investigating' && (
-            <button onClick={() => updateStatus('resolved')} disabled={statusUpdating} className={styles.actionBtn}>
+            <button type="button" onClick={() => updateStatus('resolved')} disabled={statusUpdating} className="falcon-btn falcon-btn-primary">
               Resolve
             </button>
           )}
           {incident.status !== 'closed' && (
-            <button onClick={() => updateStatus('closed')} disabled={statusUpdating} className={styles.actionBtnSecondary}>
+            <button type="button" onClick={() => updateStatus('closed')} disabled={statusUpdating} className="falcon-btn falcon-btn-ghost">
               Close
             </button>
           )}
-        </div>
-      </div>
+        </>
+      }
+    >
+    <div className={styles.container}>
 
       <div className={styles.grid}>
         <div className={styles.card}>
@@ -117,5 +127,6 @@ export default function IncidentDetail() {
         </div>
       </div>
     </div>
+    </PageShell>
   );
 }

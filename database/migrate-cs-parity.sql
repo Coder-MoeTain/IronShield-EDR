@@ -1,0 +1,3 @@
+-- Prefer idempotent migration:
+--   cd server-node && npm run migrate-cs-parity
+-- Creates host_groups + endpoints.host_group_id (Falcon-style sensor groups).

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
 import styles from './EndpointDetail.module.css';
 
 function TreeNode({ node, depth = 0 }) {
@@ -51,15 +52,27 @@ export default function ProcessTree() {
       .finally(() => setLoading(false));
   }, [endpointId, since]);
 
-  if (loading) return <div className={styles.loading}>Loading...</div>;
-  if (!tree) return <div className={styles.error}>Failed to load process tree</div>;
+  if (loading) return <PageShell loading loadingLabel="Loading process tree…" />;
+  if (!tree) {
+    return (
+      <PageShell kicker="Explore" title="Process tree">
+        <div className={styles.error}>Failed to load process tree</div>
+      </PageShell>
+    );
+  }
 
   return (
+    <PageShell
+      kicker="Explore"
+      title="Process tree"
+      description="Hierarchy from process_create / normalized events for this host."
+      actions={
+        <Link to={`/endpoints/${endpointId}`} className="falcon-btn falcon-btn-ghost">
+          ← Endpoint
+        </Link>
+      }
+    >
     <div>
-      <div className={styles.header}>
-        <Link to={`/endpoints/${endpointId}`} className={styles.back}>← Endpoint</Link>
-        <h1 className={styles.title}>Process Tree</h1>
-      </div>
       <div style={{ marginBottom: 16 }}>
         <label>Since (optional): </label>
         <input
@@ -78,5 +91,6 @@ export default function ProcessTree() {
         )}
       </div>
     </div>
+    </PageShell>
   );
 }

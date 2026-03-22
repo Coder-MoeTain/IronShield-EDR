@@ -10,6 +10,10 @@ public class EndpointPolicy
     [JsonPropertyName("policy_id")]
     public int PolicyId { get; set; }
 
+    /// <summary>Human-readable policy name (Phase 8 — Falcon sensor policy).</summary>
+    [JsonPropertyName("policy_name")]
+    public string? PolicyName { get; set; }
+
     [JsonPropertyName("mode")]
     public string Mode { get; set; } = "monitor_and_alert";
 

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
+import { falconSeverityClass } from '../utils/falconUi';
 import styles from './AvOverview.module.css';
 
 export default function AvDetections() {
@@ -22,26 +24,24 @@ export default function AvDetections() {
 
   useEffect(() => fetchData(), [api, filters]);
 
-  const severityClass = (s) => {
-    if (s === 'critical') return styles.critical;
-    if (s === 'high') return styles.high;
-    if (s === 'medium') return styles.medium;
-    return styles.low;
-  };
-
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <h1 className={styles.title}><span className={styles.titleIcon}>🛡</span> Malware Detections</h1>
-        <button className={styles.refreshBtn} onClick={fetchData} disabled={loading}>
+    <PageShell
+      kicker="Antivirus"
+      title="Malware detections"
+      description="File-based malware findings from agent scans and real-time protection."
+      actions={(
+        <button type="button" className="falcon-btn falcon-btn-primary" onClick={fetchData} disabled={loading}>
           {loading ? '…' : 'Refresh'}
         </button>
-      </header>
-      <div className={styles.statsBar} style={{ marginBottom: '1rem' }}>
+      )}
+    >
+      <div className={styles.container}>
+      <div className="falcon-filter-bar" style={{ marginBottom: '1rem' }}>
         <select
           value={filters.severity}
           onChange={(e) => setFilters((f) => ({ ...f, severity: e.target.value }))}
           className={styles.quickLink}
+          aria-label="Severity"
         >
           <option value="">All severities</option>
           <option value="critical">Critical</option>
@@ -88,7 +88,7 @@ export default function AvDetections() {
                   <td>{d.family || '-'}</td>
                   <td>{d.detection_type || '-'}</td>
                   <td>{d.signer_status || '-'}</td>
-                  <td><span className={`${styles.badge} ${severityClass(d.severity)}`}>{d.severity || '-'}</span></td>
+                  <td><span className={falconSeverityClass(d.severity)}>{d.severity || '-'}</span></td>
                   <td>{d.score ?? '-'}</td>
                 </tr>
               ))
@@ -96,6 +96,7 @@ export default function AvDetections() {
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </PageShell>
   );
 }

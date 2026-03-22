@@ -36,10 +36,23 @@ async function getTrafficSummary(req, res, next) {
   }
 }
 
+async function getNetworkSummary(req, res, next) {
+  try {
+    const filters = { ...req.query };
+    if (req.tenantId != null) filters.tenantId = req.tenantId;
+    if (filters.hours) filters.hours = parseInt(filters.hours, 10) || 24;
+    const kpi = await NetworkService.getNetworkKpi(filters);
+    res.json(kpi);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getNetworkLogs(req, res, next) {
   try {
     const filters = { ...req.query };
     if (req.tenantId != null) filters.tenantId = req.tenantId;
+    if (filters.hours) filters.hours = parseInt(filters.hours, 10) || 24;
     const connections = await NetworkService.listConnections({ ...filters, limit: 200 });
     const events = await NetworkService.getNetworkEventsFromNormalized(filters);
     res.json({ connections, events });
@@ -52,5 +65,6 @@ module.exports = {
   listConnections,
   getOutgoingIps,
   getTrafficSummary,
+  getNetworkSummary,
   getNetworkLogs,
 };

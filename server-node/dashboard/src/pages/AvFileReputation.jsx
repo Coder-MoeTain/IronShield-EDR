@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
 import styles from './AvOverview.module.css';
 
 export default function AvFileReputation() {
@@ -41,12 +42,12 @@ export default function AvFileReputation() {
   };
 
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>
-          <span className={styles.titleIcon}>🛡</span> File Reputation
-        </h1>
-      </header>
+    <PageShell
+      kicker="Antivirus"
+      title="File reputation"
+      description="Look up verdict and prevalence for a file hash known to the platform."
+    >
+      <div className={styles.container}>
 
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
@@ -133,6 +134,7 @@ export default function AvFileReputation() {
         <Link to="/av/detections" className={styles.quickLink}>Detections</Link>
         <Link to="/av/signatures" className={styles.quickLink}>Signatures</Link>
       </div>
-    </div>
+      </div>
+    </PageShell>
   );
 }

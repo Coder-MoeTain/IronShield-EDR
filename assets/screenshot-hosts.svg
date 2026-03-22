@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 360" width="700" height="360">
+  <rect width="700" height="360" fill="#f8fafc" rx="8"/>
+  <rect x="0" y="0" width="180" height="360" fill="#f1f5f9" rx="8"/>
+  <rect x="16" y="20" width="148" height="32" fill="#2563eb" rx="6"/>
+  <text x="90" y="40" font-family="system-ui,sans-serif" font-size="11" font-weight="600" fill="#fff" text-anchor="middle">IronShield</text>
+  <rect x="16" y="64" width="148" height="24" fill="#e2e8f0" rx="4"/>
+  <text x="24" y="80" font-family="system-ui,sans-serif" font-size="10" fill="#334155">All hosts</text>
+  <rect x="16" y="96" width="148" height="24" fill="transparent" stroke="#cbd5e1" rx="4"/>
+  <text x="24" y="112" font-family="system-ui,sans-serif" font-size="10" fill="#64748b">Detections</text>
+  <text x="200" y="36" font-family="system-ui,sans-serif" font-size="16" font-weight="700" fill="#0f172a">Hosts</text>
+  <text x="200" y="56" font-family="system-ui,sans-serif" font-size="10" fill="#94a3b8">Endpoints · sensor health · policy</text>
+  <rect x="200" y="68" width="480" height="32" fill="#fff" stroke="#e2e8f0" rx="6"/>
+  <rect x="208" y="76" width="200" height="16" fill="#f1f5f9" rx="4"/>
+  <rect x="200" y="112" width="480" height="220" fill="#fff" stroke="#e2e8f0" rx="8"/>
+  <line x1="216" y1="140" x2="664" y2="140" stroke="#e2e8f0"/>
+  <text x="220" y="132" font-family="system-ui,sans-serif" font-size="9" font-weight="600" fill="#64748b">HOSTNAME</text>
+  <text x="380" y="132" font-family="system-ui,sans-serif" font-size="9" font-weight="600" fill="#64748b">STATUS</text>
+  <text x="480" y="132" font-family="system-ui,sans-serif" font-size="9" font-weight="600" fill="#64748b">LAST SEEN</text>
+  <rect x="220" y="152" width="140" height="14" fill="#f8fafc" rx="2"/>
+  <rect x="380" y="152" width="56" height="14" fill="#dcfce7" rx="3"/>
+  <text x="392" y="162" font-family="system-ui,sans-serif" font-size="7" fill="#166534">Online</text>
+  <rect x="480" y="152" width="80" height="14" fill="#f8fafc" rx="2"/>
+  <rect x="220" y="178" width="140" height="14" fill="#f8fafc" rx="2"/>
+  <rect x="380" y="178" width="56" height="14" fill="#dcfce7" rx="3"/>
+  <text x="392" y="188" font-family="system-ui,sans-serif" font-size="7" fill="#166534">Online</text>
+  <rect x="480" y="178" width="80" height="14" fill="#f8fafc" rx="2"/>
+  <rect x="220" y="204" width="140" height="14" fill="#f8fafc" rx="2"/>
+  <rect x="380" y="204" width="56" height="14" fill="#fef3c7" rx="3"/>
+  <text x="388" y="214" font-family="system-ui,sans-serif" font-size="7" fill="#a16207">Stale</text>
+</svg>

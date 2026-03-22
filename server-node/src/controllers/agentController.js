@@ -6,6 +6,7 @@ const HeartbeatService = require('../services/HeartbeatService');
 const EventIngestionService = require('../services/EventIngestionService');
 const EndpointService = require('../services/EndpointService');
 const ResponseActionService = require('../services/ResponseActionService');
+const RtrService = require('../services/RtrService');
 const AgentUpdateService = require('../services/AgentUpdateService');
 const logger = require('../utils/logger');
 
@@ -21,6 +22,9 @@ async function register(req, res, next) {
       return res.status(403).json({ error: err.message });
     }
     if (err.message === 'Hostname is required') {
+      return res.status(400).json({ error: err.message });
+    }
+    if (err.message === 'Unknown tenant slug') {
       return res.status(400).json({ error: err.message });
     }
     next(err);
@@ -118,9 +122,20 @@ async function submitActionResult(req, res, next) {
       return res.status(404).json({ error: 'Action not found' });
     }
 
+    const fullAction = await db.queryOne('SELECT * FROM response_actions WHERE id = ?', [id]);
+
     if (body.success) {
+      if (fullAction?.action_type === 'rtr_shell') {
+        await RtrService.completeFromAgent(fullAction, true, body.result);
+      }
       await ResponseActionService.complete(id, body.message || 'Completed', body.result);
+      if (action.action_type === 'lift_isolation') {
+        await ResponseActionService.clearHostIsolationOnEndpoint(endpoint.id);
+      }
     } else {
+      if (fullAction?.action_type === 'rtr_shell') {
+        await RtrService.completeFromAgent(fullAction, false, { message: body.message });
+      }
       await ResponseActionService.fail(id, body.message || 'Failed');
     }
     res.json({ ok: true });

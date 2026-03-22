@@ -2,8 +2,43 @@
  * Network activity service - connections, traffic, logs
  */
 const db = require('../utils/db');
+const logger = require('../utils/logger');
+
+/** Common loopback remotes (IPv4/IPv6) to optionally hide from Network views */
+const LOCALHOST_REMOTE_IPS = ['::1', '127.0.0.1', '::ffff:127.0.0.1'];
+
+function excludeLocalhostEnabled(filters) {
+  const v = filters.excludeLocalhost;
+  return v === true || v === 1 || v === '1' || v === 'true';
+}
+
+/** Appends AND (alias.col IS NULL OR alias.col NOT IN (...)) — caller must push ...LOCALHOST_REMOTE_IPS onto params */
+function appendExcludeLocalhostRemote(sql, tableAlias, column = 'remote_address') {
+  const placeholders = LOCALHOST_REMOTE_IPS.map(() => '?').join(', ');
+  return `${sql} AND (${tableAlias}.${column} IS NULL OR ${tableAlias}.${column} NOT IN (${placeholders}))`;
+}
+
+/** For normalized_events: hide rows whose destination IP is loopback */
+function appendExcludeLocalhostDestination(sql) {
+  const placeholders = LOCALHOST_REMOTE_IPS.map(() => '?').join(', ');
+  return `${sql} AND (ne.destination_ip IS NULL OR ne.destination_ip NOT IN (${placeholders}))`;
+}
+
+/** Returns [] on any query failure (missing table, SQL mode, etc.) so the API stays usable. */
+async function safeQuery(sql, params = []) {
+  try {
+    return await db.query(sql, params);
+  } catch (err) {
+    logger.warn(
+      { err: err.message, code: err.code, errno: err.errno },
+      'NetworkService query failed'
+    );
+    return [];
+  }
+}
 
 async function listConnections(filters = {}) {
+  try {
   let sql = `
     SELECT nc.*, e.hostname
     FROM network_connections nc
@@ -40,6 +75,14 @@ async function listConnections(filters = {}) {
     sql += ' AND nc.last_seen <= ?';
     params.push(filters.dateTo);
   }
+  if (filters.hours) {
+    sql += ' AND nc.last_seen >= DATE_SUB(NOW(), INTERVAL ? HOUR)';
+    params.push(filters.hours);
+  }
+  if (excludeLocalhostEnabled(filters)) {
+    sql = appendExcludeLocalhostRemote(sql, 'nc', 'remote_address');
+    params.push(...LOCALHOST_REMOTE_IPS);
+  }
 
   sql += ' ORDER BY nc.last_seen DESC';
   const limit = Math.min(parseInt(filters.limit) || 100, 500);
@@ -47,7 +90,7 @@ async function listConnections(filters = {}) {
   sql += ' LIMIT ? OFFSET ?';
   params.push(limit, offset);
 
-  let rows = await db.query(sql, params);
+  let rows = await safeQuery(sql, params);
 
   // Fallback: when network_connections is empty, derive from normalized_events
   if (rows.length === 0 && filters.endpointId) {
@@ -55,7 +98,8 @@ async function listConnections(filters = {}) {
       ...filters,
       limit: limit + offset,
     });
-    rows = events.map((ne) => ({
+    const evList = Array.isArray(events) ? events : [];
+    rows = evList.map((ne) => ({
       id: `ne-${ne.id}`,
       endpoint_id: ne.endpoint_id,
       hostname: ne.hostname || ne.endpoint_hostname,
@@ -76,9 +120,14 @@ async function listConnections(filters = {}) {
   }
 
   return rows;
+  } catch (err) {
+    logger.warn({ err: err.message }, 'NetworkService.listConnections');
+    return [];
+  }
 }
 
 async function getOutgoingIps(filters = {}) {
+  try {
   let sql = `
     SELECT nc.remote_address, nc.remote_port, nc.protocol,
            COUNT(*) as conn_count, MAX(nc.last_seen) as last_seen,
@@ -101,12 +150,21 @@ async function getOutgoingIps(filters = {}) {
     sql += ' AND nc.last_seen >= DATE_SUB(NOW(), INTERVAL ? HOUR)';
     params.push(filters.hours);
   }
+  if (excludeLocalhostEnabled(filters)) {
+    sql = appendExcludeLocalhostRemote(sql, 'nc', 'remote_address');
+    params.push(...LOCALHOST_REMOTE_IPS);
+  }
 
   sql += ' GROUP BY nc.remote_address, nc.remote_port, nc.protocol, nc.endpoint_id, e.hostname, nc.process_name ORDER BY last_seen DESC LIMIT 200';
-  return db.query(sql, params);
+  return safeQuery(sql, params);
+  } catch (err) {
+    logger.warn({ err: err.message }, 'NetworkService.getOutgoingIps');
+    return [];
+  }
 }
 
 async function getTrafficSummary(filters = {}) {
+  try {
   let sql = `
     SELECT e.id as endpoint_id, e.hostname,
            COUNT(DISTINCT nc.remote_address) as unique_ips,
@@ -130,9 +188,102 @@ async function getTrafficSummary(filters = {}) {
     sql += ' AND nc.last_seen >= DATE_SUB(NOW(), INTERVAL ? HOUR)';
     params.push(filters.hours);
   }
+  if (excludeLocalhostEnabled(filters)) {
+    sql = appendExcludeLocalhostRemote(sql, 'nc', 'remote_address');
+    params.push(...LOCALHOST_REMOTE_IPS);
+  }
 
   sql += ' GROUP BY e.id, e.hostname ORDER BY total_connections DESC';
-  return db.query(sql, params);
+  return safeQuery(sql, params);
+  } catch (err) {
+    logger.warn({ err: err.message }, 'NetworkService.getTrafficSummary');
+    return [];
+  }
+}
+
+/**
+ * Falcon-style KPI strip — aggregates for selected time window.
+ */
+async function getNetworkKpi(filters = {}) {
+  try {
+    let sql = `
+      SELECT
+        COUNT(*) AS total_connections,
+        COUNT(DISTINCT nc.remote_address) AS unique_remote_ips,
+        COUNT(DISTINCT nc.endpoint_id) AS hosts_with_activity
+      FROM network_connections nc
+      JOIN endpoints e ON e.id = nc.endpoint_id
+      WHERE nc.remote_address IS NOT NULL AND nc.remote_address != '' AND nc.remote_address != '0.0.0.0'
+    `;
+    const params = [];
+    if (filters.tenantId != null) {
+      sql += ' AND e.tenant_id = ?';
+      params.push(filters.tenantId);
+    }
+    if (filters.endpointId) {
+      sql += ' AND nc.endpoint_id = ?';
+      params.push(filters.endpointId);
+    }
+    if (filters.hours) {
+      sql += ' AND nc.last_seen >= DATE_SUB(NOW(), INTERVAL ? HOUR)';
+      params.push(filters.hours);
+    }
+    if (excludeLocalhostEnabled(filters)) {
+      sql = appendExcludeLocalhostRemote(sql, 'nc', 'remote_address');
+      params.push(...LOCALHOST_REMOTE_IPS);
+    }
+    const rows = await safeQuery(sql, params);
+    const row = rows[0] || {};
+    const n = (v) => (v == null ? 0 : typeof v === 'bigint' ? Number(v) : Number(v));
+
+    let outgoing_destinations = 0;
+    try {
+      let sql2 = `
+        SELECT COUNT(*) AS c FROM (
+          SELECT nc.remote_address, nc.remote_port, nc.protocol, nc.endpoint_id
+          FROM network_connections nc
+          JOIN endpoints e ON e.id = nc.endpoint_id
+          WHERE nc.remote_address IS NOT NULL AND nc.remote_address != ''
+      `;
+      const p2 = [];
+      if (filters.tenantId != null) {
+        sql2 += ' AND e.tenant_id = ?';
+        p2.push(filters.tenantId);
+      }
+      if (filters.endpointId) {
+        sql2 += ' AND nc.endpoint_id = ?';
+        p2.push(filters.endpointId);
+      }
+      if (filters.hours) {
+        sql2 += ' AND nc.last_seen >= DATE_SUB(NOW(), INTERVAL ? HOUR)';
+        p2.push(filters.hours);
+      }
+      if (excludeLocalhostEnabled(filters)) {
+        sql2 = appendExcludeLocalhostRemote(sql2, 'nc', 'remote_address');
+        p2.push(...LOCALHOST_REMOTE_IPS);
+      }
+      sql2 += ' GROUP BY nc.remote_address, nc.remote_port, nc.protocol, nc.endpoint_id) t';
+      const r2 = await safeQuery(sql2, p2);
+      outgoing_destinations = n(r2[0]?.c);
+    } catch (_) {
+      outgoing_destinations = 0;
+    }
+
+    return {
+      total_connections: n(row.total_connections),
+      unique_remote_ips: n(row.unique_remote_ips),
+      hosts_with_activity: n(row.hosts_with_activity),
+      outgoing_destinations: outgoing_destinations || n(row.unique_remote_ips),
+    };
+  } catch (err) {
+    logger.warn({ err: err.message }, 'NetworkService.getNetworkKpi');
+    return {
+      total_connections: 0,
+      unique_remote_ips: 0,
+      hosts_with_activity: 0,
+      outgoing_destinations: 0,
+    };
+  }
 }
 
 async function getNetworkEventsFromNormalized(filters = {}) {
@@ -163,11 +314,19 @@ async function getNetworkEventsFromNormalized(filters = {}) {
     sql += ' AND ne.timestamp <= ?';
     params.push(filters.dateTo);
   }
+  if (filters.hours) {
+    sql += ' AND ne.timestamp >= DATE_SUB(NOW(), INTERVAL ? HOUR)';
+    params.push(filters.hours);
+  }
+  if (excludeLocalhostEnabled(filters)) {
+    sql = appendExcludeLocalhostDestination(sql);
+    params.push(...LOCALHOST_REMOTE_IPS);
+  }
 
   sql += ' ORDER BY ne.timestamp DESC LIMIT ?';
   params.push(Math.min(parseInt(filters.limit) || 50, 200));
 
-  return db.query(sql, params);
+  return safeQuery(sql, params);
 }
 
 function toNull(v) {
@@ -210,6 +369,7 @@ module.exports = {
   listConnections,
   getOutgoingIps,
   getTrafficSummary,
+  getNetworkKpi,
   getNetworkEventsFromNormalized,
   upsertConnection,
 };

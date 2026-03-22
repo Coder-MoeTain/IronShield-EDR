@@ -1,0 +1,49 @@
+.wrap {
+  overflow: auto;
+  background: var(--surface-elevated, #1a1d24);
+  border: 1px solid var(--border-subtle, #2a2f3a);
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+
+.svg {
+  width: 100%;
+  max-width: 900px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.edge {
+  stroke: rgba(148, 163, 184, 0.45);
+  stroke-width: 1.25;
+}
+
+.nodeHost {
+  fill: rgba(59, 130, 246, 0.5);
+  stroke: rgba(96, 165, 250, 0.9);
+  stroke-width: 1.5;
+}
+
+.nodeAlert {
+  fill: rgba(245, 158, 11, 0.45);
+  stroke: rgba(251, 191, 36, 0.85);
+  stroke-width: 1.25;
+}
+
+.label {
+  fill: var(--text-secondary, #94a3b8);
+  font-size: 10px;
+  font-family: var(--font-mono, monospace);
+}
+
+.hint {
+  margin-top: 1rem;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.err {
+  color: #f87171;
+  margin-bottom: 0.75rem;
+}

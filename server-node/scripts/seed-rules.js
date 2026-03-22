@@ -24,6 +24,7 @@ const rules = [
   { name: 'suspicious_script_host', title: 'Suspicious Script Host Activity', description: 'Wscript or Cscript executing with suspicious parameters', severity: 'medium', conditions: { event_type: 'process_create', process_name: ['wscript.exe', 'cscript.exe'], suspicious_params: true }, mitre_tactic: 'T1059.007', mitre_technique: 'Command and Scripting Interpreter: JavaScript/JScript' },
   { name: 'suspicious_regsvr32', title: 'Suspicious Regsvr32 Execution', description: 'Regsvr32.exe with unusual parameters', severity: 'medium', conditions: { event_type: 'process_create', process_name: 'regsvr32.exe', suspicious_params: true }, mitre_tactic: 'T1218.010', mitre_technique: 'System Binary Proxy Execution: Regsvr32' },
   { name: 'suspicious_mshta', title: 'Suspicious Mshta Execution', description: 'Mshta.exe executing script content', severity: 'medium', conditions: { event_type: 'process_create', process_name: 'mshta.exe' }, mitre_tactic: 'T1218.005', mitre_technique: 'System Binary Proxy Execution: Mshta' },
+  { name: 'dns_long_query_tunneling', title: 'Long DNS query (possible tunneling)', description: 'DNS query string unusually long — may indicate DNS tunneling (requires Sysmon 22 / DNS telemetry)', severity: 'medium', conditions: { dns_query_length_gt: 50 }, mitre_tactic: 'T1071.004', mitre_technique: 'Application Layer Protocol: DNS' },
 ];
 
 async function main() {

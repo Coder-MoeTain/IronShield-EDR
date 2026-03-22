@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
 import styles from './EventDetail.module.css';
 
 export default function EventDetail() {
@@ -17,8 +18,14 @@ export default function EventDetail() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div className={styles.loading}>Loading...</div>;
-  if (!event) return <div className={styles.error}>Event not found</div>;
+  if (loading) return <PageShell loading loadingLabel="Loading event…" />;
+  if (!event) {
+    return (
+      <PageShell kicker="Explore" title="Raw event">
+        <div className={styles.error}>Event not found</div>
+      </PageShell>
+    );
+  }
 
   const raw = (() => {
     const r = event.raw_event_json;
@@ -28,11 +35,12 @@ export default function EventDetail() {
   })();
 
   return (
-    <div>
-      <div className={styles.header}>
-        <Link to="/raw-events" className={styles.back}>← Raw Events</Link>
-        <h1 className={styles.title}>Event #{event.id}</h1>
-      </div>
+    <PageShell
+      kicker="Explore"
+      title={`Raw event #${event.id}`}
+      description="Full payload and summary fields for this ingested event."
+      actions={<Link to="/raw-events" className="falcon-btn falcon-btn-ghost">← Raw events</Link>}
+    >
       <div className={styles.grid}>
         <div className={styles.card}>
           <h3>Summary</h3>
@@ -60,6 +68,6 @@ export default function EventDetail() {
           </pre>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

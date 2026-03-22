@@ -39,12 +39,22 @@ CREATE TABLE endpoints (
   ip_address VARCHAR(45),
   mac_address VARCHAR(64),
   agent_version VARCHAR(32),
+  sensor_queue_depth INT UNSIGNED NULL,
+  sensor_uptime_seconds INT UNSIGNED NULL,
+  host_isolation_active TINYINT(1) NULL,
+  sensor_operational_status VARCHAR(16) NULL,
+  agent_update_status VARCHAR(24) NULL,
+  available_agent_version VARCHAR(32) NULL,
+  last_agent_update_check_at DATETIME NULL,
+  edr_policy_id INT UNSIGNED NULL,
+  last_edr_policy_sync_at DATETIME NULL,
   last_heartbeat_at DATETIME,
   status ENUM('online', 'offline', 'isolated', 'investigating', 'unknown') NOT NULL DEFAULT 'unknown',
   policy_status ENUM('normal', 'isolated', 'investigating') NOT NULL DEFAULT 'normal',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_endpoint_agent_key (agent_key),
+  INDEX idx_endpoint_tenant (tenant_id),
   INDEX idx_endpoint_hostname (hostname),
   INDEX idx_endpoint_status (status),
   INDEX idx_endpoint_last_heartbeat (last_heartbeat_at)
@@ -116,6 +126,11 @@ CREATE TABLE normalized_events (
   service_name VARCHAR(255),
   logon_type VARCHAR(32),
   powershell_command TEXT,
+  dns_query VARCHAR(512),
+  dns_query_type VARCHAR(32),
+  registry_key VARCHAR(1024),
+  registry_value_name VARCHAR(256),
+  image_loaded_path VARCHAR(1024),
   raw_event_json JSON,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (endpoint_id) REFERENCES endpoints(id) ON DELETE CASCADE,
@@ -124,7 +139,8 @@ CREATE TABLE normalized_events (
   INDEX idx_norm_event_type (event_type),
   INDEX idx_norm_timestamp (timestamp),
   INDEX idx_norm_process (process_name(128)),
-  INDEX idx_norm_username (username(64))
+  INDEX idx_norm_username (username(64)),
+  INDEX idx_norm_dns (dns_query(128))
 ) ENGINE=InnoDB;
 
 -- =====================================================
@@ -161,6 +177,13 @@ CREATE TABLE alerts (
   mitre_technique VARCHAR(128),
   status ENUM('new', 'investigating', 'closed', 'false_positive') NOT NULL DEFAULT 'new',
   assigned_to VARCHAR(128),
+  assigned_team VARCHAR(128),
+  due_at DATETIME,
+  sla_minutes INT UNSIGNED DEFAULT 240,
+  sla_breached_at DATETIME,
+  suppressed_by VARCHAR(128),
+  suppression_reason TEXT,
+  suppressed_at DATETIME,
   source_event_ids JSON,
   first_seen DATETIME NOT NULL,
   last_seen DATETIME NOT NULL,
@@ -172,7 +195,9 @@ CREATE TABLE alerts (
   INDEX idx_alert_severity (severity),
   INDEX idx_alert_status (status),
   INDEX idx_alert_first_seen (first_seen),
-  INDEX idx_alert_created (created_at)
+  INDEX idx_alert_created (created_at),
+  INDEX idx_alert_due (due_at),
+  INDEX idx_alert_team (assigned_team(64))
 ) ENGINE=InnoDB;
 
 -- =====================================================
@@ -194,7 +219,7 @@ CREATE TABLE alert_notes (
 CREATE TABLE response_actions (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   endpoint_id INT UNSIGNED NOT NULL,
-  action_type ENUM('kill_process', 'request_heartbeat', 'simulate_isolation', 'mark_investigating', 'collect_triage') NOT NULL,
+  action_type ENUM('kill_process', 'request_heartbeat', 'isolate_host', 'lift_isolation', 'mark_investigating', 'collect_triage', 'quarantine_file', 'block_ip', 'block_hash', 'run_script') NOT NULL,
   parameters JSON,
   requested_by VARCHAR(128) NOT NULL,
   status ENUM('pending', 'sent', 'acknowledged', 'completed', 'failed') NOT NULL DEFAULT 'pending',
@@ -238,4 +263,19 @@ CREATE TABLE audit_logs (
   INDEX idx_audit_user (user_id),
   INDEX idx_audit_action (action),
   INDEX idx_audit_created (created_at)
+) ENGINE=InnoDB;
+
+-- =====================================================
+-- SAVED VIEWS (Phase parity — run schema-phase5+ for tenants)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS user_saved_views (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  name VARCHAR(128) NOT NULL,
+  page VARCHAR(64) NOT NULL,
+  filters_json JSON NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES admin_users(id) ON DELETE CASCADE,
+  INDEX idx_saved_views_user_page (user_id, page)
 ) ENGINE=InnoDB;

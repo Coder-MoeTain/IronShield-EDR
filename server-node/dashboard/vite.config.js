@@ -1,8 +1,15 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './src/setupTests.js',
+    include: ['src/**/*.{test,spec}.{js,jsx}'],
+  },
   server: {
     port: 5173,
     proxy: {
@@ -20,6 +27,6 @@ export default defineConfig({
   },
   build: {
     outDir: '../public',
-    emptyDirOutDir: true,
+    emptyOutDir: true,
   },
 });

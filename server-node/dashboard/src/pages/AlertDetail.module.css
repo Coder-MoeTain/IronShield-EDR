@@ -293,6 +293,55 @@
   opacity: 0.9;
 }
 
+.btnSecondary {
+  padding: 0.45rem 0.85rem;
+  background: rgba(100, 116, 139, 0.2);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.btnSecondary:hover {
+  border-color: var(--accent-blue);
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.slaBreached {
+  color: #dc2626;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.suppressionMeta {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  padding: 0.65rem 0.75rem;
+  background: rgba(100, 116, 139, 0.12);
+  border-radius: 8px;
+  line-height: 1.45;
+}
+
+.suppressionWhen {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.suppressBox {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.suppressBox label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+
 .loading,
 .error {
   padding: 2rem;

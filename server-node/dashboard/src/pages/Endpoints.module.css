@@ -1,17 +1,40 @@
+.pageHead {
+  margin-bottom: 1.25rem;
+}
+
 .title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.pageSub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.35rem;
 }
 
 .tableWrap {
-  background: var(--bg-glass);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: var(--bg-secondary);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
+  position: relative;
+}
+
+.tableWrap::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(224, 30, 55, 0.35), transparent);
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 .table {
@@ -27,11 +50,17 @@
 }
 
 .table th {
-  background: rgba(255, 255, 255, 0.6);
-  font-weight: 500;
-  font-size: 0.8rem;
+  background: var(--panel-header-bg, rgba(255, 255, 255, 0.6));
+  font-weight: 600;
+  font-size: 0.72rem;
   text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
+  font-family: var(--font-display);
+}
+
+[data-theme='dark'] .table th {
+  background: rgba(18, 22, 28, 0.95);
 }
 
 .table tr:hover {
@@ -44,6 +73,18 @@
 
 .hostname {
   font-weight: 500;
+}
+
+.tenantCell {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tenantSlug {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
 }
 
 .os {
@@ -103,4 +144,89 @@
 .empty {
   color: var(--text-muted);
   padding: 2rem;
+}
+
+.sensorCell {
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.sensorContain {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.72rem;
+  background: rgba(220, 38, 38, 0.15);
+  color: #b91c1c;
+  border: 1px solid rgba(220, 38, 38, 0.35);
+}
+
+.sensorDegraded {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.72rem;
+  background: rgba(217, 119, 6, 0.15);
+  color: #b45309;
+  border: 1px solid rgba(217, 119, 6, 0.35);
+}
+
+.sensorUpdatePending {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.72rem;
+  background: rgba(217, 119, 6, 0.2);
+  color: #b45309;
+  border: 1px solid rgba(217, 119, 6, 0.45);
+}
+
+.ngavCell {
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.ngavActive {
+  color: #15803d;
+  font-weight: 600;
+}
+
+.ngavDegraded {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.ngavMonitor {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.sensorQueue {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.policyCell {
+  white-space: nowrap;
+}
+
+.policyMismatchMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.25rem;
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.2rem;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  vertical-align: middle;
+  background: rgba(217, 119, 6, 0.25);
+  color: #b45309;
+  border: 1px solid rgba(217, 119, 6, 0.5);
 }

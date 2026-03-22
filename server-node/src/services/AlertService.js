@@ -58,9 +58,31 @@ async function createFromDetection(alerts) {
   }
 }
 
+async function applySlaBreaches() {
+  try {
+    await db.query(
+      `UPDATE alerts a
+       JOIN endpoints e ON e.id = a.endpoint_id
+       SET a.sla_breached_at = NOW(), a.updated_at = NOW()
+       WHERE a.due_at IS NOT NULL
+         AND a.due_at < NOW()
+         AND a.sla_breached_at IS NULL
+         AND a.status IN ('new', 'investigating')`
+    );
+  } catch (_) {
+    /* columns may be missing before migration */
+  }
+}
+
 async function list(filters = {}) {
+  await applySlaBreaches();
+
   let sql = `
-    SELECT a.*, e.hostname
+    SELECT a.*, e.hostname,
+      ROUND(LEAST(100, GREATEST(0,
+        (CASE a.severity WHEN 'critical' THEN 95 WHEN 'high' THEN 75 WHEN 'medium' THEN 50 WHEN 'low' THEN 25 ELSE 15 END)
+        * COALESCE(a.confidence, 0.5)
+      ))) AS risk_score
     FROM alerts a
     JOIN endpoints e ON e.id = a.endpoint_id
     WHERE 1=1
@@ -83,6 +105,14 @@ async function list(filters = {}) {
     sql += ' AND a.status = ?';
     params.push(filters.status);
   }
+  if (filters.assigned_to) {
+    sql += ' AND a.assigned_to = ?';
+    params.push(filters.assigned_to);
+  }
+  if (filters.assigned_team) {
+    sql += ' AND a.assigned_team = ?';
+    params.push(filters.assigned_team);
+  }
   if (filters.dateFrom) {
     sql += ' AND a.first_seen >= ?';
     params.push(filters.dateFrom);
@@ -100,7 +130,11 @@ async function list(filters = {}) {
 
 async function getById(id) {
   return db.queryOne(
-    `SELECT a.*, e.hostname, e.ip_address
+    `SELECT a.*, e.hostname, e.ip_address,
+      ROUND(LEAST(100, GREATEST(0,
+        (CASE a.severity WHEN 'critical' THEN 95 WHEN 'high' THEN 75 WHEN 'medium' THEN 50 WHEN 'low' THEN 25 ELSE 15 END)
+        * COALESCE(a.confidence, 0.5)
+      ))) AS risk_score
      FROM alerts a
      JOIN endpoints e ON e.id = a.endpoint_id
      WHERE a.id = ?`,
@@ -113,6 +147,43 @@ async function updateStatus(id, status, assignedTo = null) {
     'UPDATE alerts SET status = ?, assigned_to = COALESCE(?, assigned_to), updated_at = NOW() WHERE id = ?',
     [status, assignedTo, id]
   );
+}
+
+/**
+ * Partial update: status, assignment, SLA, suppression
+ */
+async function patch(id, data = {}, tenantId = null) {
+  const row = await db.queryOne(
+    `SELECT a.id FROM alerts a
+     JOIN endpoints e ON e.id = a.endpoint_id
+     WHERE a.id = ? ${tenantId != null ? 'AND e.tenant_id = ?' : ''}`,
+    tenantId != null ? [id, tenantId] : [id]
+  );
+  if (!row) return null;
+
+  if (data.suppression_reason !== undefined && String(data.suppression_reason).trim()) {
+    await db.query(
+      `UPDATE alerts SET status = 'false_positive', suppression_reason = ?, suppressed_at = NOW(),
+       suppressed_by = ?, updated_at = NOW() WHERE id = ?`,
+      [String(data.suppression_reason).trim(), data.suppressed_by || null, id]
+    );
+    return getById(id);
+  }
+
+  const updates = [];
+  const params = [];
+  const fields = ['status', 'assigned_to', 'assigned_team', 'due_at', 'sla_minutes'];
+  for (const f of fields) {
+    if (data[f] !== undefined) {
+      updates.push(`${f} = ?`);
+      params.push(data[f] === '' ? null : data[f]);
+    }
+  }
+  if (updates.length === 0) return getById(id);
+  updates.push('updated_at = NOW()');
+  params.push(id);
+  await db.query(`UPDATE alerts SET ${updates.join(', ')} WHERE id = ?`, params);
+  return getById(id);
 }
 
 async function addNote(alertId, author, note) {
@@ -159,7 +230,9 @@ module.exports = {
   list,
   getById,
   updateStatus,
+  patch,
   addNote,
   getNotes,
   getSummary,
+  applySlaBreaches,
 };

@@ -3,17 +3,34 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
+  background: var(--main-bg, var(--bg-primary));
+  position: relative;
+}
+
+[data-theme='light'] .page {
+  background:
+    radial-gradient(ellipse 120% 80% at 100% 0%, rgba(37, 99, 235, 0.06), transparent 50%),
+    linear-gradient(145deg, #f8fafc 0%, #f1f5f9 45%, #e2e8f0 100%);
+}
+
+[data-theme='dark'] .page {
+  background:
+    radial-gradient(ellipse 90% 55% at 50% -15%, rgba(224, 30, 55, 0.12), transparent 55%),
+    linear-gradient(180deg, #080a0d 0%, #0c0e11 100%);
+}
+
+.themeToggle {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
 }
 
 .card {
   width: 100%;
-  max-width: 380px;
-  background: var(--bg-glass);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  max-width: 400px;
+  background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-md, 6px);
   padding: 2rem;
   box-shadow: var(--shadow-lg);
 }
@@ -23,15 +40,29 @@
   margin-bottom: 2rem;
 }
 
-.icon {
-  font-size: 3rem;
-  display: block;
-  margin-bottom: 0.5rem;
+.brandMark {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 0.75rem;
+  border-radius: 10px;
+  background: linear-gradient(145deg, rgba(225, 29, 72, 0.2), rgba(225, 29, 72, 0.06));
+  border: 1px solid rgba(225, 29, 72, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-red, #e11d48);
+}
+
+.brandMark svg {
+  width: 26px;
+  height: 26px;
 }
 
 .header h1 {
+  font-family: var(--font-display);
   font-size: 1.5rem;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   margin-bottom: 0.25rem;
 }
 
@@ -47,26 +78,32 @@
 }
 
 .form input {
-  padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.8);
+  padding: 0.65rem 0.9rem;
+  background: var(--bg-tertiary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 4px);
   color: var(--text-primary);
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
+}
+
+[data-theme="light"] .form input {
+  background: rgba(255, 255, 255, 0.95);
 }
 
 .form input:focus {
   outline: none;
-  border-color: var(--accent-blue);
+  border-color: rgba(224, 30, 55, 0.5);
+  box-shadow: 0 0 0 1px rgba(224, 30, 55, 0.15);
 }
 
 .form button {
-  padding: 0.75rem 1rem;
-  background: var(--accent-blue);
+  padding: 0.7rem 1rem;
+  background: var(--brand-red, #e01e37);
   color: white;
-  border-radius: 8px;
-  font-weight: 500;
-  font-size: 0.95rem;
+  border-radius: var(--radius-sm, 4px);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
 }
 
 .form button:hover:not(:disabled) {

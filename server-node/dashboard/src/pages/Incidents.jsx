@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
+import FalconTableShell from '../components/FalconTableShell';
+import FalconEmptyState from '../components/FalconEmptyState';
+import FalconPagination from '../components/FalconPagination';
+import { falconSeverityClass } from '../utils/falconUi';
 import styles from './Incidents.module.css';
 
 function timeAgo(date) {
@@ -37,13 +42,6 @@ export default function Incidents() {
     fetchData();
   }, [filters]);
 
-  const severityClass = (s) => {
-    if (s === 'critical') return styles.critical;
-    if (s === 'high') return styles.high;
-    if (s === 'medium') return styles.medium;
-    return styles.low;
-  };
-
   const statusClass = (s) => {
     if (s === 'open') return styles.statusOpen;
     if (s === 'investigating') return styles.statusInvestigating;
@@ -59,40 +57,57 @@ export default function Incidents() {
     fetchData();
   };
 
-  if (loading && incidents.length === 0) return <div className={styles.loading}>Loading incidents...</div>;
+  if (loading && incidents.length === 0) return <PageShell loading loadingLabel="Loading incidents…" />;
 
   return (
+    <PageShell
+      kicker="Respond"
+      title="Incidents"
+      description="Correlated alert groups — triage, change status, and drill into details."
+      actions={
+        <button type="button" onClick={fetchData} className="falcon-btn falcon-btn-ghost">
+          ↻ Refresh
+        </button>
+      }
+    >
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>
-          <span className={styles.titleIcon}>🔥</span> Incidents
-        </h1>
-        <button onClick={fetchData} className={styles.refreshBtn}>↻ Refresh</button>
-      </div>
-
-      <div className={styles.filters}>
-        <select
-          value={filters.status}
-          onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value, offset: 0 }))}
-        >
-          <option value="">All statuses</option>
-          <option value="open">Open</option>
-          <option value="investigating">Investigating</option>
-          <option value="resolved">Resolved</option>
-          <option value="closed">Closed</option>
-        </select>
-        <select
-          value={filters.severity}
-          onChange={(e) => setFilters((f) => ({ ...f, severity: e.target.value, offset: 0 }))}
-        >
-          <option value="">All severities</option>
-          <option value="critical">Critical</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-        </select>
-      </div>
-
+      <FalconTableShell
+        toolbar={(
+          <div className={`${styles.filters} falcon-filter-bar`}>
+            <select
+              value={filters.status}
+              onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value, offset: 0 }))}
+            >
+              <option value="">All statuses</option>
+              <option value="open">Open</option>
+              <option value="investigating">Investigating</option>
+              <option value="resolved">Resolved</option>
+              <option value="closed">Closed</option>
+            </select>
+            <select
+              value={filters.severity}
+              onChange={(e) => setFilters((f) => ({ ...f, severity: e.target.value, offset: 0 }))}
+            >
+              <option value="">All severities</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+        )}
+        footer={(
+          <FalconPagination
+            offset={filters.offset}
+            limit={filters.limit}
+            pageItemCount={incidents.length}
+            onPrev={() => setFilters((f) => ({ ...f, offset: Math.max(0, f.offset - f.limit) }))}
+            onNext={() => setFilters((f) => ({ ...f, offset: f.offset + f.limit }))}
+            onLimitChange={(newLimit) => setFilters((f) => ({ ...f, limit: newLimit, offset: 0 }))}
+            pageSizeOptions={[25, 50, 100]}
+          />
+        )}
+      >
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead>
@@ -130,7 +145,7 @@ export default function Incidents() {
                   )}
                 </td>
                 <td>
-                  <span className={`${styles.badge} ${severityClass(inc.severity)}`}>{inc.severity}</span>
+                  <span className={falconSeverityClass(inc.severity)}>{inc.severity}</span>
                 </td>
                 <td>
                   <span className={`${styles.statusBadge} ${statusClass(inc.status)}`}>{inc.status}</span>
@@ -152,8 +167,15 @@ export default function Incidents() {
             ))}
           </tbody>
         </table>
-        {incidents.length === 0 && <div className={styles.empty}>No incidents found.</div>}
+        {incidents.length === 0 && (
+          <FalconEmptyState
+            title="No incidents found"
+            description="Incidents appear when correlated alert groups are created. Adjust status or severity filters."
+          />
+        )}
       </div>
+      </FalconTableShell>
     </div>
+    </PageShell>
   );
 }

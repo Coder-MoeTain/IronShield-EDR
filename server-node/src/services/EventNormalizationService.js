@@ -75,6 +75,24 @@ function normalize(rawEvent) {
     if (parsed.parent_process_id != null) parentProcessId = parentProcessId ?? parsed.parent_process_id;
   }
 
+  const evId = raw?.EventID ?? raw?.EventId;
+  let dnsQuery = raw?.dns_query || raw?.QueryName || raw?.query_name;
+  let dnsQueryType = raw?.dns_query_type || raw?.QueryType || raw?.query_type;
+  let registryKey = raw?.registry_key || raw?.TargetObject || raw?.target_object;
+  let registryValueName = raw?.registry_value_name || raw?.Details || raw?.value_name;
+  let imageLoadedPath = raw?.image_loaded_path || raw?.ImageLoaded || raw?.image_loaded;
+
+  if (evId === 22 || String(et).includes('dns')) {
+    dnsQuery = dnsQuery || raw?.QueryName;
+    dnsQueryType = dnsQueryType || raw?.QueryType;
+  }
+  if (evId === 13 || evId === 14 || String(et).toLowerCase().includes('registry')) {
+    registryKey = registryKey || raw?.TargetObject;
+  }
+  if (evId === 7 || String(et).toLowerCase().includes('image_load')) {
+    imageLoadedPath = imageLoadedPath || raw?.ImageLoaded;
+  }
+
   return {
     raw_event_id: rawEvent.id,
     endpoint_id: rawEvent.endpoint_id,
@@ -97,6 +115,11 @@ function normalize(rawEvent) {
     service_name: raw?.service_name,
     logon_type: raw?.logon_type,
     powershell_command: raw?.powershell_command,
+    dns_query: dnsQuery || null,
+    dns_query_type: dnsQueryType || null,
+    registry_key: registryKey || null,
+    registry_value_name: registryValueName || null,
+    image_loaded_path: imageLoadedPath || null,
     raw_event_json: raw,
   };
 }

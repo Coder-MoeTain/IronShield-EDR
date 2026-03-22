@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const db = require('../utils/db');
 const config = require('../config');
 const logger = require('../utils/logger');
+const TenantService = require('./TenantService');
 
 /**
  * Register a new endpoint agent
@@ -24,14 +25,30 @@ async function register(payload, registrationToken) {
     ip_address,
     mac_address,
     agent_version,
+    tenant_slug,
   } = payload;
 
   if (!hostname || typeof hostname !== 'string') {
     throw new Error('Hostname is required');
   }
 
+  let resolvedTenantId = TenantService.DEFAULT_TENANT_ID;
+  try {
+    resolvedTenantId = await TenantService.getDefaultTenant();
+  } catch (e) {
+    logger.warn({ err: e.message }, 'getDefaultTenant failed; using default id');
+  }
+
+  if (tenant_slug != null && String(tenant_slug).trim() !== '') {
+    const tid = await TenantService.getTenantIdBySlug(tenant_slug);
+    if (!tid) {
+      throw new Error('Unknown tenant slug');
+    }
+    resolvedTenantId = tid;
+  }
+
   const agentKey = crypto.randomBytes(32).toString('hex');
-  const defaultTenantId = 1;
+  const defaultTenantId = resolvedTenantId;
 
   let result;
   try {

@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
+import FalconTableShell from '../components/FalconTableShell';
+import FalconEmptyState from '../components/FalconEmptyState';
+import FalconPagination from '../components/FalconPagination';
 import styles from './Events.module.css';
 
 export default function NormalizedEvents() {
@@ -46,67 +50,86 @@ export default function NormalizedEvents() {
       processName: form.processName?.value || '',
       dateFrom: form.dateFrom?.value || '',
       dateTo: form.dateTo?.value || '',
-      limit: 50,
+      limit: filters.limit,
       offset: 0,
     });
   };
 
-  const nextPage = () => setFilters((f) => ({ ...f, offset: f.offset + f.limit }));
-  const prevPage = () => setFilters((f) => ({ ...f, offset: Math.max(0, f.offset - f.limit) }));
+  if (loading && events.length === 0) return <PageShell loading loadingLabel="Loading events…" />;
 
-  if (loading && events.length === 0) return <div className={styles.loading}>Loading...</div>;
+  const filterForm = (
+    <form onSubmit={handleFilter} className={`${styles.filters} falcon-filter-bar`}>
+      <input name="hostname" placeholder="Hostname" defaultValue={filters.hostname} />
+      <input name="eventType" placeholder="Event type" defaultValue={filters.eventType} />
+      <input name="endpointId" placeholder="Endpoint ID" defaultValue={filters.endpointId} />
+      <input name="username" placeholder="Username" defaultValue={filters.username} />
+      <input name="processName" placeholder="Process name" defaultValue={filters.processName} />
+      <input name="dateFrom" type="date" placeholder="From" defaultValue={filters.dateFrom} />
+      <input name="dateTo" type="date" placeholder="To" defaultValue={filters.dateTo} />
+      <button type="submit" className="falcon-btn falcon-btn-primary">
+        Filter
+      </button>
+    </form>
+  );
 
   return (
-    <div>
-      <h1 className={styles.title}>Normalized Events</h1>
-      <form onSubmit={handleFilter} className={styles.filters}>
-        <input name="hostname" placeholder="Hostname" defaultValue={filters.hostname} />
-        <input name="eventType" placeholder="Event type" defaultValue={filters.eventType} />
-        <input name="endpointId" placeholder="Endpoint ID" defaultValue={filters.endpointId} />
-        <input name="username" placeholder="Username" defaultValue={filters.username} />
-        <input name="processName" placeholder="Process name" defaultValue={filters.processName} />
-        <input name="dateFrom" type="date" placeholder="From" defaultValue={filters.dateFrom} />
-        <input name="dateTo" type="date" placeholder="To" defaultValue={filters.dateTo} />
-        <button type="submit">Filter</button>
-      </form>
-      <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Hostname</th>
-              <th>Type</th>
-              <th>Process</th>
-              <th>User</th>
-              <th>Parent</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {events.map((evt) => (
-              <tr key={evt.id}>
-                <td className="mono">{new Date(evt.timestamp).toLocaleString()}</td>
-                <td>{evt.hostname || evt.endpoint_hostname || '-'}</td>
-                <td><span className={styles.type}>{evt.event_type || '-'}</span></td>
-                <td className={styles.process}>{evt.process_name || '-'}</td>
-                <td>{evt.username || '-'}</td>
-                <td>{evt.parent_process_name || '-'}</td>
-                <td>
-                  <Link to={`/normalized-events/${evt.id}`} className={styles.viewLink}>Details</Link>
-                </td>
+    <PageShell
+      kicker="Explore"
+      title="Normalized events"
+      description="Filter normalized telemetry (alternate view to the main Events explorer)."
+    >
+      <FalconTableShell
+        toolbar={filterForm}
+        footer={(
+          <FalconPagination
+            offset={filters.offset}
+            limit={filters.limit}
+            total={total}
+            pageItemCount={events.length}
+            onPrev={() => setFilters((f) => ({ ...f, offset: Math.max(0, f.offset - f.limit) }))}
+            onNext={() => setFilters((f) => ({ ...f, offset: f.offset + f.limit }))}
+            onLimitChange={(newLimit) => setFilters((f) => ({ ...f, limit: newLimit, offset: 0 }))}
+            pageSizeOptions={[25, 50, 100]}
+          />
+        )}
+      >
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Hostname</th>
+                <th>Type</th>
+                <th>Process</th>
+                <th>User</th>
+                <th>Parent</th>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {events.length === 0 && <p className={styles.empty}>No normalized events found.</p>}
-      </div>
-      <div className={styles.pagination}>
-        <button onClick={prevPage} disabled={filters.offset === 0}>Previous</button>
-        <span>
-          {filters.offset + 1}-{Math.min(filters.offset + filters.limit, total)} of {total}
-        </span>
-        <button onClick={nextPage} disabled={filters.offset + filters.limit >= total}>Next</button>
-      </div>
-    </div>
+            </thead>
+            <tbody>
+              {events.map((evt) => (
+                <tr key={evt.id}>
+                  <td className="mono">{new Date(evt.timestamp).toLocaleString()}</td>
+                  <td>{evt.hostname || evt.endpoint_hostname || '-'}</td>
+                  <td><span className={styles.type}>{evt.event_type || '-'}</span></td>
+                  <td className={styles.process}>{evt.process_name || '-'}</td>
+                  <td>{evt.username || '-'}</td>
+                  <td>{evt.parent_process_name || '-'}</td>
+                  <td>
+                    <Link to={`/normalized-events/${evt.id}`} className={styles.viewLink}>Details</Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {events.length === 0 && (
+            <FalconEmptyState
+              title="No normalized events found"
+              description="Try clearing hostname or type filters, or check the main Events page for the same query."
+            />
+          )}
+        </div>
+      </FalconTableShell>
+    </PageShell>
   );
 }

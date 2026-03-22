@@ -13,6 +13,8 @@ import NormalizedEventDetail from './pages/NormalizedEventDetail';
 import Alerts from './pages/Alerts';
 import AlertDetail from './pages/AlertDetail';
 import DetectionRules from './pages/DetectionRules';
+import DetectionRuleDetail from './pages/DetectionRuleDetail';
+import DetectionRuleEditor from './pages/DetectionRuleEditor';
 import AuditLogs from './pages/AuditLogs';
 import Investigations from './pages/Investigations';
 import InvestigationDetail from './pages/InvestigationDetail';
@@ -37,6 +39,14 @@ import AvMalwareAlertDetail from './pages/AvMalwareAlertDetail';
 import AvFileReputation from './pages/AvFileReputation';
 import EnterpriseSettings from './pages/EnterpriseSettings';
 import TenantManagement from './pages/TenantManagement';
+import MsspConsole from './pages/MsspConsole';
+import HostGroups from './pages/HostGroups';
+import SensorHealth from './pages/SensorHealth';
+import Hunting from './pages/Hunting';
+import RtrConsole from './pages/RtrConsole';
+import ThreatGraph from './pages/ThreatGraph';
+import AnalyticsDetections from './pages/AnalyticsDetections';
+import FalconRoadmapPage from './pages/FalconRoadmapPage';
 
 function PrivateRoute({ children }) {
   const { token } = useAuth();
@@ -56,6 +66,13 @@ export default function App() {
         }>
           <Route index element={<Dashboard />} />
           <Route path="endpoints" element={<Endpoints />} />
+          <Route path="host-groups" element={<HostGroups />} />
+          <Route path="sensor-health" element={<SensorHealth />} />
+          <Route path="hunting" element={<Hunting />} />
+          <Route path="rtr" element={<RtrConsole />} />
+          <Route path="threat-graph" element={<ThreatGraph />} />
+          <Route path="analytics-detections" element={<AnalyticsDetections />} />
+          <Route path="falcon/:area" element={<FalconRoadmapPage />} />
           <Route path="endpoints/:id" element={<EndpointDetail />} />
           <Route path="events" element={<Events />} />
           <Route path="raw-events" element={<RawEvents />} />
@@ -64,6 +81,11 @@ export default function App() {
           <Route path="alerts" element={<Alerts />} />
           <Route path="alerts/:id" element={<AlertDetail />} />
           <Route path="detection-rules" element={<DetectionRules />} />
+          <Route path="detection-rules/new" element={<DetectionRuleEditor />} />
+          <Route path="detection-rules/:id/edit" element={<DetectionRuleEditor />} />
+          <Route path="detection-rules/:id" element={<DetectionRuleDetail />} />
+          <Route path="suppressions" element={<Navigate to="/detection-rules?tab=suppressions" replace />} />
+          <Route path="playbooks" element={<Navigate to="/triage?tab=playbooks" replace />} />
           <Route path="audit-logs" element={<AuditLogs />} />
           <Route path="investigations" element={<Investigations />} />
           <Route path="investigations/:id" element={<InvestigationDetail />} />
@@ -88,6 +110,7 @@ export default function App() {
           <Route path="av/malware-alerts/:id" element={<AvMalwareAlertDetail />} />
           <Route path="enterprise" element={<EnterpriseSettings />} />
           <Route path="tenants" element={<TenantManagement />} />
+          <Route path="mssp" element={<MsspConsole />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

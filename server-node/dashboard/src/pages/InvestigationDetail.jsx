@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
+import { falconSeverityClass } from '../utils/falconUi';
 import styles from './AlertDetail.module.css';
 
 export default function InvestigationDetail() {
@@ -34,17 +36,29 @@ export default function InvestigationDetail() {
     setNotes(n || []);
   };
 
-  if (loading) return <div className={styles.loading}>Loading...</div>;
-  if (!case_) return <div className={styles.error}>Investigation not found</div>;
-
-  const severityClass = case_.severity === 'critical' ? styles.critical : case_.severity === 'high' ? styles.high : styles.medium;
+  if (loading) return <PageShell loading loadingLabel="Loading investigation…" />;
+  if (!case_) {
+    return (
+      <PageShell kicker="Respond" title="Investigation">
+        <div className={styles.error}>Investigation not found</div>
+      </PageShell>
+    );
+  }
 
   return (
+    <PageShell
+      kicker="Respond"
+      title={`${case_.case_id} – ${case_.title}`}
+      description={`Status: ${case_.status}`}
+      actions={
+        <Link to="/investigations" className="falcon-btn falcon-btn-ghost">
+          ← Investigations
+        </Link>
+      }
+    >
     <div>
-      <div className={styles.header}>
-        <Link to="/investigations" className={styles.back}>← Investigations</Link>
-        <h1 className={styles.title}>{case_.case_id} – {case_.title}</h1>
-        <span className={`${styles.badge} ${severityClass}`}>{case_.severity}</span>
+      <div style={{ marginBottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <span className={falconSeverityClass(case_.severity)}>{case_.severity}</span>
         <span className={styles.status}>{case_.status}</span>
       </div>
       <div className={styles.grid}>
@@ -78,5 +92,6 @@ export default function InvestigationDetail() {
         </div>
       </div>
     </div>
+    </PageShell>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
 import styles from './AvOverview.module.css';
 
 export default function AvScanTasks() {
@@ -55,13 +56,17 @@ export default function AvScanTasks() {
   };
 
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <h1 className={styles.title}><span className={styles.titleIcon}>🛡</span> Scan Tasks</h1>
-        <button className={styles.refreshBtn} onClick={fetchData} disabled={loading}>
+    <PageShell
+      kicker="Antivirus"
+      title="Scan tasks"
+      description="Queued and completed on-demand scans initiated from the console."
+      actions={(
+        <button type="button" className="falcon-btn falcon-btn-primary" onClick={fetchData} disabled={loading}>
           {loading ? '…' : 'Refresh'}
         </button>
-      </header>
+      )}
+    >
+      <div className={styles.container}>
 
       <div className={styles.section} style={{ marginBottom: '1rem' }}>
         <div className={styles.sectionHeader}>
@@ -130,6 +135,7 @@ export default function AvScanTasks() {
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </PageShell>
   );
 }

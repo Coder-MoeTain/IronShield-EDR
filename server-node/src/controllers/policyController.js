@@ -14,6 +14,7 @@ async function getPolicy(req, res, next) {
 
     res.json({
       policy_id: policy.id,
+      policy_name: policy.name,
       mode: policy.mode,
       telemetry_interval_seconds: policy.telemetry_interval_seconds,
       batch_upload_size: policy.batch_upload_size,

@@ -18,4 +18,14 @@ if (-not (Test-Path $exePath)) {
 
 # Create service (no --console for service mode)
 New-Service -Name $serviceName -DisplayName $displayName -BinaryPathName "`"$exePath`"" -StartupType Automatic
+
+# Recovery: restart service on failure (user-mode resilience / tamper resistance)
+try {
+    & sc.exe failure $serviceName reset= 86400 actions= restart/60000/restart/60000/restart/60000 | Out-Null
+    & sc.exe failureflag $serviceName 1 | Out-Null
+    Write-Host "Service failure recovery: restart after 60s (up to 3 times / 24h window)."
+} catch {
+    Write-Warning "Could not set sc failure actions (run elevated if needed)."
+}
+
 Write-Host "Service installed. Start with: Start-Service $serviceName"

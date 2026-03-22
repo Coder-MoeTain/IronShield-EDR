@@ -1,8 +1,8 @@
-/* Professional SOC Dashboard */
+/* CrowdStrike Falcon–class Activity dashboard — flat panels, dense tables */
 .container {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
   padding-bottom: 2rem;
 }
 
@@ -18,17 +18,23 @@
 .headerLeft {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
 }
 
 .title {
-  font-size: 1.6rem;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
   font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+}
+
+.titleSub {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  max-width: 42rem;
+  line-height: 1.45;
+  margin-top: 0.1rem;
 }
 
 .titleIcon {
@@ -73,20 +79,20 @@
 }
 
 .refreshBtn {
-  padding: 0.5rem 1rem;
-  background: var(--bg-tertiary);
+  padding: 0.45rem 0.9rem;
+  background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 4px);
   color: var(--text-primary);
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 0.2s;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .refreshBtn:hover {
-  background: var(--accent-blue);
-  color: white;
-  border-color: var(--accent-blue);
+  background: rgba(224, 30, 55, 0.12);
+  color: var(--text-primary);
+  border-color: rgba(224, 30, 55, 0.45);
 }
 
 .statsBar {
@@ -132,14 +138,14 @@
   border-color: rgba(37, 99, 235, 0.45);
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--bg-secondary);
 }
 
 .kpiValue {
   display: block;
   font-size: 1.85rem;
   font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   color: var(--text-primary);
   letter-spacing: -0.02em;
 }
@@ -182,11 +188,9 @@
 }
 
 .chartCard {
-  background: var(--bg-glass);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-md, 6px);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
@@ -195,8 +199,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.25rem;
-  background: rgba(255, 255, 255, 0.6);
+  padding: 0.75rem 1rem;
+  background: var(--panel-header-bg, var(--bg-tertiary));
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -257,11 +261,9 @@
 }
 
 .panel {
-  background: var(--bg-glass);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-md, 6px);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
@@ -270,8 +272,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.25rem;
-  background: rgba(255, 255, 255, 0.6);
+  padding: 0.75rem 1rem;
+  background: var(--panel-header-bg, var(--bg-tertiary));
   border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -464,7 +466,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 1rem;
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--bg-tertiary);
   border: 1px solid var(--border);
   border-radius: 10px;
   color: var(--text-primary);

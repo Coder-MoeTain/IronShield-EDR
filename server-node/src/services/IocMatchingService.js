@@ -54,4 +54,26 @@ function invalidateCache() {
   _hashCache = null;
 }
 
-module.exports = { checkAndRecordMatches, getHashIocs, invalidateCache };
+/**
+ * Add SHA256 hash to watchlist (e.g. from block_hash response action).
+ */
+async function addHashIoc(iocValue, description, tenantId = null) {
+  const v = String(iocValue || '').toLowerCase().trim();
+  if (v.length < 32) throw new Error('Invalid hash');
+  try {
+    await db.execute(
+      'INSERT INTO ioc_watchlist (tenant_id, ioc_type, ioc_value, description, severity) VALUES (?, ?, ?, ?, ?)',
+      [tenantId, 'hash', v, description || 'block_hash response action', 'high']
+    );
+  } catch (err) {
+    if (err.code === 'ER_BAD_FIELD_ERROR' && err.message?.includes('tenant_id')) {
+      await db.execute(
+        'INSERT INTO ioc_watchlist (ioc_type, ioc_value, description, severity) VALUES (?, ?, ?, ?)',
+        ['hash', v, description || 'block_hash response action', 'high']
+      );
+    } else throw err;
+  }
+  invalidateCache();
+}
+
+module.exports = { checkAndRecordMatches, getHashIocs, invalidateCache, addHashIoc };

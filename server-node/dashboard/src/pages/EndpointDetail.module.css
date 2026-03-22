@@ -37,6 +37,91 @@
   color: #b91c1c;
 }
 
+/* Falcon-style sensor / containment strip (Phase 4) */
+.sensorStrip {
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.45) 0%, rgba(30, 41, 59, 0.35) 100%);
+  box-shadow: var(--shadow-sm);
+}
+
+[data-theme='light'] .sensorStrip {
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.95) 0%, rgba(241, 245, 249, 0.9) 100%);
+}
+
+.sensorStripTitle {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.sensorStripInner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem 2rem;
+  align-items: flex-start;
+}
+
+.sensorItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 7rem;
+}
+
+.sensorLabel {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sensorValue {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sensorOk {
+  color: #16a34a;
+}
+
+.sensorDegraded {
+  color: #d97706;
+}
+
+.sensorUpdatePending {
+  color: #d97706;
+}
+
+.sensorDanger {
+  color: #dc2626;
+}
+
+.sensorMuted {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.containBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(220, 38, 38, 0.15);
+  color: #b91c1c;
+  border: 1px solid rgba(220, 38, 38, 0.35);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -144,31 +229,18 @@
   color: var(--accent-blue);
 }
 
-.metricsActions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.simulateBtn {
-  padding: 0.4rem 0.75rem;
-  background: var(--accent-blue, #3b82f6);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-
-.simulateBtn:hover {
-  opacity: 0.9;
-}
-
 .metricsHint {
   font-size: 0.75rem;
   color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+.containHint {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+  max-width: 52rem;
 }
 
 .networkHeader {

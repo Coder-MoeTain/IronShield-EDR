@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import PageShell from '../components/PageShell';
+import FalconEmptyState from '../components/FalconEmptyState';
+import FalconPagination from '../components/FalconPagination';
 import styles from './Events.module.css';
 
 function timeAgo(date) {
@@ -82,19 +85,27 @@ export default function Events() {
 
   const s = summary || {};
 
-  if (loading && events.length === 0) return <div className={styles.loading}>Loading events...</div>;
+  if (loading && events.length === 0) {
+    return <PageShell loading loadingLabel="Loading events…" />;
+  }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>
-          <span className={styles.titleIcon}>◈</span> Events
-        </h1>
-        <div className={styles.headerActions}>
-          <Link to="/raw-events" className={styles.rawLink}>Raw Events</Link>
-          <button onClick={fetchData} className={styles.refreshBtn}>↻ Refresh</button>
-        </div>
-      </div>
+    <PageShell
+      kicker="Explore"
+      title="Events"
+      description="Normalized endpoint telemetry — process, network, file, and auth activity."
+      actions={
+        <>
+          <Link to="/raw-events" className="falcon-btn falcon-btn-ghost">
+            Raw events
+          </Link>
+          <button type="button" onClick={fetchData} className="falcon-btn falcon-btn-ghost">
+            ↻ Refresh
+          </button>
+        </>
+      }
+    >
+      <div className={styles.container}>
 
       <div className={styles.statsBar}>
         <div
@@ -125,7 +136,7 @@ export default function Events() {
         ))}
       </div>
 
-      <div className={styles.filters}>
+      <div className={`${styles.filters} falcon-filter-bar`}>
         <select
           value={filters.endpointId}
           onChange={(e) => setFilters((f) => ({ ...f, endpointId: e.target.value, offset: 0 }))}
@@ -240,26 +251,25 @@ export default function Events() {
             ))}
           </tbody>
         </table>
-        {events.length === 0 && <div className={styles.empty}>No events match your filters.</div>}
+        {events.length === 0 && (
+          <FalconEmptyState
+            title="No events match your filters"
+            description="Try clearing hostname, type, or date filters, or increase the row limit."
+          />
+        )}
       </div>
 
-      <div className={styles.pagination}>
-        <button
-          onClick={() => setFilters((f) => ({ ...f, offset: Math.max(0, f.offset - f.limit) }))}
-          disabled={filters.offset === 0}
-        >
-          ← Previous
-        </button>
-        <span>
-          {filters.offset + 1}–{Math.min(filters.offset + events.length, filters.offset + filters.limit)} of {total}
-        </span>
-        <button
-          onClick={() => setFilters((f) => ({ ...f, offset: f.offset + f.limit }))}
-          disabled={events.length < filters.limit}
-        >
-          Next →
-        </button>
+      <FalconPagination
+        offset={filters.offset}
+        limit={filters.limit}
+        total={total}
+        pageItemCount={events.length}
+        onPrev={() => setFilters((f) => ({ ...f, offset: Math.max(0, f.offset - f.limit) }))}
+        onNext={() => setFilters((f) => ({ ...f, offset: f.offset + f.limit }))}
+        onLimitChange={(newLimit) => setFilters((f) => ({ ...f, limit: newLimit, offset: 0 }))}
+        pageSizeOptions={[25, 50, 100]}
+      />
       </div>
-    </div>
+    </PageShell>
   );
 }
