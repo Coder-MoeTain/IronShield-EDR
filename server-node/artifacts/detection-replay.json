@@ -1,0 +1,15 @@
+{
+  "events": 3,
+  "rules": 2,
+  "matches": 2,
+  "report": [
+    {
+      "event": "process_create",
+      "rule": "Encoded PowerShell"
+    },
+    {
+      "event": "service_create",
+      "rule": "Suspicious Service Parent"
+    }
+  ]
+}

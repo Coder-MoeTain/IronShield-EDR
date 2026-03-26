@@ -438,9 +438,7 @@
 
 /* Quick Actions */
 .quickActions {
-  background: var(--bg-glass);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: linear-gradient(180deg, var(--bg-secondary), color-mix(in srgb, var(--bg-secondary) 88%, #000 12%));
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 1.25rem;
@@ -450,8 +448,10 @@
 .quickActions h3 {
   font-size: 0.95rem;
   font-weight: 600;
-  margin-bottom: 1rem;
-  color: var(--text-secondary);
+  margin-bottom: 0.9rem;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .actionGrid {
@@ -462,28 +462,42 @@
 
 .actionCard {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  padding: 1rem;
-  background: var(--bg-tertiary);
+  gap: 0.65rem;
+  padding: 0.85rem 0.95rem;
+  background: color-mix(in srgb, var(--bg-tertiary) 84%, transparent);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   color: var(--text-primary);
   text-decoration: none;
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   transition: all 0.2s;
 }
 
 .actionCard:hover {
-  border-color: rgba(37, 99, 235, 0.5);
-  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(224, 30, 55, 0.42);
+  background: rgba(224, 30, 55, 0.08);
   box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
 }
 
 .actionIcon {
-  font-size: 1.5rem;
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 65%, var(--brand-red) 35%);
+  background: color-mix(in srgb, var(--brand-red) 14%, transparent);
+  color: color-mix(in srgb, var(--text-primary) 82%, var(--brand-red) 18%);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
 }
 
 .footer {

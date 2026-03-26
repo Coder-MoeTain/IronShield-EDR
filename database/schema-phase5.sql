@@ -96,3 +96,31 @@ CREATE TABLE IF NOT EXISTS api_keys (
   FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
   INDEX idx_apikey_tenant (tenant_id)
 ) ENGINE=InnoDB;
+
+-- =====================================================
+-- BASELINE RBAC DEFAULTS (enterprise-safe, idempotent)
+-- =====================================================
+-- These are non-demo defaults. Customize/extend per your org.
+
+INSERT IGNORE INTO roles (name, description) VALUES
+  ('platform_super_admin', 'Full platform access'),
+  ('tenant_admin', 'Tenant administrator'),
+  ('soc_manager', 'SOC team manager'),
+  ('analyst', 'Security analyst'),
+  ('responder', 'Response actions'),
+  ('viewer', 'Read-only access'),
+  ('auditor', 'Audit access');
+
+INSERT IGNORE INTO permissions (name) VALUES
+  ('view_endpoints'),
+  ('view_alerts'),
+  ('manage_alerts'),
+  ('manage_incidents'),
+  ('execute_response'),
+  ('manage_policies'),
+  ('manage_users'),
+  ('export_data'),
+  ('manage_iocs'),
+  ('manage_integrations'),
+  ('view_audit'),
+  ('manage_tenants');

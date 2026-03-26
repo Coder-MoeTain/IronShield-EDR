@@ -10,13 +10,15 @@ public class UpdateCheckService
 {
     private readonly string _serverUrl;
     private readonly string _currentVersion;
+    private readonly Func<string?>? _getAgentKey;
     private static readonly HttpClient HttpClient = new();
     private readonly object _telemetryLock = new();
 
-    public UpdateCheckService(string serverUrl, string currentVersion = "1.0.0")
+    public UpdateCheckService(string serverUrl, Func<string?>? getAgentKey, string currentVersion = "1.0.0")
     {
         _serverUrl = serverUrl.TrimEnd('/');
         _currentVersion = currentVersion;
+        _getAgentKey = getAgentKey;
     }
 
     /// <summary>UTC time of the last successful check against the management server.</summary>
@@ -45,6 +47,9 @@ public class UpdateCheckService
             var url = $"{_serverUrl}/api/agent/update/check?version={Uri.EscapeDataString(_currentVersion)}";
             using var req = new HttpRequestMessage(HttpMethod.Get, url);
             req.Headers.TryAddWithoutValidation("X-Agent-Version", _currentVersion);
+            var key = _getAgentKey?.Invoke();
+            if (!string.IsNullOrWhiteSpace(key))
+                req.Headers.TryAddWithoutValidation("X-Agent-Key", key);
             var res = await HttpClient.SendAsync(req, ct);
             res.EnsureSuccessStatusCode();
             var json = await res.Content.ReadAsStringAsync(ct);

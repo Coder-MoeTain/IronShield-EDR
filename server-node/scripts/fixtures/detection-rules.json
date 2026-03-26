@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Encoded PowerShell",
+    "conditions": {
+      "process_name": "powershell.exe",
+      "encoded_command": true
+    }
+  },
+  {
+    "name": "Suspicious Service Parent",
+    "conditions": {
+      "unusual_parent": true
+    }
+  }
+]
+

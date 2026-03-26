@@ -22,8 +22,17 @@ async function getTenantIdsForUser(userId) {
 }
 
 async function getEffectiveTenantId(user, overrideTenantId = null) {
-  if (overrideTenantId != null) return parseInt(overrideTenantId, 10) || null;
   if (!user) return null;
+  if (overrideTenantId != null) {
+    // Only super_admin may override tenant scope via header.
+    if (user.role !== 'super_admin') {
+      throw new Error('Tenant override is only allowed for super_admin');
+    }
+    const parsed = parseInt(overrideTenantId, 10);
+    if (!parsed) return null;
+    const exists = await db.queryOne('SELECT id FROM tenants WHERE id = ? AND is_active = 1 LIMIT 1', [parsed]);
+    return exists ? parsed : null;
+  }
   if (user.role === 'super_admin') return null;
   if (user.tenantId) return user.tenantId;
   const userRow = await db.queryOne('SELECT tenant_id FROM admin_users WHERE id = ?', [user.userId]);

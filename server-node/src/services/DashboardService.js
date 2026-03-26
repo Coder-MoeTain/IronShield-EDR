@@ -6,6 +6,10 @@ const AlertService = require('./AlertService');
 const NormalizedEventService = require('./NormalizedEventService');
 const ProcessMonitorService = require('../modules/processMonitor/processMonitorService');
 
+function isSchemaCompatError(err) {
+  return err && (err.code === 'ER_NO_SUCH_TABLE' || err.code === 'ER_BAD_FIELD_ERROR');
+}
+
 async function getSummary(tenantId = null) {
   const epFilter = tenantId != null ? ' WHERE tenant_id = ?' : '';
   const epParams = tenantId != null ? [tenantId] : [];
@@ -47,13 +51,23 @@ async function getSummary(tenantId = null) {
          ORDER BY c.updated_at DESC
          LIMIT 15`
       ),
-    ]).then(([countRow, recentRows]) => ({
-      count: countRow,
-      recent: recentRows || [],
-    })),
+    ])
+      .then(([countRow, recentRows]) => ({
+        count: countRow,
+        recent: recentRows || [],
+      }))
+      .catch((err) => {
+        if (isSchemaCompatError(err)) {
+          return { count: { total: 0, open: 0 }, recent: [] };
+        }
+        throw err;
+      }),
     db.queryOne(
       `SELECT COUNT(*) as count FROM triage_requests WHERE status IN ('pending', 'in_progress')`
-    ),
+    ).catch((err) => {
+      if (isSchemaCompatError(err)) return { count: 0 };
+      throw err;
+    }),
     NormalizedEventService.getSummary(),
     ProcessMonitorService.getSuspectSummary(),
   ]);

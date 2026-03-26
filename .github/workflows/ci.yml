@@ -21,6 +21,36 @@ jobs:
         run: npm ci
       - name: Syntax check
         run: node -c src/index.js
+      - name: Tests
+        run: node --test test/*.test.js
+      - name: Detection replay regression
+        run: npm run run-detection-replay
+      - name: Export compliance evidence artifact
+        run: npm run export-compliance-evidence
+      - name: Security audit (prod deps)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Upload compliance evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-evidence
+          path: |
+            server-node/artifacts/compliance-evidence.json
+            server-node/artifacts/detection-replay.json
+
+  agent:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: agent-csharp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore
+        run: dotnet restore EDR.Agent.sln
+      - name: Build
+        run: dotnet build EDR.Agent.sln -c Release --no-restore
 
   dashboard:
     runs-on: ubuntu-latest

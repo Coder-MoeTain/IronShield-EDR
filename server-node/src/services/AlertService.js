@@ -7,6 +7,84 @@ const EventNormalizationService = require('./EventNormalizationService');
 const RiskService = require('../modules/risk/riskService');
 const CorrelationService = require('./CorrelationService');
 const NotificationService = require('./NotificationService');
+const SiemPushService = require('./SiemPushService');
+const MISSING_TABLE_ERRORS = new Set(['ER_NO_SUCH_TABLE', 'ER_BAD_TABLE_ERROR']);
+let qualityTableReady = false;
+
+function parseTags(input) {
+  if (!input) return [];
+  if (Array.isArray(input)) return input.map((t) => String(t).trim()).filter(Boolean);
+  return String(input)
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+}
+
+async function ensureQualityEventsTable() {
+  if (qualityTableReady) return;
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS detection_quality_events (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      alert_id BIGINT NOT NULL,
+      endpoint_id BIGINT NULL,
+      tenant_id BIGINT NULL,
+      event_type VARCHAR(64) NOT NULL,
+      analyst_disposition VARCHAR(64) NULL,
+      disposition_reason TEXT NULL,
+      analyst_confidence DECIMAL(4,3) NULL,
+      quality_tags_json JSON NULL,
+      old_status VARCHAR(64) NULL,
+      new_status VARCHAR(64) NULL,
+      created_by VARCHAR(128) NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_dqe_alert_created (alert_id, created_at),
+      KEY idx_dqe_tenant_created (tenant_id, created_at)
+    )
+  `);
+  qualityTableReady = true;
+}
+
+async function getAlertTenantEndpoint(alertId) {
+  return db.queryOne(
+    `SELECT a.id, a.status, a.endpoint_id, e.tenant_id
+     FROM alerts a
+     JOIN endpoints e ON e.id = a.endpoint_id
+     WHERE a.id = ?`,
+    [alertId]
+  );
+}
+
+async function recordQualityEvent(alertId, payload = {}, actor = null, tenantId = null) {
+  try {
+    await ensureQualityEventsTable();
+    const row = await getAlertTenantEndpoint(alertId);
+    if (!row) return;
+    if (tenantId != null && row.tenant_id != null && Number(row.tenant_id) !== Number(tenantId)) return;
+    await db.execute(
+      `INSERT INTO detection_quality_events
+       (alert_id, endpoint_id, tenant_id, event_type, analyst_disposition, disposition_reason,
+        analyst_confidence, quality_tags_json, old_status, new_status, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        alertId,
+        row.endpoint_id || null,
+        row.tenant_id || null,
+        String(payload.event_type || 'analyst_feedback').substring(0, 64),
+        payload.analyst_disposition || null,
+        payload.disposition_reason || null,
+        payload.analyst_confidence == null ? null : Number(payload.analyst_confidence),
+        JSON.stringify(parseTags(payload.quality_tags)),
+        payload.old_status || null,
+        payload.new_status || null,
+        actor || null,
+      ]
+    );
+  } catch (err) {
+    if (MISSING_TABLE_ERRORS.has(err?.code)) return;
+    throw err;
+  }
+}
 
 async function createFromDetection(alerts) {
   const endpointIds = new Set();
@@ -37,6 +115,7 @@ async function createFromDetection(alerts) {
           { id: alertId, ...a },
           ep
         );
+        await SiemPushService.emit('ironshield.alert', { alert_id: alertId, alert: { id: alertId, ...a }, endpoint: ep });
       } catch (_) {
         // Non-fatal
       }
@@ -101,13 +180,31 @@ async function list(filters = {}) {
     sql += ' AND a.severity = ?';
     params.push(filters.severity);
   }
+  if (filters.rule_id) {
+    sql += ' AND a.rule_id = ?';
+    params.push(filters.rule_id);
+  }
   if (filters.status) {
     sql += ' AND a.status = ?';
     params.push(filters.status);
   }
+  if (filters.status_group) {
+    if (filters.status_group === 'active') {
+      sql += " AND a.status IN ('new', 'investigating')";
+    } else if (filters.status_group === 'closed_only') {
+      sql += " AND a.status IN ('closed', 'false_positive')";
+    }
+  }
   if (filters.assigned_to) {
     sql += ' AND a.assigned_to = ?';
     params.push(filters.assigned_to);
+  }
+  if (filters.assigned_state) {
+    if (filters.assigned_state === 'unassigned') {
+      sql += " AND (a.assigned_to IS NULL OR TRIM(a.assigned_to) = '')";
+    } else if (filters.assigned_state === 'assigned') {
+      sql += " AND (a.assigned_to IS NOT NULL AND TRIM(a.assigned_to) <> '')";
+    }
   }
   if (filters.assigned_team) {
     sql += ' AND a.assigned_team = ?';
@@ -143,9 +240,20 @@ async function getById(id) {
 }
 
 async function updateStatus(id, status, assignedTo = null) {
+  const before = await db.queryOne('SELECT status FROM alerts WHERE id = ?', [id]);
   await db.query(
     'UPDATE alerts SET status = ?, assigned_to = COALESCE(?, assigned_to), updated_at = NOW() WHERE id = ?',
     [status, assignedTo, id]
+  );
+  await recordQualityEvent(
+    id,
+    {
+      event_type: 'status_update',
+      old_status: before?.status || null,
+      new_status: status || null,
+    },
+    null,
+    null
   );
 }
 
@@ -162,10 +270,23 @@ async function patch(id, data = {}, tenantId = null) {
   if (!row) return null;
 
   if (data.suppression_reason !== undefined && String(data.suppression_reason).trim()) {
+    const before = await db.queryOne('SELECT status FROM alerts WHERE id = ?', [id]);
     await db.query(
       `UPDATE alerts SET status = 'false_positive', suppression_reason = ?, suppressed_at = NOW(),
        suppressed_by = ?, updated_at = NOW() WHERE id = ?`,
       [String(data.suppression_reason).trim(), data.suppressed_by || null, id]
+    );
+    await recordQualityEvent(
+      id,
+      {
+        event_type: 'suppression',
+        analyst_disposition: 'false_positive',
+        disposition_reason: String(data.suppression_reason).trim(),
+        old_status: before?.status || null,
+        new_status: 'false_positive',
+      },
+      data.suppressed_by || data.updated_by || null,
+      tenantId
     );
     return getById(id);
   }
@@ -182,8 +303,51 @@ async function patch(id, data = {}, tenantId = null) {
   if (updates.length === 0) return getById(id);
   updates.push('updated_at = NOW()');
   params.push(id);
+  const before = await db.queryOne('SELECT status FROM alerts WHERE id = ?', [id]);
   await db.query(`UPDATE alerts SET ${updates.join(', ')} WHERE id = ?`, params);
+
+  if (
+    data.analyst_disposition !== undefined
+    || data.disposition_reason !== undefined
+    || data.analyst_confidence !== undefined
+    || data.quality_tags !== undefined
+    || data.status !== undefined
+  ) {
+    await recordQualityEvent(
+      id,
+      {
+        event_type: 'analyst_feedback',
+        analyst_disposition: data.analyst_disposition || null,
+        disposition_reason: data.disposition_reason || null,
+        analyst_confidence: data.analyst_confidence == null ? null : Number(data.analyst_confidence),
+        quality_tags: data.quality_tags,
+        old_status: before?.status || null,
+        new_status: data.status || before?.status || null,
+      },
+      data.updated_by || null,
+      tenantId
+    );
+  }
   return getById(id);
+}
+
+async function listQualityEvents(alertId, limit = 50) {
+  try {
+    await ensureQualityEventsTable();
+    return db.query(
+      `SELECT id, alert_id, endpoint_id, tenant_id, event_type, analyst_disposition,
+              disposition_reason, analyst_confidence, quality_tags_json, old_status, new_status,
+              created_by, created_at
+       FROM detection_quality_events
+       WHERE alert_id = ?
+       ORDER BY created_at DESC
+       LIMIT ?`,
+      [alertId, Math.min(Number(limit) || 50, 200)]
+    );
+  } catch (err) {
+    if (MISSING_TABLE_ERRORS.has(err?.code)) return [];
+    throw err;
+  }
 }
 
 async function addNote(alertId, author, note) {
@@ -235,4 +399,6 @@ module.exports = {
   getNotes,
   getSummary,
   applySlaBreaches,
+  listQualityEvents,
+  recordQualityEvent,
 };

@@ -8,6 +8,7 @@ const TABS = [
   { id: 'retention', label: 'Retention Policies', icon: '📦' },
   { id: 'agent-releases', label: 'Agent Releases', icon: '🚀' },
   { id: 'xdr-ip-feeds', label: 'Threat Intel (IP feeds)', icon: '🌐' },
+  { id: 'security', label: 'Account Security', icon: '🔐' },
 ];
 
 const RETENTION_TABLES = [
@@ -27,6 +28,11 @@ export default function EnterpriseSettings() {
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState({ text: '', isError: false });
   const [modal, setModal] = useState(null);
+  const [mfaStatus, setMfaStatus] = useState({ enabled: false, setupPending: false });
+  const [sodMatrix, setSodMatrix] = useState({});
+  const [mfaSetup, setMfaSetup] = useState(null);
+  const [mfaCode, setMfaCode] = useState('');
+  const [securityPolicy, setSecurityPolicy] = useState(null);
 
   const fetchChannels = () =>
     api('/api/admin/notification-channels')
@@ -48,11 +54,82 @@ export default function EnterpriseSettings() {
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => setIpFeeds(Array.isArray(d) ? d : []))
       .catch(() => setIpFeeds([]));
+  const fetchMfaStatus = () =>
+    api('/api/auth/mfa/status')
+      .then((r) => (r.ok ? r.json() : { enabled: false, setupPending: false }))
+      .then(setMfaStatus)
+      .catch(() => setMfaStatus({ enabled: false, setupPending: false }));
+  const fetchSodMatrix = () =>
+    api('/api/admin/sod/matrix')
+      .then((r) => (r.ok ? r.json() : { matrix: {} }))
+      .then((d) => setSodMatrix(d?.matrix || {}))
+      .catch(() => setSodMatrix({}));
+  const fetchSecurityPolicy = () =>
+    api('/api/auth/security/policy')
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setSecurityPolicy)
+      .catch(() => setSecurityPolicy(null));
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchChannels(), fetchRetention(), fetchReleases(), fetchIpFeeds()]).finally(() => setLoading(false));
+    Promise.all([fetchChannels(), fetchRetention(), fetchReleases(), fetchIpFeeds(), fetchMfaStatus(), fetchSodMatrix(), fetchSecurityPolicy()]).finally(() => setLoading(false));
   }, [activeTab]);
+
+  const revokeMySessions = async () => {
+    setMsg({ text: '', isError: false });
+    try {
+      const r = await api('/api/auth/session/revoke-self', { method: 'POST' });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+      setMsg({ text: 'All existing sessions revoked. Please sign in again on other devices.', isError: false });
+    } catch (e) {
+      setMsg({ text: 'Failed: ' + (e.message || 'Unknown error'), isError: true });
+    }
+  };
+
+  const startMfaSetup = async () => {
+    setMsg({ text: '', isError: false });
+    try {
+      const r = await api('/api/auth/mfa/setup', { method: 'POST' });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+      setMfaSetup(d);
+      setMsg({ text: 'MFA setup started. Scan the URI in your authenticator app and confirm with a code.', isError: false });
+      fetchMfaStatus();
+    } catch (e) {
+      setMsg({ text: 'Failed: ' + (e.message || 'Unknown error'), isError: true });
+    }
+  };
+
+  const enableMfa = async () => {
+    setMsg({ text: '', isError: false });
+    try {
+      const r = await api('/api/auth/mfa/enable', { method: 'POST', body: JSON.stringify({ code: mfaCode }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+      setMfaCode('');
+      setMfaSetup(null);
+      setMsg({ text: 'MFA enabled on your account.', isError: false });
+      fetchMfaStatus();
+    } catch (e) {
+      setMsg({ text: 'Failed: ' + (e.message || 'Unknown error'), isError: true });
+    }
+  };
+
+  const disableMfa = async () => {
+    setMsg({ text: '', isError: false });
+    try {
+      const code = window.prompt('Enter current MFA code to disable MFA:');
+      if (!code) return;
+      const r = await api('/api/auth/mfa/disable', { method: 'POST', body: JSON.stringify({ code }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+      setMsg({ text: 'MFA disabled.', isError: false });
+      fetchMfaStatus();
+    } catch (e) {
+      setMsg({ text: 'Failed: ' + (e.message || 'Unknown error'), isError: true });
+    }
+  };
 
   const syncIpFeed = async (id) => {
     setMsg({ text: '', isError: false });
@@ -454,6 +531,80 @@ export default function EnterpriseSettings() {
             {ipFeeds.length === 0 && (
               <div className={styles.empty}>No feeds configured. Add one to import blacklist IPs.</div>
             )}
+          </div>
+        </section>
+      )}
+
+      {activeTab === 'security' && (
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2>Account security</h2>
+          </div>
+          <p className={styles.hint}>
+            Protect console access with TOTP MFA. Use an authenticator app that supports standard otpauth URIs.
+          </p>
+          <div className={styles.tableWrap} style={{ padding: '1rem' }}>
+            <p>
+              MFA status:{' '}
+              {mfaStatus.enabled ? <span className={styles.badgeActive}>Enabled</span> : <span className={styles.badgeOff}>Disabled</span>}
+            </p>
+            <div className={styles.actions}>
+              <button type="button" className={styles.btnPrimary} onClick={startMfaSetup}>
+                Start / Reset MFA Setup
+              </button>
+              {mfaStatus.enabled && (
+                <button type="button" className={styles.btnSecondary} onClick={disableMfa}>
+                  Disable MFA
+                </button>
+              )}
+              <button type="button" className={styles.btnSecondary} onClick={revokeMySessions}>
+                Revoke all my sessions
+              </button>
+            </div>
+            {securityPolicy && (
+              <div style={{ marginTop: '0.75rem', fontSize: '0.9rem' }}>
+                <div>Org MFA policy: {securityPolicy.enforceMfaAllAdmins ? 'enforced' : 'not enforced'}</div>
+                <div>Local login requires MFA: {securityPolicy.requireMfaForLocalLogin ? 'yes' : 'no'}</div>
+                <div>OIDC enabled: {securityPolicy.oidcEnabled ? 'yes' : 'no'}</div>
+                <div>SAML enabled: {securityPolicy.samlEnabled ? 'yes' : 'no'}</div>
+              </div>
+            )}
+            {mfaSetup?.otpauth_url && (
+              <div style={{ marginTop: '1rem' }}>
+                <label style={{ display: 'grid', gap: '0.35rem' }}>
+                  Authenticator URI
+                  <textarea className={styles.input} value={mfaSetup.otpauth_url} readOnly rows={3} />
+                </label>
+                <label style={{ display: 'grid', gap: '0.35rem', marginTop: '0.75rem' }}>
+                  Confirm code
+                  <input className={styles.input} value={mfaCode} onChange={(e) => setMfaCode(e.target.value)} placeholder="123456" />
+                </label>
+                <button type="button" className={styles.btnPrimary} style={{ marginTop: '0.75rem' }} onClick={enableMfa}>
+                  Enable MFA
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className={styles.tableWrap} style={{ marginTop: '1rem' }}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>SoD Action</th>
+                  <th>Allowed roles</th>
+                  <th>Rules</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(sodMatrix).map(([action, rule]) => (
+                  <tr key={action}>
+                    <td className={styles.mono}>{action}</td>
+                    <td>{Array.isArray(rule?.allowedRoles) ? rule.allowedRoles.join(', ') : '-'}</td>
+                    <td>{rule?.disallowRequesterOnResponseAction ? 'Requester cannot approve/reject own action' : '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
       )}

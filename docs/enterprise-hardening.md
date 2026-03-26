@@ -11,7 +11,7 @@ This project includes an enterprise-ready *baseline* of security and reliability
 
 Key secrets:
 - `JWT_SECRET`
-- `AGENT_REGISTRATION_TOKEN`
+- `AGENT_REGISTRATION_TOKEN` (break-glass only; prefer per-tenant enrollment tokens)
 - `DB_PASSWORD`
 - `XDR_INGEST_KEY`
 - `METRICS_TOKEN`
@@ -31,7 +31,7 @@ Example:
 CORS_ORIGINS=https://edr.example.com,https://soc.example.com
 ```
 
-If `CORS_ORIGINS` is empty, the backend defaults to **allow all origins** (dev-friendly).
+If `CORS_ORIGINS` is empty, the backend blocks browser origins (strict-by-default).
 
 ### Token rotation
 
@@ -120,7 +120,9 @@ Not fully implemented yet:
 - **mTLS** agent → server identity
 - **certificate pinning**
 - tamper protection
-- durable offline queue + replay protection
+- full replay protection (idempotency is implemented via agent batch IDs; durable queue is delete-on-ack)
+- SSO/OIDC/SAML for admin login
+- full OTA update install/rollback
 
 ## CI/CD and security scanning (implemented baseline)
 

@@ -9,16 +9,21 @@ const { attachTenant } = require('../middleware/tenantMiddleware');
 const { requirePermission, requireAnyPermission } = require('../middleware/rbac');
 const { tenantRateLimit } = require('../middleware/tenantRateLimit');
 const { adminAuditTrail } = require('../middleware/adminAuditTrail');
+const { requireTenantContext } = require('../middleware/requireTenantContext');
+const { requireMfaCompliant } = require('../middleware/mfaPolicy');
+const { requireSoD } = require('../middleware/sod');
+const sodController = require('../controllers/sodController');
 
 router.use(authAdmin);
 router.use(attachTenant);
+router.use(requireTenantContext);
+router.use(requireMfaCompliant);
 router.use(tenantRateLimit);
 router.use(adminAuditTrail);
 
 // Phase 7: Antivirus (mount early to avoid param route conflicts)
 const avController = require('../controllers/avController');
 router.get('/av/dashboard/summary', avController.getDashboardSummary);
-router.post('/av/seed-test-data', avController.seedTestData);
 router.get('/av/detections', avController.listDetections);
 router.get('/av/detections/:id', avController.getDetection);
 router.get('/av/quarantine', avController.listQuarantine);
@@ -53,6 +58,7 @@ router.post('/hunt-queries', requireAnyPermission('alerts:write', '*'), adminCon
 router.delete('/hunt-queries/:id', requireAnyPermission('alerts:write', '*'), adminController.deleteHuntQuery);
 router.post('/hunt-queries/:id/run', requireAnyPermission('alerts:write', '*'), adminController.runHuntQuery);
 router.post('/hunt-queries/run-adhoc', requireAnyPermission('alerts:write', '*'), adminController.runHuntAdhoc);
+router.post('/xdr/hunt/run', requireAnyPermission('*', 'xdr:read'), adminController.runXdrHunt);
 router.get('/sensors/health', adminController.getSensorHealth);
 router.get('/suppressions', adminController.listSuppressions);
 router.post('/suppressions', requireAnyPermission('rules:write', '*'), adminController.createSuppression);
@@ -68,16 +74,22 @@ router.get('/endpoints/:id/process-timeline', adminController.getProcessTimeline
 router.get('/endpoints/:id/metrics', adminController.getEndpointMetrics);
 router.get('/endpoints/:id', adminController.getEndpoint);
 router.delete('/endpoints/:id', requireAnyPermission('actions:write', '*'), adminController.deleteEndpoint);
+const agentKeyAdmin = require('../controllers/agentKeyAdminController');
+router.post('/endpoints/:id/agent-key/revoke', requireAnyPermission('actions:write', '*'), requireSoD({ allowedRoles: ['super_admin'] }), agentKeyAdmin.revokeEndpointKey);
+router.post('/endpoints/:id/agent-key/rotate', requireAnyPermission('actions:write', '*'), requireSoD({ allowedRoles: ['super_admin'] }), agentKeyAdmin.rotateEndpointKey);
 router.get('/events', adminController.listEvents);
 router.get('/events/:id', adminController.getEvent);
 router.get('/normalized-events', adminController.listNormalizedEvents);
 router.get('/normalized-events/:id', adminController.getNormalizedEvent);
 router.get('/audit-logs', adminController.listAuditLogs);
+router.get('/audit-logs/verify', requireAnyPermission('*', 'audit:read'), require('../controllers/auditVerifyController').verify);
+router.get('/compliance/summary', requireAnyPermission('*', 'audit:read', 'manage_tenants'), adminController.getComplianceSummary);
 router.get('/alerts', adminController.listAlerts);
 router.get('/alerts/summary', adminController.getAlertsSummary);
 router.get('/export/siem-alerts', requireAnyPermission('audit:read', '*'), adminController.exportSiemAlerts);
 router.get('/analytics/rare-paths', adminController.getAnomalies);
 router.get('/analytics/detections-summary', require('../controllers/analyticsMlController').detectionSummary);
+router.get('/analytics/detection-quality', require('../controllers/analyticsMlController').detectionQualitySummary);
 router.get('/threat-graph', require('../controllers/threatGraphController').getGraph);
 router.get('/advanced-modules/:area', require('../controllers/advancedModulesController').getModule);
 
@@ -90,6 +102,7 @@ router.post('/xdr/iocs', requireAnyPermission('*', 'manage_integrations', 'xdr:w
 const xdrData = require('../controllers/xdrDataController');
 router.get('/xdr/events', requireAnyPermission('*', 'xdr:read'), xdrData.listXdrEvents);
 router.get('/xdr/detections', requireAnyPermission('*', 'xdr:read'), xdrData.listXdrDetections);
+router.get('/xdr/summary', requireAnyPermission('*', 'xdr:read'), xdrData.getXdrSummary);
 
 // Third-party IP blacklist feed -> IOC watchlist
 const xdrIpFeeds = require('../controllers/xdrIpFeedController');
@@ -112,12 +125,34 @@ router.delete('/saved-views/:id', adminController.deleteSavedView);
 router.get('/alerts/:id', adminController.getAlert);
 router.patch('/alerts/:id', requireAnyPermission('alerts:write', '*'), adminController.patchAlert);
 router.post('/alerts/:id/status', requireAnyPermission('alerts:write', '*'), adminController.updateAlertStatus);
+router.get('/alerts/:id/quality-events', adminController.listAlertQualityEvents);
+router.post('/alerts/:id/disposition', requireAnyPermission('alerts:write', '*'), adminController.submitAlertDisposition);
 router.post('/alerts/:id/notes', adminController.addAlertNote);
 router.get('/alerts/:id/notes', adminController.getAlertNotes);
 router.post('/endpoints/:id/actions', requireAnyPermission('actions:write', '*'), adminController.createResponseAction);
 router.get('/endpoints/:id/actions', adminController.listResponseActions);
+
+// SOC approvals (two-person control)
+const approvals = require('../controllers/responseActionApprovalController');
+router.get('/response-actions/approvals/pending', requireAnyPermission('actions:write', '*'), approvals.listPending);
+router.post('/response-actions/:id/approve', requireAnyPermission('actions:write', '*'), requireSoD({ allowedRoles: ['analyst', 'super_admin'], disallowRequesterOnResponseAction: true }), approvals.approve);
+router.post('/response-actions/:id/reject', requireAnyPermission('actions:write', '*'), requireSoD({ allowedRoles: ['analyst', 'super_admin'], disallowRequesterOnResponseAction: true }), approvals.reject);
 router.get('/detection-rules', adminController.listDetectionRules);
 router.get('/detection-rules/:id', adminController.getDetectionRule);
+
+// RBAC admin management
+const rbacAdmin = require('../controllers/rbacAdminController');
+router.get('/rbac/roles', requireAnyPermission('*', 'manage_users', 'manage_tenants'), rbacAdmin.listRoles);
+router.get('/rbac/permissions', requireAnyPermission('*', 'manage_users', 'manage_tenants'), rbacAdmin.listPermissions);
+router.get('/rbac/users', requireAnyPermission('*', 'manage_users', 'manage_tenants'), rbacAdmin.listUsers);
+router.get('/rbac/users/:id/roles', requireAnyPermission('*', 'manage_users', 'manage_tenants'), rbacAdmin.getUserRoles);
+router.post('/rbac/users/:id/roles', requireAnyPermission('*', 'manage_users', 'manage_tenants'), requireSoD({ allowedRoles: ['super_admin'] }), rbacAdmin.setUserRoles);
+
+// Enterprise: per-tenant enrollment tokens (agent bootstrap)
+const enrollmentTokens = require('../controllers/enrollmentTokenController');
+router.get('/tenants/:tenantId/enrollment-tokens', requireAnyPermission('*', 'manage_tenants'), enrollmentTokens.listTokens);
+router.post('/tenants/:tenantId/enrollment-tokens', requireAnyPermission('*', 'manage_tenants'), enrollmentTokens.createToken);
+router.delete('/tenants/:tenantId/enrollment-tokens/:id', requireAnyPermission('*', 'manage_tenants'), enrollmentTokens.revokeToken);
 router.post('/detection-rules', requireAnyPermission('rules:write', '*'), adminController.createDetectionRule);
 router.patch('/detection-rules/:id', requireAnyPermission('rules:write', '*'), adminController.updateDetectionRule);
 
@@ -152,6 +187,9 @@ const phase4 = require('../controllers/phase4Controller');
 router.get('/incidents', phase4.listIncidents);
 router.get('/incidents/:id', phase4.getIncident);
 router.post('/incidents/:id/status', phase4.updateIncidentStatus);
+router.patch('/incidents/:id', requireAnyPermission('alerts:write', 'actions:write', '*'), phase4.updateIncidentWorkflow);
+router.get('/incidents/:id/evidence', phase4.listIncidentEvidence);
+router.post('/incidents/:id/evidence', requireAnyPermission('alerts:write', 'actions:write', '*'), phase4.addIncidentEvidence);
 router.get('/risk/endpoints', phase4.getRiskList);
 router.get('/endpoints/:id/risk', phase4.getEndpointRisk);
 router.get('/iocs', phase4.listIocs);
@@ -165,7 +203,7 @@ router.get('/tenants', tenantController.listTenants);
 router.get('/tenants/:id', tenantController.getTenant);
 router.post('/tenants', requireAnyPermission('*'), tenantController.createTenant);
 router.patch('/tenants/:id', requireAnyPermission('*'), tenantController.updateTenant);
-router.delete('/tenants/:id', requireAnyPermission('*'), tenantController.deleteTenant);
+router.delete('/tenants/:id', requireAnyPermission('*'), requireSoD({ allowedRoles: ['super_admin'] }), tenantController.deleteTenant);
 
 // Phase 6: Enterprise - Notification channels, retention, agent releases
 const phase6 = require('../controllers/phase6Controller');
@@ -176,7 +214,8 @@ router.get('/retention-policies', phase6.listRetentionPolicies);
 router.post('/retention-policies', requireAnyPermission('*', 'manage_tenants'), phase6.createRetentionPolicy);
 router.patch('/retention-policies/:id', requireAnyPermission('*', 'manage_tenants'), phase6.updateRetentionPolicy);
 router.delete('/retention-policies/:id', requireAnyPermission('*', 'manage_tenants'), phase6.deleteRetentionPolicy);
-router.post('/retention-policies/run', requireAnyPermission('*', 'manage_tenants'), phase6.runRetention);
+router.post('/retention-policies/run', requireAnyPermission('*', 'manage_tenants'), requireSoD({ allowedRoles: ['super_admin'] }), phase6.runRetention);
+router.get('/sod/matrix', requireAnyPermission('*', 'manage_users', 'manage_tenants'), sodController.getMatrix);
 router.get('/agent-releases', phase6.listAgentReleases);
 router.post('/agent-releases', requireAnyPermission('*'), phase6.createAgentRelease);
 router.patch('/agent-releases/:id', requireAnyPermission('*'), phase6.updateAgentRelease);

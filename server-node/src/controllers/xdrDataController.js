@@ -67,5 +67,34 @@ async function listXdrDetections(req, res, next) {
   }
 }
 
-module.exports = { listXdrEvents, listXdrDetections };
+async function getXdrSummary(req, res, next) {
+  try {
+    const tenantId = req.tenantId ?? null;
+    const whereEvents = tenantId != null ? 'WHERE (tenant_id = ? OR tenant_id IS NULL)' : '';
+    const whereDetections = tenantId != null ? 'WHERE (tenant_id = ? OR tenant_id IS NULL)' : '';
+    const ev = await db.queryOne(
+      `SELECT COUNT(*) AS total, SUM(CASE WHEN timestamp >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 ELSE 0 END) AS last_24h
+       FROM xdr_events ${whereEvents}`,
+      tenantId != null ? [tenantId] : []
+    );
+    const det = await db.queryOne(
+      `SELECT COUNT(*) AS total,
+              SUM(CASE WHEN severity='critical' THEN 1 ELSE 0 END) AS critical,
+              SUM(CASE WHEN severity='high' THEN 1 ELSE 0 END) AS high
+       FROM xdr_detections ${whereDetections}`,
+      tenantId != null ? [tenantId] : []
+    );
+    res.json({
+      events_total: Number(ev?.total || 0),
+      events_last_24h: Number(ev?.last_24h || 0),
+      detections_total: Number(det?.total || 0),
+      detections_critical: Number(det?.critical || 0),
+      detections_high: Number(det?.high || 0),
+    });
+  } catch (e) {
+    next(e);
+  }
+}
+
+module.exports = { listXdrEvents, listXdrDetections, getXdrSummary };
 

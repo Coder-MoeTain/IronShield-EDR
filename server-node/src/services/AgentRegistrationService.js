@@ -6,6 +6,7 @@ const db = require('../utils/db');
 const config = require('../config');
 const logger = require('../utils/logger');
 const TenantService = require('./TenantService');
+const EnrollmentTokenService = require('./EnrollmentTokenService');
 
 /**
  * Register a new endpoint agent
@@ -14,9 +15,13 @@ const TenantService = require('./TenantService');
  * @returns {Object} - { agentKey, endpointId }
  */
 async function register(payload, registrationToken) {
-  if (registrationToken !== config.agent.registrationToken) {
-    throw new Error('Invalid registration token');
+  // Enterprise: prefer per-tenant enrollment tokens (DB). Platform bootstrap token is optional break-glass.
+  let enrollment = null;
+  if (registrationToken) {
+    enrollment = await EnrollmentTokenService.resolveToken(registrationToken);
   }
+  const platformOk = registrationToken && registrationToken === config.agent.registrationToken;
+  if (!enrollment && !platformOk) throw new Error('Invalid registration token');
 
   const {
     hostname,
@@ -39,7 +44,10 @@ async function register(payload, registrationToken) {
     logger.warn({ err: e.message }, 'getDefaultTenant failed; using default id');
   }
 
-  if (tenant_slug != null && String(tenant_slug).trim() !== '') {
+  // If enrollment token is tenant-bound, it wins.
+  if (enrollment?.tenantId) {
+    resolvedTenantId = enrollment.tenantId;
+  } else if (tenant_slug != null && String(tenant_slug).trim() !== '') {
     const tid = await TenantService.getTenantIdBySlug(tenant_slug);
     if (!tid) {
       throw new Error('Unknown tenant slug');

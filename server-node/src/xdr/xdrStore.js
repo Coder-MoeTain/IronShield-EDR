@@ -1,4 +1,5 @@
 const db = require('../utils/db');
+const { publishXdrEvent } = require('../realtime/realtimeServer');
 
 async function insertXdrEvent(ev) {
   const ts = ev.timestamp instanceof Date ? ev.timestamp : new Date(ev.timestamp);
@@ -48,6 +49,20 @@ async function insertXdrEvent(ev) {
       ev.risk_score ?? null,
     ]
   );
+  try {
+    await publishXdrEvent({
+      id: r.insertId,
+      tenant_id: ev.tenant_id ?? null,
+      endpoint_id: ev.endpoint_id ?? null,
+      source: ev.source ?? null,
+      event_type: ev.event_type ?? null,
+      timestamp: ts.toISOString(),
+      severity: ev.severity ?? null,
+      risk_score: ev.risk_score ?? null,
+    });
+  } catch {
+    // best-effort realtime signal; never fail ingest
+  }
   return r.insertId;
 }
 

@@ -28,3 +28,44 @@
 .alertMeta { display: block; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
 .empty { color: var(--text-muted); font-size: 0.9rem; }
 .loading, .error { padding: 2rem; color: var(--text-muted); }
+
+.workflowForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+.workflowForm label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.workflowForm input,
+.workflowForm select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: inherit;
+}
+
+.evidenceTableWrap {
+  margin-top: 14px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.evidenceTable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.evidenceTable th,
+.evidenceTable td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}

@@ -1,0 +1,145 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.statCard {
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+}
+
+.statLabel {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.statValue {
+  margin-top: 0.35rem;
+  font-size: 1.3rem;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-glass);
+}
+
+.searchInput,
+.select {
+  min-height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text-primary);
+  padding: 0.45rem 0.7rem;
+}
+
+.searchInput {
+  flex: 1 1 260px;
+}
+
+.select {
+  flex: 0 0 160px;
+}
+
+.resultsMeta {
+  margin-left: auto;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.tableWrap {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 0.7rem 0.8rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.table th {
+  background: var(--panel-header-bg, rgba(255, 255, 255, 0.6));
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+[data-theme='dark'] .table th {
+  background: rgba(18, 22, 28, 0.95);
+}
+
+.nameCell {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.modeMonitor {
+  background: rgba(59, 130, 246, 0.15);
+  color: #1d4ed8;
+}
+
+.modeProtect {
+  background: rgba(22, 163, 74, 0.15);
+  color: #15803d;
+}
+
+.modeOther {
+  background: rgba(100, 116, 139, 0.16);
+  color: var(--text-muted);
+}
+
+.defaultBadge {
+  background: rgba(245, 158, 11, 0.18);
+  color: #b45309;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.empty {
+  padding: 1.8rem;
+  text-align: center;
+  color: var(--text-muted);
+}

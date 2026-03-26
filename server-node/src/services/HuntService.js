@@ -62,4 +62,42 @@ async function runAdhoc(query_params, tenantId = null) {
   return { total, rows, result_count: total };
 }
 
-module.exports = { list, create, remove, runHunt, runAdhoc };
+async function runXdrAdhoc(query_params, tenantId = null) {
+  const q = query_params && typeof query_params === 'object' ? query_params : {};
+  const limit = Math.min(parseInt(q.limit, 10) || 100, 500);
+  const offset = Math.max(parseInt(q.offset, 10) || 0, 0);
+  const params = [];
+  let where = ' WHERE 1=1';
+  if (tenantId != null) {
+    where += ' AND (tenant_id = ? OR tenant_id IS NULL)';
+    params.push(tenantId);
+  }
+  if (q.source) {
+    where += ' AND source = ?';
+    params.push(String(q.source));
+  }
+  if (q.event_type) {
+    where += ' AND event_type = ?';
+    params.push(String(q.event_type));
+  }
+  if (q.endpoint_id) {
+    where += ' AND endpoint_id = ?';
+    params.push(parseInt(q.endpoint_id, 10));
+  }
+  if (q.q) {
+    const like = `%${String(q.q).trim()}%`;
+    where += ' AND (command_line LIKE ? OR process_name LIKE ? OR dns_query LIKE ? OR file_path LIKE ?)';
+    params.push(like, like, like, like);
+  }
+  const rows = await db.query(
+    `SELECT * FROM xdr_events ${where} ORDER BY timestamp DESC LIMIT ? OFFSET ?`,
+    [...params, limit, offset]
+  );
+  const countRow = await db.queryOne(
+    `SELECT COUNT(*) AS c FROM xdr_events ${where}`,
+    params
+  );
+  return { total: Number(countRow?.c || 0), rows, result_count: Number(countRow?.c || 0) };
+}
+
+module.exports = { list, create, remove, runHunt, runAdhoc, runXdrAdhoc };

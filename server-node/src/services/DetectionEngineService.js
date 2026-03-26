@@ -75,6 +75,24 @@ function evalCondition(key, value, norm) {
       if (Array.isArray(value)) return value.some((v) => im.toLowerCase().includes(String(v).toLowerCase()));
       return im.toLowerCase().includes(String(value).toLowerCase());
     }
+    case 'command_line_entropy_gt': {
+      const entropy = Number(norm?.raw_event_json?.command_line_entropy);
+      const min = Number(value) || 0;
+      if (Number.isNaN(entropy)) return false;
+      return entropy > min;
+    }
+    case 'suspicious_indicator_count_gte': {
+      const count = Number(norm?.raw_event_json?.suspicious_indicator_count);
+      const min = Number(value) || 0;
+      if (Number.isNaN(count)) return false;
+      return count >= min;
+    }
+    case 'collector_confidence_lt': {
+      const conf = Number(norm?.raw_event_json?.collector_confidence);
+      const max = Number(value);
+      if (Number.isNaN(conf) || Number.isNaN(max)) return false;
+      return conf < max;
+    }
     default:
       return true;
   }

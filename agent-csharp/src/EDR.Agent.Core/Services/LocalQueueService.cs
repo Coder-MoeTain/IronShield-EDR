@@ -10,12 +10,14 @@ namespace EDR.Agent.Core.Services;
 public class LocalQueueService
 {
     private readonly string _queueDir;
-    private readonly ConcurrentQueue<TelemetryEvent> _memoryQueue = new();
+    private readonly ConcurrentQueue<QueuedItem> _memoryQueue = new();
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = false,
     };
+
+    public record QueuedItem(TelemetryEvent Event, string? FilePath);
 
     public LocalQueueService(string queuePath)
     {
@@ -34,48 +36,50 @@ public class LocalQueueService
 
     public void Enqueue(TelemetryEvent evt)
     {
-        _memoryQueue.Enqueue(evt);
-        TryPersistToFile(evt);
+        var fp = TryPersistToFile(evt);
+        _memoryQueue.Enqueue(new QueuedItem(evt, fp));
     }
 
     public void EnqueueRange(IEnumerable<TelemetryEvent> events)
     {
         foreach (var evt in events)
-            _memoryQueue.Enqueue(evt);
+            _memoryQueue.Enqueue(new QueuedItem(evt, null));
     }
 
     /// <summary>
-    /// Dequeue up to maxCount events. Does not remove from file backup.
+    /// Dequeue up to maxCount events.
+    /// Persisted items are only deleted after successful server ack via AckBatch().
     /// </summary>
-    public List<TelemetryEvent> DequeueBatch(int maxCount)
+    public List<QueuedItem> DequeueBatch(int maxCount)
     {
-        var batch = new List<TelemetryEvent>();
-        while (batch.Count < maxCount && _memoryQueue.TryDequeue(out var evt))
-            batch.Add(evt);
+        var batch = new List<QueuedItem>();
+        while (batch.Count < maxCount && _memoryQueue.TryDequeue(out var item))
+            batch.Add(item);
         return batch;
     }
 
     /// <summary>
     /// Peek at next batch without removing.
     /// </summary>
-    public List<TelemetryEvent> PeekBatch(int maxCount)
+    public List<QueuedItem> PeekBatch(int maxCount)
     {
-        var batch = new List<TelemetryEvent>();
+        var batch = new List<QueuedItem>();
         var items = _memoryQueue.ToArray();
-        foreach (var evt in items.Take(maxCount))
-            batch.Add(evt);
+        foreach (var it in items.Take(maxCount))
+            batch.Add(it);
         return batch;
     }
 
-    private void TryPersistToFile(TelemetryEvent evt)
+    private string? TryPersistToFile(TelemetryEvent evt)
     {
         try
         {
             var file = Path.Combine(_queueDir, $"evt_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}.json");
             var json = JsonSerializer.Serialize(evt, JsonOptions);
             File.WriteAllText(file, json);
+            return file;
         }
-        catch { /* best effort */ }
+        catch { return null; /* best effort */ }
     }
 
     /// <summary>
@@ -96,15 +100,27 @@ public class LocalQueueService
                     var evt = JsonSerializer.Deserialize<TelemetryEvent>(json, JsonOptions);
                     if (evt != null)
                     {
-                        _memoryQueue.Enqueue(evt);
+                        _memoryQueue.Enqueue(new QueuedItem(evt, file));
                         loaded++;
                     }
-                    File.Delete(file);
                 }
                 catch { /* skip corrupt */ }
             }
         }
         catch { }
         return loaded;
+    }
+
+    /// <summary>
+    /// Delete persisted files for a batch after the server confirms receipt.
+    /// </summary>
+    public void AckBatch(IEnumerable<QueuedItem> batch)
+    {
+        foreach (var item in batch)
+        {
+            var fp = item.FilePath;
+            if (string.IsNullOrWhiteSpace(fp)) continue;
+            try { File.Delete(fp); } catch { /* best effort */ }
+        }
     }
 }

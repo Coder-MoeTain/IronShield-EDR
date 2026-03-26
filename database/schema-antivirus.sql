@@ -224,3 +224,42 @@ CREATE TABLE IF NOT EXISTS av_bundle_signatures (
   FOREIGN KEY (bundle_id) REFERENCES av_signature_bundles(id) ON DELETE CASCADE,
   FOREIGN KEY (signature_id) REFERENCES av_signatures(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+-- =====================================================
+-- BASELINE AV POLICY (enterprise-safe, idempotent)
+-- =====================================================
+-- No sample signatures are shipped. This only ensures a minimal default policy exists.
+
+INSERT IGNORE INTO av_scan_policies (
+  tenant_id,
+  name,
+  description,
+  realtime_enabled,
+  scheduled_enabled,
+  execute_scan_enabled,
+  quarantine_threshold,
+  alert_threshold,
+  max_file_size_mb,
+  process_kill_allowed,
+  rescan_on_detection,
+  include_paths_json,
+  exclude_paths_json,
+  exclude_extensions_json,
+  exclude_hashes_json
+) VALUES (
+  NULL,
+  'Default',
+  'Default AV scan policy',
+  0,
+  0,
+  1,
+  70,
+  50,
+  100,
+  0,
+  1,
+  '[]',
+  '[]',
+  '[]',
+  '[]'
+);

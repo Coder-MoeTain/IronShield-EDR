@@ -18,6 +18,7 @@ const SensorHealthService = require('../services/SensorHealthService');
 const DetectionSuppressionService = require('../services/DetectionSuppressionService');
 const PlaybookService = require('../services/PlaybookService');
 const ProcessTimelineService = require('../services/ProcessTimelineService');
+const ComplianceService = require('../services/ComplianceService');
 const db = require('../utils/db');
 const DetectionRuleService = require('../services/DetectionRuleService');
 
@@ -208,6 +209,15 @@ async function runHuntAdhoc(req, res, next) {
   }
 }
 
+async function runXdrHunt(req, res, next) {
+  try {
+    const result = await HuntService.runXdrAdhoc(req.body || {}, req.tenantId);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getSensorHealth(req, res, next) {
   try {
     const data = await SensorHealthService.getHealth(req.tenantId);
@@ -322,10 +332,53 @@ async function updateAlertStatus(req, res, next) {
 async function patchAlert(req, res, next) {
   try {
     const body = { ...(req.body || {}) };
+    body.updated_by = req.user?.username || null;
     if (body.suppression_reason != null && String(body.suppression_reason).trim()) {
       body.suppressed_by = body.suppressed_by ?? req.user?.username ?? null;
     }
     const updated = await AlertService.patch(req.params.id, body, req.tenantId);
+    if (!updated) return res.status(404).json({ error: 'Alert not found' });
+    res.json(updated);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function listAlertQualityEvents(req, res, next) {
+  try {
+    const alert = await AlertService.getById(req.params.id);
+    if (!alert) return res.status(404).json({ error: 'Alert not found' });
+    const rows = await AlertService.listQualityEvents(req.params.id, Number(req.query.limit || 50));
+    res.json(rows);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function submitAlertDisposition(req, res, next) {
+  try {
+    const { id } = req.params;
+    const {
+      analyst_disposition,
+      disposition_reason,
+      analyst_confidence,
+      quality_tags,
+      status,
+      assigned_to,
+      assigned_team,
+    } = req.body || {};
+
+    const patchBody = {
+      analyst_disposition,
+      disposition_reason,
+      analyst_confidence,
+      quality_tags,
+      status,
+      assigned_to,
+      assigned_team,
+      updated_by: req.user?.username || null,
+    };
+    const updated = await AlertService.patch(id, patchBody, req.tenantId);
     if (!updated) return res.status(404).json({ error: 'Alert not found' });
     res.json(updated);
   } catch (err) {
@@ -573,6 +626,15 @@ async function getProcessTimeline(req, res, next) {
   }
 }
 
+async function getComplianceSummary(req, res, next) {
+  try {
+    const data = await ComplianceService.summary(req.tenantId);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   dashboardSummary,
   listEndpoints,
@@ -590,6 +652,7 @@ module.exports = {
   deleteHuntQuery,
   runHuntQuery,
   runHuntAdhoc,
+  runXdrHunt,
   getSensorHealth,
   listSuppressions,
   createSuppression,
@@ -600,6 +663,7 @@ module.exports = {
   deletePlaybook,
   runPlaybook,
   getProcessTimeline,
+  getComplianceSummary,
   listEvents,
   getEvent,
   listAuditLogs,
@@ -608,6 +672,8 @@ module.exports = {
   getAlert,
   updateAlertStatus,
   patchAlert,
+  listAlertQualityEvents,
+  submitAlertDisposition,
   addAlertNote,
   getAlertNotes,
   listSavedViews,

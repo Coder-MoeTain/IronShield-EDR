@@ -12,6 +12,7 @@ const QueueService = require('./QueueService');
 const NetworkService = require('./NetworkService');
 const KafkaProducer = require('../kafka/producer');
 const config = require('../config');
+const metrics = require('../utils/metrics');
 
 /**
  * Process unprocessed raw events for an endpoint (normalize, IOC match, detect, alert)
@@ -96,13 +97,32 @@ async function processUnprocessed(endpointId, limit = 100) {
  * Ingest batch of events from agent
  * Inserts raw events, then queues processing job (if Redis) or processes inline
  */
-async function ingestBatch(endpointId, events) {
+async function ingestBatch(endpointId, events, opts = {}) {
   if (!Array.isArray(events) || events.length === 0) {
+    metrics.agentIngestBatchesTotal.inc({ result: 'empty' });
     return { inserted: 0 };
+  }
+
+  const batchId = opts?.batchId ? String(opts.batchId).substring(0, 64) : null;
+  if (batchId) {
+    try {
+      await db.execute(
+        'INSERT INTO agent_event_batches (endpoint_id, batch_id, event_count) VALUES (?, ?, ?)',
+        [endpointId, batchId, Math.min(events.length, 500)]
+      );
+    } catch (e) {
+      if (e.code === 'ER_DUP_ENTRY') {
+        metrics.agentIngestBatchesTotal.inc({ result: 'deduped' });
+        metrics.agentIngestEventsTotal.inc({ result: 'deduped' }, Math.min(events.length, 500));
+        return { inserted: 0, deduped: true };
+      }
+      throw e;
+    }
   }
 
   const values = [];
   const placeholders = [];
+  let dedupedEvents = 0;
 
   for (const evt of events.slice(0, 500)) {
     const eventId = evt.event_id ? String(evt.event_id).substring(0, 128) : null;
@@ -112,8 +132,31 @@ async function ingestBatch(endpointId, events) {
     const timestamp = evt.timestamp ? new Date(evt.timestamp) : new Date();
     const rawJson = JSON.stringify(evt);
 
+    // Enterprise idempotency: de-duplicate by endpoint_id + event_id.
+    if (eventId) {
+      try {
+        const idempotencyResult = await db.execute(
+          'INSERT IGNORE INTO agent_event_ids (endpoint_id, event_id) VALUES (?, ?)',
+          [endpointId, eventId]
+        );
+        if (!idempotencyResult?.affectedRows) {
+          dedupedEvents++;
+          continue;
+        }
+      } catch (e) {
+        // If table/feature not yet migrated, continue without dropping ingest.
+        if (e.code !== 'ER_NO_SUCH_TABLE') throw e;
+      }
+    }
+
     values.push(endpointId, eventId, hostname, eventSource, eventType, timestamp, rawJson);
     placeholders.push('(?, ?, ?, ?, ?, ?, ?)');
+  }
+
+  if (placeholders.length === 0) {
+    metrics.agentIngestBatchesTotal.inc({ result: dedupedEvents > 0 ? 'deduped' : 'empty' });
+    metrics.agentIngestEventsTotal.inc({ result: dedupedEvents > 0 ? 'deduped' : 'empty' }, Math.min(dedupedEvents, 500));
+    return { inserted: 0, deduped: dedupedEvents > 0, deduped_events: dedupedEvents };
   }
 
   const sql = `INSERT INTO raw_events (endpoint_id, event_id, hostname, event_source, event_type, timestamp, raw_event_json)
@@ -121,6 +164,11 @@ async function ingestBatch(endpointId, events) {
 
   const result = await db.execute(sql, values);
   logger.info({ endpointId, count: result.affectedRows }, 'Events ingested');
+  metrics.agentIngestBatchesTotal.inc({ result: 'ok' });
+  metrics.agentIngestEventsTotal.inc({ result: 'ok' }, Math.min(result.affectedRows || 0, 500));
+  if (dedupedEvents > 0) {
+    metrics.agentIngestEventsTotal.inc({ result: 'deduped' }, Math.min(dedupedEvents, 500));
+  }
 
   // Kafka-first pipeline (Phase 1 XDR): publish event batch to topic for async normalization/detection.
   if (config.kafka?.enabled) {
@@ -147,7 +195,7 @@ async function ingestBatch(endpointId, events) {
     }
   }
 
-  return { inserted: result.affectedRows };
+  return { inserted: result.affectedRows, deduped_events: dedupedEvents };
 }
 
 module.exports = { ingestBatch, processUnprocessed };

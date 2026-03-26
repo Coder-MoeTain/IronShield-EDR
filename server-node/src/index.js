@@ -3,6 +3,9 @@
  * Phase 1 + Phase 2
  */
 const express = require('express');
+const fs = require('fs');
+const https = require('https');
+const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -34,8 +37,7 @@ app.use(
       if (!origin) return cb(null, true);
       const allow = config.http?.corsOrigins || [];
       if (allow.length === 0) {
-        // Dev-friendly default (explicit allowlist recommended for production)
-        return cb(null, true);
+        return cb(new Error('CORS blocked (CORS_ORIGINS not configured)'), false);
       }
       return allow.includes(origin) ? cb(null, true) : cb(new Error('CORS blocked'), false);
     },
@@ -74,6 +76,7 @@ app.use('/api/ingest', ingestLimiter);
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 app.get('/healthz', (req, res) => res.json({ status: 'ok' }));
+app.get('/favicon.ico', (req, res) => res.status(204).end());
 app.get('/readyz', async (req, res) => {
   try {
     await db.query('SELECT 1');
@@ -94,18 +97,31 @@ if (config.metrics?.enabled) {
     help: 'HTTP requests total',
     labelNames: ['method', 'route', 'status'],
   });
+  const httpRequestDurationMs = new promClient.Histogram({
+    name: 'ironshield_http_request_duration_ms',
+    help: 'HTTP request duration in milliseconds',
+    labelNames: ['method', 'route', 'status'],
+    buckets: [25, 50, 100, 250, 500, 1000, 2000, 5000, 10000],
+  });
 
   app.use((req, res, next) => {
     const start = Date.now();
     res.on('finish', () => {
       const route = req.route?.path ? String(req.route.path) : req.path;
+      const ms = Date.now() - start;
       httpRequestsTotal.inc({
         method: req.method,
         route: route || 'unknown',
         status: String(res.statusCode),
       });
-      // basic latency in logs only (metrics latency can be added later)
-      const ms = Date.now() - start;
+      httpRequestDurationMs.observe(
+        {
+          method: req.method,
+          route: route || 'unknown',
+          status: String(res.statusCode),
+        },
+        ms
+      );
       if (ms > 2000) logger.warn({ path: req.path, ms }, 'Slow request');
     });
     next();
@@ -133,13 +149,54 @@ app.use('/api', (req, res) => res.status(404).json({ error: 'Not found', path: r
 
 // Serve dashboard static files if present
 app.use(express.static('public'));
+const dashboardIndexPath = path.resolve(process.cwd(), 'public', 'index.html');
+app.get(/^\/(?!api(?:\/|$)).*/, (req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  if (fs.existsSync(dashboardIndexPath)) return res.sendFile(dashboardIndexPath);
+  return next();
+});
 
 // Error handler
 app.use(errorHandler);
 
-const server = app.listen(config.port, () => {
-  logger.info({ port: config.port, env: config.env }, 'EDR Backend started');
-});
+function createServer() {
+  if (config.env === 'production' && config.security?.enforceTlsInProduction && !config.tls?.enabled) {
+    throw new Error('Production requires TLS (set TLS_ENABLED=true or disable ENFORCE_TLS_IN_PRODUCTION explicitly)');
+  }
+  if (config.env === 'production' && config.security?.enforceAgentMtlsInProduction && !config.tls?.agentMtlsRequired) {
+    throw new Error('Production requires agent mTLS (set AGENT_MTLS_REQUIRED=true or disable ENFORCE_AGENT_MTLS_IN_PRODUCTION explicitly)');
+  }
+  if (!config.tls?.enabled) {
+    return app.listen(config.port, () => {
+      logger.info({ port: config.port, env: config.env }, 'EDR Backend started (HTTP)');
+    });
+  }
+
+  if (!config.tls.keyPath || !config.tls.certPath) {
+    throw new Error('TLS enabled but TLS_KEY_PATH/TLS_CERT_PATH not set');
+  }
+
+  const tlsOpts = {
+    key: fs.readFileSync(config.tls.keyPath),
+    cert: fs.readFileSync(config.tls.certPath),
+    minVersion: 'TLSv1.2',
+  };
+
+  if (config.tls.caPath) {
+    tlsOpts.ca = fs.readFileSync(config.tls.caPath);
+  }
+  if (config.tls.agentMtlsRequired) {
+    // Request and validate client certificates signed by TLS_CA_PATH.
+    tlsOpts.requestCert = true;
+    tlsOpts.rejectUnauthorized = true;
+  }
+
+  return https.createServer(tlsOpts, app).listen(config.port, () => {
+    logger.info({ port: config.port, env: config.env }, 'EDR Backend started (HTTPS)');
+  });
+}
+
+const server = createServer();
 
 // Phase 6: websocket realtime (optional)
 attachRealtime(server);

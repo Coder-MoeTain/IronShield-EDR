@@ -7,7 +7,14 @@ const loginSchema = z.object({
   body: z.object({
     username: z.string().min(1).max(64),
     password: z.string().min(1),
+    mfa_code: z.string().regex(/^\d{6}$/).optional(),
   }),
 });
 
-module.exports = { loginSchema };
+const mfaCodeSchema = z.object({
+  body: z.object({
+    code: z.string().regex(/^\d{6}$/),
+  }),
+});
+
+module.exports = { loginSchema, mfaCodeSchema };

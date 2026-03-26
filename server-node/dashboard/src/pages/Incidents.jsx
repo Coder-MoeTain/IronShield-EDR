@@ -24,7 +24,7 @@ export default function Incidents() {
   const navigate = useNavigate();
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ status: '', severity: '', limit: 50, offset: 0 });
+  const [filters, setFilters] = useState({ status: '', severity: '', sla_breached: '', limit: 50, offset: 0 });
 
   const fetchData = () => {
     const params = new URLSearchParams();
@@ -95,6 +95,13 @@ export default function Incidents() {
               <option value="medium">Medium</option>
               <option value="low">Low</option>
             </select>
+            <select
+              value={filters.sla_breached}
+              onChange={(e) => setFilters((f) => ({ ...f, sla_breached: e.target.value, offset: 0 }))}
+            >
+              <option value="">All SLA states</option>
+              <option value="true">SLA breached</option>
+            </select>
           </div>
         )}
         footer={(
@@ -119,6 +126,8 @@ export default function Incidents() {
               <th>Endpoint</th>
               <th>Severity</th>
               <th>Status</th>
+              <th>Owner</th>
+              <th>Due</th>
               <th>Correlation</th>
               <th>Actions</th>
             </tr>
@@ -150,6 +159,17 @@ export default function Incidents() {
                 </td>
                 <td>
                   <span className={`${styles.statusBadge} ${statusClass(inc.status)}`}>{inc.status}</span>
+                </td>
+                <td className={styles.mono}>{inc.owner_username || '-'}</td>
+                <td className={styles.timeCell}>
+                  {inc.due_at ? (
+                    <>
+                      <span>{timeAgo(inc.due_at)}</span>
+                      <span className={styles.timeFull}>{new Date(inc.due_at).toLocaleString()}</span>
+                    </>
+                  ) : (
+                    '-'
+                  )}
                 </td>
                 <td className={styles.mono}>{inc.correlation_type || '-'}</td>
                 <td className={styles.actionsCell} onClick={(e) => e.stopPropagation()}>

@@ -8,6 +8,8 @@ const EndpointService = require('../services/EndpointService');
 const ResponseActionService = require('../services/ResponseActionService');
 const RtrService = require('../services/RtrService');
 const AgentUpdateService = require('../services/AgentUpdateService');
+const AgentKeyService = require('../services/AgentKeyService');
+const db = require('../utils/db');
 const logger = require('../utils/logger');
 
 async function register(req, res, next) {
@@ -84,17 +86,26 @@ async function networkConnections(req, res, next) {
 
 async function eventsBatch(req, res, next) {
   try {
-    const endpoint = await EndpointService.getByAgentKey(req.agentKey);
-    if (!endpoint) {
-      return res.status(401).json({ error: 'Unknown agent key' });
-    }
+    const endpointId = req.endpointId || (await EndpointService.getByAgentKey(req.agentKey))?.id;
+    if (!endpointId) return res.status(401).json({ error: 'Unknown agent key' });
 
     const body = req.body || {};
     const events = Array.isArray(body.events) ? body.events : (Array.isArray(body) ? body : []);
-    const result = await EventIngestionService.ingestBatch(endpoint.id, events);
+    const batchId = body.batch_id || body.batchId || null;
+    const result = await EventIngestionService.ingestBatch(endpointId, events, { batchId });
     res.json(result);
   } catch (err) {
     next(err);
+  }
+}
+
+async function rotateKey(req, res, next) {
+  try {
+    if (!req.endpointId) return res.status(401).json({ error: 'Unknown agent key' });
+    const { agentKey } = await AgentKeyService.rotate(req.endpointId);
+    res.json({ agent_key: agentKey });
+  } catch (e) {
+    next(e);
   }
 }
 
@@ -170,7 +181,12 @@ async function submitActionResult(req, res, next) {
 async function checkUpdate(req, res, next) {
   try {
     const currentVersion = req.query.version || req.headers['x-agent-version'] || '1.0.0';
-    const result = await AgentUpdateService.checkUpdate(currentVersion);
+    // authAgentValidated attaches tenantId; ring is stored on endpoint.
+    const ringRow = req.endpointId
+      ? await db.queryOne('SELECT update_ring FROM endpoints WHERE id = ? LIMIT 1', [req.endpointId])
+      : null;
+    const ring = ringRow?.update_ring || 'stable';
+    const result = await AgentUpdateService.checkUpdate(currentVersion, { tenantId: req.tenantId ?? null, ring });
     res.json(result);
   } catch (err) {
     next(err);
@@ -185,4 +201,5 @@ module.exports = {
   getPendingActions,
   submitActionResult,
   checkUpdate,
+  rotateKey,
 };

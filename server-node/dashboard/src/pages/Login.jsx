@@ -6,8 +6,11 @@ import { IconShield } from '../components/NavIcons';
 import styles from './Login.module.css';
 
 export default function Login() {
+  const oidcSsoEnabled = import.meta.env.VITE_ENABLE_OIDC_SSO === 'true';
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
+  const [needsMfa, setNeedsMfa] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -18,10 +21,17 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await login(username, password);
+      await login(username, password, needsMfa ? mfaCode : null);
       navigate('/');
     } catch (err) {
-      setError(err.message || 'Login failed');
+      if (err.mfaRequired) {
+        setNeedsMfa(true);
+        setError('MFA required. Enter your 6-digit authenticator code.');
+      } else if (/MFA enrollment required/i.test(err.message || '')) {
+        setError('Organization policy requires MFA enrollment. Sign in, then enable MFA in Enterprise > Account Security.');
+      } else {
+        setError(err.message || 'Login failed');
+      }
     } finally {
       setLoading(false);
     }
@@ -57,13 +67,27 @@ export default function Login() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+          {needsMfa && (
+            <input
+              type="text"
+              placeholder="Authenticator code (6 digits)"
+              value={mfaCode}
+              onChange={(e) => setMfaCode(e.target.value)}
+              required
+              inputMode="numeric"
+              pattern="\d{6}"
+            />
+          )}
           <button type="submit" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
+          {oidcSsoEnabled && (
+            <a href="/api/auth/sso/oidc/start" className={styles.ssoBtn}>
+              Sign in with SSO (OIDC)
+            </a>
+          )}
         </form>
-        <p className={styles.hint}>
-          Default: admin / ChangeMe123! — Change password after first login.
-        </p>
+        <p className={styles.hint}>Use enterprise credentials. MFA code is required if enabled on your account.</p>
       </div>
     </div>
   );

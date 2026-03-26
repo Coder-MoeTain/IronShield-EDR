@@ -16,6 +16,9 @@ const steps = [
   'migrate-agent-release-signatures',
   'migrate-phase7-ngav-telemetry',
   'migrate-phase8-edr-policy-sync',
+  'migrate-triage-core',
+  'migrate-investigations-core',
+  'migrate-policy-network-baseline',
   'migrate-normalized-events-parity',
   'migrate-falcon-ui-pack',
   'migrate-capabilities-v2',
@@ -30,8 +33,18 @@ const steps = [
   // console UX tables
   'migrate-user-saved-views',
 
+  // enterprise identity + ingest durability
+  'migrate-enrollment-tokens',
+  'migrate-agent-key-lifecycle',
+  'migrate-agent-batch-dedupe',
+  'migrate-agent-event-idempotency',
+  'migrate-response-action-approvals',
+  'migrate-agent-release-rollouts',
+  'migrate-soc-hardening',
+
   // compliance
   'migrate-audit-logs',
+  'migrate-audit-hashchain',
 ];
 
 for (const s of steps) {

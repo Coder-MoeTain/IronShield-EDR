@@ -91,6 +91,11 @@ export default function DetectionRules() {
     [s]
   );
 
+  const visibleRules = rules.length;
+  const activeFilterCount = [q, severity, enabled].filter(Boolean).length;
+  const visibleEnabledCount = rules.filter((r) => r.enabled).length;
+  const visibleCriticalCount = rules.filter((r) => r.severity === 'critical').length;
+
   return (
     <PageShell
       kicker="Detection"
@@ -135,6 +140,25 @@ export default function DetectionRules() {
             ))}
           </div>
 
+          <div className={styles.overviewStrip}>
+            <div className={styles.overviewItem}>
+              <span className={styles.overviewLabel}>Visible rules</span>
+              <strong className={styles.overviewValue}>{visibleRules}</strong>
+            </div>
+            <div className={styles.overviewItem}>
+              <span className={styles.overviewLabel}>Visible enabled</span>
+              <strong className={styles.overviewValue}>{visibleEnabledCount}</strong>
+            </div>
+            <div className={styles.overviewItem}>
+              <span className={styles.overviewLabel}>Visible critical</span>
+              <strong className={styles.overviewValue}>{visibleCriticalCount}</strong>
+            </div>
+            <div className={styles.overviewItem}>
+              <span className={styles.overviewLabel}>Active filters</span>
+              <strong className={styles.overviewValue}>{activeFilterCount}</strong>
+            </div>
+          </div>
+
           <div className={styles.toolbar}>
             <input
               type="search"
@@ -159,6 +183,20 @@ export default function DetectionRules() {
             <button type="button" className="falcon-btn falcon-btn-ghost" onClick={fetchRules}>
               ↻ Refresh
             </button>
+            <button
+              type="button"
+              className="falcon-btn falcon-btn-ghost"
+              onClick={() => {
+                const next = new URLSearchParams(searchParams);
+                next.delete('q');
+                next.delete('severity');
+                next.delete('enabled');
+                setSearchParams(next, { replace: true });
+              }}
+              disabled={!q && !severity && !enabled}
+            >
+              Clear filters
+            </button>
           </div>
 
           <div className={styles.tableWrap}>
@@ -170,6 +208,7 @@ export default function DetectionRules() {
                   <th>Title</th>
                   <th>Severity</th>
                   <th>MITRE</th>
+                  <th>Description</th>
                   <th>Updated</th>
                   <th>Actions</th>
                 </tr>
@@ -203,6 +242,10 @@ export default function DetectionRules() {
                       ) : (
                         '—'
                       )}
+                    </td>
+                    <td className={styles.descCell} title={r.description || ''}>
+                      {r.description ? r.description.slice(0, 72) : '—'}
+                      {r.description && r.description.length > 72 ? '…' : ''}
                     </td>
                     <td className={styles.timeCell}>
                       {r.updated_at ? new Date(r.updated_at).toLocaleString() : '—'}

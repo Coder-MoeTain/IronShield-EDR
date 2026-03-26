@@ -54,7 +54,7 @@ public class AgentWorker
         _config = configService.Load();
         _systemInfo = new SystemInfoService();
         _queue = new LocalQueueService(_config.LocalQueuePath);
-        _transport = new HttpTransport(_config.ServerUrl, _config.AgentKey);
+        _transport = new HttpTransport(_config, _config.AgentKey);
         _collectors = new List<EventCollectorBase>
         {
             new ProcessCollector(),
@@ -71,7 +71,7 @@ public class AgentWorker
         _config = config;
         _systemInfo = new SystemInfoService();
         _queue = new LocalQueueService(_config.LocalQueuePath);
-        _transport = new HttpTransport(_config.ServerUrl, _config.AgentKey);
+        _transport = new HttpTransport(_config, _config.AgentKey);
         _collectors = new List<EventCollectorBase>
         {
             new ProcessCollector(),
@@ -108,7 +108,7 @@ public class AgentWorker
             Console.WriteLine("[Agent] No agent key after registration step — heartbeats and uploads are disabled until registration succeeds (check ServerUrl, backend running, and registration token).");
         }
 
-        _updateChecker = new UpdateCheckService(_config.ServerUrl, AgentVersion);
+        _updateChecker = new UpdateCheckService(_config.ServerUrl, () => _config.AgentKey, AgentVersion);
         _ = SendImmediateHeartbeatAndNetworkAsync(_cts.Token);
         _ = InitialPolicyFetchAsync(_cts.Token);
         _heartbeatTask = HeartbeatLoopAsync(_cts.Token);
@@ -237,24 +237,42 @@ public class AgentWorker
             var batch = _queue.DequeueBatch(batchSize);
             if (batch.Count == 0) continue;
 
-            var apiObjects = batch.Select(EventSerializer.ToApiObject).ToList();
+            var apiObjects = batch.Select((b) =>
+            {
+                EnsureEventId(b.Event);
+                return EventSerializer.ToApiObject(b.Event);
+            }).ToList();
             var retries = _config.MaxRetries;
+            var uploaded = false;
             while (retries > 0)
             {
                 try
                 {
-                    await _transport.SendEventsBatchAsync(apiObjects, ct);
+                    var batchId = Guid.NewGuid().ToString("N");
+                    await _transport.SendEventsBatchAsync(apiObjects, batchId, ct);
+                    _queue.AckBatch(batch);
+                    uploaded = true;
                     break;
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"[Agent] Upload failed ({retries} retries): {ex.Message}");
                     retries--;
-                    _queue.EnqueueRange(batch);
                     await Task.Delay(TimeSpan.FromSeconds(5), ct);
                 }
             }
+            if (!uploaded)
+            {
+                // Requeue only once after retries are exhausted to prevent exponential duplication.
+                _queue.EnqueueRange(batch.Select((b) => b.Event));
+            }
         }
+    }
+
+    private static void EnsureEventId(TelemetryEvent evt)
+    {
+        if (!string.IsNullOrWhiteSpace(evt.EventId)) return;
+        evt.EventId = Guid.NewGuid().ToString("N");
     }
 
     private async Task CollectLoopAsync(CancellationToken ct)
@@ -653,6 +671,23 @@ public class AgentWorker
                 if (update != null)
                 {
                     Console.WriteLine($"[Agent] Update available: {update.Version}. Download: {update.DownloadUrl}");
+                    // Phase C: stage download + verify (no in-place install/rollback yet).
+                    try
+                    {
+                        var (ok, msg, stagedPath) = await StageUpdateArtifactAsync(update, ct);
+                        Console.WriteLine(ok ? $"[Agent] Update staged: {msg}" : $"[Agent] Update stage failed: {msg}");
+                        if (ok && _config.AutoInstallUpdates)
+                        {
+                            var (installOk, installMsg) = await InvokeUpdaterInstallAsync(stagedPath, ct);
+                            Console.WriteLine(installOk
+                                ? $"[Agent] Update installer executed: {installMsg}"
+                                : $"[Agent] Update installer failed: {installMsg}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[Agent] Update stage error: {ex.Message}");
+                    }
                     if (_config.VerifyAgentUpdates)
                     {
                         var (ok, msg) = await VerifyUpdateArtifactAsync(update, _config.AgentUpdatePublicKeyPem, ct);
@@ -666,6 +701,84 @@ public class AgentWorker
             {
                 Console.WriteLine($"[Agent] Update check error: {ex.Message}");
             }
+        }
+    }
+
+    private async Task<(bool Ok, string Message, string StagedPath)> StageUpdateArtifactAsync(UpdateInfo update, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(update.DownloadUrl))
+            return (false, "missing download_url", "");
+        if (string.IsNullOrWhiteSpace(update.Version))
+            return (false, "missing version", "");
+
+        try
+        {
+            var baseDir = AppContext.BaseDirectory;
+            var updatesDir = Path.Combine(baseDir, "updates", update.Version);
+            Directory.CreateDirectory(updatesDir);
+            var outPath = Path.Combine(updatesDir, "agent_update.bin");
+            using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
+            var bytes = await http.GetByteArrayAsync(update.DownloadUrl, ct);
+            await File.WriteAllBytesAsync(outPath, bytes, ct);
+            return (true, $"saved={outPath} size={bytes.Length}B", outPath);
+        }
+        catch (Exception e)
+        {
+            return (false, e.Message, "");
+        }
+    }
+
+    private async Task<(bool Ok, string Message)> InvokeUpdaterInstallAsync(string stagedArtifactPath, CancellationToken ct)
+    {
+        try
+        {
+            var updaterPath = _config.UpdaterExecutablePath;
+            if (string.IsNullOrWhiteSpace(updaterPath))
+            {
+                var baseDir = AppContext.BaseDirectory;
+                updaterPath = Path.Combine(baseDir, "EDR.Agent.Updater.exe");
+            }
+            if (string.IsNullOrWhiteSpace(updaterPath) || !File.Exists(updaterPath))
+                return (false, "updater executable not found");
+
+            var targetPath = _config.UpdateTargetPath;
+            if (string.IsNullOrWhiteSpace(targetPath))
+            {
+                targetPath = Environment.ProcessPath;
+            }
+            if (string.IsNullOrWhiteSpace(targetPath))
+                return (false, "target path missing");
+
+            var manifestDir = Path.Combine(AppContext.BaseDirectory, "updates", "rollback");
+            Directory.CreateDirectory(manifestDir);
+            var manifestPath = Path.Combine(manifestDir, $"rollback-{DateTime.UtcNow:yyyyMMddHHmmss}.json");
+
+            using var p = new Process();
+            p.StartInfo = new ProcessStartInfo
+            {
+                FileName = updaterPath,
+                Arguments = $"--artifact \"{stagedArtifactPath}\" --target \"{targetPath}\" --manifest \"{manifestPath}\"",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+            };
+            p.Start();
+            using var reg = ct.Register(() => { try { p.Kill(true); } catch { } });
+            if (!p.WaitForExit(45_000))
+            {
+                try { p.Kill(true); } catch { }
+                return (false, "updater timeout");
+            }
+            var stdout = await p.StandardOutput.ReadToEndAsync();
+            var stderr = await p.StandardError.ReadToEndAsync();
+            if (p.ExitCode == 0) return (true, string.IsNullOrWhiteSpace(stdout) ? "ok" : stdout.Trim());
+            var err = string.IsNullOrWhiteSpace(stderr) ? stdout : stderr;
+            return (false, string.IsNullOrWhiteSpace(err) ? $"exit {p.ExitCode}" : err.Trim());
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
         }
     }
 

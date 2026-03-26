@@ -4,7 +4,14 @@
 const db = require('../../utils/db');
 
 async function list() {
-  return db.query('SELECT * FROM endpoint_policies ORDER BY name');
+  try {
+    return await db.query('SELECT * FROM endpoint_policies ORDER BY name');
+  } catch (err) {
+    if (err && err.code === 'ER_BAD_FIELD_ERROR') {
+      return db.query('SELECT * FROM endpoint_policies ORDER BY id');
+    }
+    throw err;
+  }
 }
 
 async function getById(id) {

@@ -4,6 +4,33 @@
 const db = require('../utils/db');
 const ResponseActionService = require('./ResponseActionService');
 
+const ALLOWED_PLAYBOOK_ACTIONS = new Set([
+  'kill_process',
+  'request_heartbeat',
+  'collect_triage',
+  'isolate_host',
+  'simulate_isolation',
+  'lift_isolation',
+  'quarantine_file',
+  'block_ip',
+  'run_script',
+  'mark_investigating',
+  'rtr_shell',
+  'delete_schtask',
+  'delete_run_key',
+  'delete_path',
+]);
+
+function validateSteps(steps) {
+  if (!Array.isArray(steps) || steps.length === 0) throw new Error('Playbook has no steps');
+  for (const [i, step] of steps.entries()) {
+    if (!step?.action_type) throw new Error(`Step ${i + 1}: action_type required`);
+    if (!ALLOWED_PLAYBOOK_ACTIONS.has(step.action_type)) {
+      throw new Error(`Step ${i + 1}: unsupported action_type ${step.action_type}`);
+    }
+  }
+}
+
 async function list(tenantId = null) {
   let sql = 'SELECT * FROM response_playbooks WHERE 1=1';
   const params = [];
@@ -29,7 +56,9 @@ async function create(body, createdBy, tenantId) {
   const steps = body?.steps ?? body?.steps_json;
   if (!name || !String(name).trim()) throw new Error('name required');
   if (!steps) throw new Error('steps required (array of { action_type, parameters })');
-  const stepsJson = typeof steps === 'string' ? steps : JSON.stringify(steps);
+  const parsedSteps = typeof steps === 'string' ? JSON.parse(steps) : steps;
+  validateSteps(parsedSteps);
+  const stepsJson = JSON.stringify(parsedSteps);
   const result = await db.execute(
     `INSERT INTO response_playbooks (tenant_id, name, description, steps_json, created_by)
      VALUES (?, ?, ?, ?, ?)`,
@@ -75,7 +104,7 @@ async function execute(playbookId, endpointId, requestedBy, tenantId = null) {
       throw new Error('Invalid playbook steps_json');
     }
   }
-  if (!Array.isArray(steps) || steps.length === 0) throw new Error('Playbook has no steps');
+  validateSteps(steps);
 
   const actionIds = [];
   for (const step of steps) {
@@ -92,4 +121,4 @@ async function execute(playbookId, endpointId, requestedBy, tenantId = null) {
   return { playbook_id: playbookId, endpoint_id: endpointId, action_ids: actionIds };
 }
 
-module.exports = { list, getById, create, remove, execute };
+module.exports = { list, getById, create, remove, execute, validateSteps, ALLOWED_PLAYBOOK_ACTIONS };

@@ -16,7 +16,25 @@ if (runAsService)
 else
 {
     var configService = new ConfigService();
-    configService.Load();
+    var cfg = configService.Load();
+    // Dev/local option: run against plain HTTP backend.
+    // --no-ssl flips RequireHttps=false and, if URL is https://, downgrades to http://.
+    if (args.Contains("--no-ssl", StringComparer.OrdinalIgnoreCase))
+    {
+        var allowInsecure = string.Equals(
+            Environment.GetEnvironmentVariable("EDR_ALLOW_INSECURE_HTTP"),
+            "true",
+            StringComparison.OrdinalIgnoreCase);
+        if (!allowInsecure)
+            throw new InvalidOperationException("--no-ssl is disabled. Set EDR_ALLOW_INSECURE_HTTP=true for local-only testing.");
+        cfg.RequireHttps = false;
+        if (!string.IsNullOrWhiteSpace(cfg.ServerUrl) &&
+            cfg.ServerUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            cfg.ServerUrl = "http://" + cfg.ServerUrl.Substring("https://".Length);
+        }
+        Console.WriteLine("[Config] --no-ssl enabled: RequireHttps=false");
+    }
     var worker = new AgentWorker(configService, null);
     var cts = new CancellationTokenSource();
     Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };

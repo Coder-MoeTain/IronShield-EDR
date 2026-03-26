@@ -24,6 +24,13 @@ async function list(filters = {}) {
     sql += ' AND i.severity = ?';
     params.push(filters.severity);
   }
+  if (String(filters.sla_breached || '') === 'true') {
+    sql += " AND i.due_at IS NOT NULL AND i.due_at < NOW() AND i.status IN ('open','investigating')";
+  }
+  if (filters.owner) {
+    sql += ' AND i.owner_username = ?';
+    params.push(filters.owner);
+  }
   sql += ' ORDER BY i.updated_at DESC LIMIT ? OFFSET ?';
   params.push(Math.min(filters.limit || 50, 200), filters.offset || 0);
   return db.query(sql, params);
@@ -90,7 +97,78 @@ async function linkXdrEvent(incidentId, xdrEventId) {
 }
 
 async function updateStatus(id, status) {
+  if (status === 'investigating') {
+    await db.execute(
+      'UPDATE incidents SET status = ?, first_ack_at = COALESCE(first_ack_at, NOW()) WHERE id = ?',
+      [status, id]
+    );
+    return;
+  }
+  if (status === 'resolved') {
+    await db.execute('UPDATE incidents SET status = ?, resolved_at = NOW() WHERE id = ?', [status, id]);
+    return;
+  }
+  if (status === 'closed') {
+    await db.execute('UPDATE incidents SET status = ?, closed_at = NOW() WHERE id = ?', [status, id]);
+    return;
+  }
   await db.execute('UPDATE incidents SET status = ? WHERE id = ?', [status, id]);
 }
 
-module.exports = { list, getById, create, linkAlert, linkXdrEvent, updateStatus };
+async function updateWorkflow(id, patch = {}) {
+  const sets = [];
+  const params = [];
+  if (patch.status) {
+    sets.push('status = ?');
+    params.push(patch.status);
+    if (patch.status === 'investigating') sets.push('first_ack_at = COALESCE(first_ack_at, NOW())');
+    if (patch.status === 'resolved') sets.push('resolved_at = NOW()');
+    if (patch.status === 'closed') sets.push('closed_at = NOW()');
+  }
+  if (patch.owner_user_id !== undefined) {
+    sets.push('owner_user_id = ?');
+    params.push(patch.owner_user_id || null);
+  }
+  if (patch.owner_username !== undefined) {
+    sets.push('owner_username = ?');
+    params.push(patch.owner_username || null);
+  }
+  if (patch.sla_minutes !== undefined) {
+    sets.push('sla_minutes = ?');
+    params.push(patch.sla_minutes || 240);
+  }
+  if (patch.due_at !== undefined) {
+    sets.push('due_at = ?');
+    params.push(patch.due_at || null);
+  }
+  if (sets.length === 0) return;
+  params.push(id);
+  await db.execute(`UPDATE incidents SET ${sets.join(', ')} WHERE id = ?`, params);
+}
+
+async function listEvidence(incidentId) {
+  return db.query(
+    'SELECT * FROM incident_evidence WHERE incident_id = ? ORDER BY collected_at DESC LIMIT 200',
+    [incidentId]
+  );
+}
+
+async function addEvidence(incidentId, evidence) {
+  const result = await db.execute(
+    `INSERT INTO incident_evidence
+      (incident_id, evidence_type, storage_uri, sha256, size_bytes, collected_by, custody_note)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      incidentId,
+      evidence.evidence_type || 'other',
+      evidence.storage_uri,
+      evidence.sha256 || null,
+      evidence.size_bytes || null,
+      evidence.collected_by,
+      evidence.custody_note || null,
+    ]
+  );
+  return result.insertId;
+}
+
+module.exports = { list, getById, create, linkAlert, linkXdrEvent, updateStatus, updateWorkflow, listEvidence, addEvidence };

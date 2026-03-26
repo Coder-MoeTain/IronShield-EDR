@@ -51,7 +51,7 @@ const MENU_ITEMS = [
   {
     label: 'Detection',
     Icon: IconRules,
-    children: [{ to: '/detection-rules', Icon: IconRules, label: 'Detection rules' }],
+    children: [{ to: '/detection-rules', Icon: IconRules, label: 'Custom IOA rules' }],
   },
   {
     label: 'Respond',
@@ -60,6 +60,7 @@ const MENU_ITEMS = [
       { to: '/investigations', Icon: IconRespond, label: 'Investigations' },
       { to: '/incidents', Icon: IconRespond, label: 'Incidents' },
       { to: '/triage', Icon: IconRespond, label: 'Triage' },
+      { to: '/respond/approvals', Icon: IconRespond, label: 'Approvals' },
       { to: '/rtr', Icon: IconTerminal, label: 'Real Time Response' },
     ],
   },
@@ -80,8 +81,8 @@ const MENU_ITEMS = [
     label: 'Intel',
     Icon: IconIntel,
     children: [
-      { to: '/risk', Icon: IconIntel, label: 'Risk' },
-      { to: '/iocs', Icon: IconIntel, label: 'IOCs' },
+      { to: '/risk', Icon: IconIntel, label: 'Endpoint risk' },
+      { to: '/iocs', Icon: IconIntel, label: 'IOC watchlist' },
     ],
   },
   {
@@ -99,6 +100,7 @@ const MENU_ITEMS = [
       { to: '/mssp', Icon: IconEnterprise, label: 'MSSP operations' },
       { to: '/enterprise', Icon: IconEnterprise, label: 'Settings' },
       { to: '/tenants', Icon: IconEnterprise, label: 'Tenants' },
+      { to: '/rbac', Icon: IconEnterprise, label: 'RBAC' },
     ],
   },
   {

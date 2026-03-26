@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  Built for lab and enterprise prototype use.
+  Built as an enterprise-ready foundation (hardened defaults, multi-tenant, RBAC, audit integrity).
 </p>
 
 <p align="center">
@@ -38,6 +38,7 @@
   <a href="docs/crowdstrike-ui-phase10.md">Host timeline (Phase 10)</a> •
   <a href="docs/falcon-advanced-ui.md">Falcon-class advanced UI (RTR, graph, analytics)</a> •
   <a href="docs/crowdstrike-detection-rules.md">Detection rules (Custom IOA)</a> •
+  <a href="docs/detection-upgrade-plan.md">Detection upgrade plan</a> •
   <a href="docs/crowdstrike-network-activity.md">Network activity (Falcon-style)</a> •
   <a href="docs/enterprise-hardening.md">Enterprise hardening</a>
 </p>
@@ -70,37 +71,11 @@ IronShield EDR is a full-stack security platform that combines telemetry collect
 
 ## 📸 Screenshots
 
-Vector-style UI previews (same style as the project banner). Replace with **PNG/WebP** captures from your deployment under `assets/` if you want real screenshots for releases or docs.
-
-| Dashboard | Network activity (Explore) |
-|:--:|:--:|
-| <img src="assets/dashboard-preview.svg" alt="Dashboard" width="340"> | <img src="assets/screenshot-network-activity.svg" alt="Network activity" width="340"> |
-| Summary KPIs, sidebar, recent activity | KPI strip, filters, segmented tabs, scope badges |
-
-| Hosts | Detection rules (Custom IOA) |
-|:--:|:--:|
-| <img src="assets/screenshot-hosts.svg" alt="Hosts" width="340"> | <img src="assets/screenshot-detection-rules.svg" alt="Detection rules" width="340"> |
-| Endpoint list · status · last seen | Rule library · severity · MITRE |
-
 <p align="center">
   <sub>Architecture diagram: <a href="#-architecture">Architecture</a> · Banner: <code>assets/banner.svg</code></sub>
 </p>
 
-### Real UI captures (from this repo)
-
-These are real UI screenshots committed under `docs/images/`.
-
-<p align="center">
-  <img src="docs/images/dashboard.png" alt="Dashboard screenshot" width="860">
-</p>
-
-<p align="center">
-  <img src="docs/images/banner.png" alt="Banner screenshot" width="860">
-</p>
-
-<p align="center">
-  <img src="docs/images/architecture.png" alt="Architecture screenshot" width="720">
-</p>
+The repo no longer ships “demo preview” screenshots by default. Generate your own UI captures for releases.
 
 ---
 
@@ -150,7 +125,6 @@ docker run -d --name edr-mysql \
 
 # Apply schema
 mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/schema.sql
-mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/seed.sql
 mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/schema-phase3.sql
 mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/schema-phase4.sql
 mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/schema-phase5.sql
@@ -165,7 +139,6 @@ mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/schema-endpoint-metric
 # cd server-node && npm run migrate-phase6-agent-update-telemetry
 mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/schema-network.sql
 mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/schema-antivirus.sql
-mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/seed-antivirus.sql
 # NGAV telemetry columns on av_update_status (realtime, prevention, signature_count; after antivirus schema):
 # cd server-node && npm run migrate-phase7-ngav-telemetry
 # EDR policy id + last sync on endpoints:
@@ -193,7 +166,7 @@ Or use **Docker Compose**:
 
 ```bash
 docker-compose up -d mysql
-# Wait for MySQL to be ready, then schema/seed are auto-applied
+# Wait for MySQL to be ready, then schema is auto-applied
 ```
 
 ### 2. Backend
@@ -201,10 +174,11 @@ docker-compose up -d mysql
 ```bash
 cd server-node
 cp .env.example .env
-# Edit .env: DB_*, JWT_SECRET, AGENT_REGISTRATION_TOKEN
+# Edit .env: DB_*, JWT_SECRET, XDR_INGEST_KEY, CORS_ORIGINS
+# AGENT_REGISTRATION_TOKEN is break-glass only; prefer per-tenant enrollment tokens.
 
 npm install
-npm run seed-admin   # Creates admin user: admin / ChangeMe123!
+ADMIN_PASSWORD="use-a-long-unique-password-here" npm run create-admin
 npm start
 ```
 
@@ -216,7 +190,7 @@ Optional backend environment (see `server-node` / deployment):
 | `ENABLE_TENANT_RATE_LIMIT` | Set `true` to cap requests per tenant. |
 | `TENANT_RPM` | Requests per minute per tenant when rate limit is enabled (default `600`). |
 
-Backend runs on **http://localhost:3001**
+Backend runs on **http://localhost:3001** (terminate TLS at a reverse proxy for enterprise use)
 
 ### 3. Dashboard
 
@@ -245,7 +219,7 @@ Then hard-refresh the browser (**Ctrl+Shift+R**) to bypass cache.
 ```powershell
 # Run as Administrator
 cd agent-csharp
-.\Install-Agent.ps1 -ServerUrl "http://localhost:3001" -RegistrationToken "your-token-from-.env"
+.\Install-Agent.ps1 -ServerUrl "https://edr.example.com" -RegistrationToken "your-token-from-.env"
 ```
 
 Or use the batch wrapper:
@@ -264,11 +238,11 @@ dotnet run --project src/EDR.Agent.Service -- --console
 
 If `dotnet build` fails with **file locked** / `EDR.Agent.Core.dll` in use, stop the running agent (`EDR.Agent.Service`) or Windows service, then rebuild.
 
-Create `config.json` in the agent directory:
+Create `config.json` in the agent directory (or copy `config.example.json` and fill in values):
 
 ```json
 {
-  "ServerUrl": "http://localhost:3001",
+  "ServerUrl": "https://edr.example.com",
   "RegistrationToken": "your-token-from-.env",
   "HeartbeatIntervalMinutes": 5,
   "EventBatchIntervalSeconds": 30,
@@ -331,7 +305,8 @@ Start-Service EDR.Agent
 |:-------|:---------|:-----|:------------|
 | POST | `/api/agent/register` | Registration token | Register new endpoint |
 | POST | `/api/agent/heartbeat` | Agent key | Send heartbeat |
-| POST | `/api/agent/events/batch` | Agent key | Upload event batch |
+| POST | `/api/agent/events/batch` | Agent key | Upload event batch (supports `batch_id` idempotency) |
+| POST | `/api/agent/key/rotate` | Agent key | Rotate agent key |
 | GET | `/api/agent/actions/pending` | Agent key | Get pending response actions |
 | POST | `/api/agent/actions/:id/result` | Agent key | Submit action result |
 | GET | `/api/agent/av/policy` | Agent key | Get AV scan policy |
@@ -347,6 +322,8 @@ Start-Service EDR.Agent
 | GET | `/api/admin/endpoints` | List endpoints |
 | GET | `/api/admin/alerts` | List alerts |
 | POST | `/api/admin/endpoints/:id/actions` | Create response action |
+| POST | `/api/admin/endpoints/:id/agent-key/revoke` | Revoke endpoint agent key |
+| POST | `/api/admin/endpoints/:id/agent-key/rotate` | Rotate endpoint agent key |
 | GET | `/api/admin/process-monitor` | Process monitor data |
 | GET | `/api/admin/network/summary` | Network KPIs (connections, unique IPs, hosts, destinations) |
 | GET | `/api/admin/network/connections` | Network connections (filters: `hours`, `remoteAddress`, `processName`, …) |
@@ -370,9 +347,9 @@ See [docs/antivirus-setup.md](docs/antivirus-setup.md) and [docs/antivirus-archi
 
 ## ⚠️ Security Notes
 
-- **Change default admin password** immediately after first login
-- Use strong `JWT_SECRET` and `AGENT_REGISTRATION_TOKEN` in production
-- Deploy behind HTTPS (reverse proxy)
+- Provide a strong `JWT_SECRET` and store it in a secrets manager
+- Prefer per-tenant enrollment tokens; keep `AGENT_REGISTRATION_TOKEN` for break-glass only
+- Deploy behind HTTPS (reverse proxy or TLS-terminated service)
 - Agent runs as LocalSystem by default; consider dedicated service account
 - Response actions (e.g. kill process) require trusted server and secure channel
 

@@ -1,4 +1,6 @@
 using System.Net.Http.Headers;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using EDR.Agent.Core.Antivirus.Models;
@@ -19,16 +21,65 @@ public class HttpTransport
         WriteIndented = false,
     };
 
-    public HttpTransport(string baseUrl, string? agentKey = null)
+    public HttpTransport(AgentConfig config, string? agentKey = null)
     {
-        _baseUrl = baseUrl.TrimEnd('/');
-        _client = new HttpClient
+        _baseUrl = (config.ServerUrl ?? "").Trim().TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(_baseUrl))
+            throw new InvalidOperationException("ServerUrl is required");
+
+        if (config.RequireHttps && _baseUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("HTTPS is required (RequireHttps=true)");
+
+        var pins = (config.PinnedServerCertThumbprints ?? new List<string>())
+            .Select(NormalizeThumbprint)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var handler = new HttpClientHandler();
+
+        // Optional mTLS client certificate
+        if (!string.IsNullOrWhiteSpace(config.ClientCertificatePfxPath))
+        {
+            try
+            {
+                var pfxPath = config.ClientCertificatePfxPath.Trim();
+                var pfxPwd = config.ClientCertificatePfxPassword;
+                var cert = pfxPwd == null
+                    ? new X509Certificate2(pfxPath)
+                    : new X509Certificate2(pfxPath, pfxPwd);
+                handler.ClientCertificates.Add(cert);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to load client certificate PFX: {ex.Message}");
+            }
+        }
+        if (pins.Count > 0)
+        {
+            handler.ServerCertificateCustomValidationCallback = (_, cert, _, sslErrors) =>
+            {
+                // We intentionally do NOT allow invalid chains; pinning is additive, not a replacement.
+                if (sslErrors != SslPolicyErrors.None) return false;
+                if (cert == null) return false;
+                var x509 = cert as X509Certificate2 ?? new X509Certificate2(cert);
+                var tp = NormalizeThumbprint(x509.Thumbprint);
+                return tp != null && pins.Contains(tp);
+            };
+        }
+
+        _client = new HttpClient(handler)
         {
             Timeout = TimeSpan.FromSeconds(30),
         };
         _client.DefaultRequestHeaders.Add("User-Agent", "EDR-Agent/1.0");
         if (!string.IsNullOrEmpty(agentKey))
             _client.DefaultRequestHeaders.Add("X-Agent-Key", agentKey);
+    }
+
+    private static string? NormalizeThumbprint(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return null;
+        return new string(s.Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
     }
 
     public void SetAgentKey(string agentKey)
@@ -76,10 +127,10 @@ public class HttpTransport
     /// <summary>
     /// Send batch of events.
     /// </summary>
-    public async Task<EventsBatchResult> SendEventsBatchAsync(IEnumerable<object> events, CancellationToken ct = default)
+    public async Task<EventsBatchResult> SendEventsBatchAsync(IEnumerable<object> events, string? batchId = null, CancellationToken ct = default)
     {
         var list = events.ToList();
-        var payload = new { events = list };
+        var payload = new { batch_id = batchId, events = list };
         var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/api/agent/events/batch");
         req.Content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
 
@@ -90,6 +141,19 @@ public class HttpTransport
             throw new HttpRequestException($"Events upload failed: {res.StatusCode} - {body}");
 
         return JsonSerializer.Deserialize<EventsBatchResult>(body, JsonOptions) ?? new EventsBatchResult { Inserted = list.Count };
+    }
+
+    /// <summary>
+    /// Rotate agent key (server issues a new key, invalidating the old one).
+    /// </summary>
+    public async Task<string> RotateAgentKeyAsync(CancellationToken ct = default)
+    {
+        var res = await _client.PostAsync($"{_baseUrl}/api/agent/key/rotate", new StringContent("{}", Encoding.UTF8, "application/json"), ct);
+        var body = await res.Content.ReadAsStringAsync(ct);
+        if (!res.IsSuccessStatusCode) throw new HttpRequestException($"Key rotation failed: {res.StatusCode} - {body}");
+        using var doc = JsonDocument.Parse(body);
+        if (!doc.RootElement.TryGetProperty("agent_key", out var k)) throw new InvalidOperationException("Invalid rotate response");
+        return k.GetString() ?? throw new InvalidOperationException("Invalid agent_key");
     }
 
     /// <summary>

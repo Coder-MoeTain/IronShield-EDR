@@ -9,10 +9,10 @@ services:
     container_name: edr-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-edr_root_password}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: edr_platform
-      MYSQL_USER: ${MYSQL_USER:-edr_user}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-edr_password}
+      MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD}
     ports:
       - "3306:3306"
     volumes:
@@ -54,14 +54,14 @@ services:
       PORT: 3000
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_USER: ${MYSQL_USER:-edr_user}
-      DB_PASSWORD: ${MYSQL_PASSWORD:-edr_password}
+      DB_USER: ${MYSQL_USER:?set MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD}
       DB_NAME: edr_platform
-      JWT_SECRET: ${JWT_SECRET:-change-this-jwt-secret-in-production}
-      AGENT_REGISTRATION_TOKEN: ${AGENT_REGISTRATION_TOKEN:-change-this-registration-token}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      AGENT_REGISTRATION_TOKEN: ${AGENT_REGISTRATION_TOKEN:?set AGENT_REGISTRATION_TOKEN}
       KAFKA_ENABLED: "true"
       KAFKA_BROKERS: kafka:9092
-      XDR_INGEST_KEY: ${XDR_INGEST_KEY:-change-this-ingest-key}
+      XDR_INGEST_KEY: ${XDR_INGEST_KEY:?set XDR_INGEST_KEY}
     ports:
       - "3000:3000"
     depends_on:

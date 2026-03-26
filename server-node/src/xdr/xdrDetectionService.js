@@ -3,6 +3,7 @@ const DetectionEngineService = require('../services/DetectionEngineService');
 const AlertService = require('../services/AlertService');
 const { getXdrEventById } = require('./xdrQuery');
 const { xdrToLegacyNorm } = require('./xdrLegacyAdapter');
+const { publishXdrDetection } = require('../realtime/realtimeServer');
 
 function toRisk(severity, confidence) {
   const sev = String(severity || '').toLowerCase();
@@ -31,6 +32,24 @@ async function recordDetection({ tenantId, endpointId, xdrEventId, detector, rul
       details ? JSON.stringify(details) : null,
     ]
   );
+  const out = {
+    id: r.insertId,
+    tenant_id: tenantId ?? null,
+    endpoint_id: endpointId ?? null,
+    xdr_event_id: xdrEventId,
+    detector,
+    rule_id: ruleId ?? null,
+    prediction,
+    confidence: confidence ?? null,
+    severity: severity ?? null,
+    title: title ?? null,
+    risk_score: risk,
+  };
+  try {
+    await publishXdrDetection(out);
+  } catch {
+    // best-effort realtime signal; never fail detections
+  }
   return { id: r.insertId, risk_score: risk };
 }
 

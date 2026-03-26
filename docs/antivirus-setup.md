@@ -87,12 +87,9 @@ Navigate to **Antivirus** in the sidebar. Available pages:
 
 ## Sample Data
 
-The seed includes:
-- **EICAR** test file hashes (SHA256 and MD5)
-- **Default policy** with temp, downloads, startup paths
-- **Initial signature bundle** (v1)
+This project no longer ships sample AV seed data (EICAR, demo bundles) for enterprise safety.
 
-To test: use "Add test data" on the AV Overview, or create a scan task for an endpoint.
+To test: create signatures/policies via the admin UI/API and create a scan task for an endpoint.
 
 ## Signature Types
 

@@ -35,6 +35,52 @@ async function updateIncidentStatus(req, res, next) {
   }
 }
 
+async function updateIncidentWorkflow(req, res, next) {
+  try {
+    const { status, owner_username, owner_user_id, sla_minutes, due_at } = req.body || {};
+    if (sla_minutes !== undefined && (!Number.isFinite(Number(sla_minutes)) || Number(sla_minutes) < 1)) {
+      return res.status(400).json({ error: 'sla_minutes must be a positive number' });
+    }
+    await IncidentService.updateWorkflow(req.params.id, {
+      status,
+      owner_username,
+      owner_user_id,
+      sla_minutes: sla_minutes === undefined ? undefined : Number(sla_minutes),
+      due_at: due_at || null,
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function listIncidentEvidence(req, res, next) {
+  try {
+    res.json(await IncidentService.listEvidence(req.params.id));
+  } catch (err) {
+    if (String(err.message || '').includes("doesn't exist")) return res.json([]);
+    next(err);
+  }
+}
+
+async function addIncidentEvidence(req, res, next) {
+  try {
+    const { evidence_type, storage_uri, sha256, size_bytes, custody_note } = req.body || {};
+    if (!storage_uri) return res.status(400).json({ error: 'storage_uri required' });
+    const evidenceId = await IncidentService.addEvidence(req.params.id, {
+      evidence_type,
+      storage_uri,
+      sha256,
+      size_bytes,
+      custody_note,
+      collected_by: req.user?.username || 'unknown',
+    });
+    res.status(201).json({ id: evidenceId });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getEndpointRisk(req, res, next) {
   try {
     const risk = await RiskService.getEndpointRisk(req.params.id);
@@ -127,6 +173,9 @@ module.exports = {
   listIncidents,
   getIncident,
   updateIncidentStatus,
+  updateIncidentWorkflow,
+  listIncidentEvidence,
+  addIncidentEvidence,
   getEndpointRisk,
   getRiskList,
   listIocs,

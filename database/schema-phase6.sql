@@ -52,3 +52,15 @@ CREATE TABLE IF NOT EXISTS agent_releases (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_release_version (version)
 ) ENGINE=InnoDB;
+
+-- =====================================================
+-- BASELINE RETENTION POLICIES (enterprise-safe, idempotent)
+-- =====================================================
+-- Note: tenant_id is NULL => global defaults. Override per tenant in UI if desired.
+
+INSERT IGNORE INTO retention_policies (tenant_id, name, table_name, retain_days, archive_enabled)
+VALUES
+  (NULL, 'Raw Events', 'raw_events', 90, 0),
+  (NULL, 'Heartbeats', 'endpoint_heartbeats', 30, 0),
+  (NULL, 'Normalized Events', 'normalized_events', 90, 0),
+  (NULL, 'Audit Logs', 'audit_logs', 365, 0);

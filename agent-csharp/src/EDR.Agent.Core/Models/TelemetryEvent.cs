@@ -67,6 +67,15 @@ public class TelemetryEvent
     [JsonPropertyName("powershell_command")]
     public string? PowerShellCommand { get; set; }
 
+    [JsonPropertyName("command_line_entropy")]
+    public double? CommandLineEntropy { get; set; }
+
+    [JsonPropertyName("suspicious_indicator_count")]
+    public int? SuspiciousIndicatorCount { get; set; }
+
+    [JsonPropertyName("collector_confidence")]
+    public double? CollectorConfidence { get; set; }
+
     /// <summary>Additional properties stored as raw JSON</summary>
     [JsonExtensionData]
     public Dictionary<string, object?>? RawData { get; set; }

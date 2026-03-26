@@ -577,51 +577,51 @@ export default function Dashboard() {
         <h3>Quick Actions</h3>
         <div className={styles.actionGrid}>
           <Link to="/process-monitor" className={styles.actionCard}>
-            <span className={styles.actionIcon}>◉</span>
+            <span className={styles.actionIcon}>PM</span>
             <span>Process Monitor</span>
           </Link>
           <Link to="/network" className={styles.actionCard}>
-            <span className={styles.actionIcon}>🌐</span>
+            <span className={styles.actionIcon}>NW</span>
             <span>Network</span>
           </Link>
           <Link to="/alerts" className={styles.actionCard}>
-            <span className={styles.actionIcon}>⚠</span>
+            <span className={styles.actionIcon}>AL</span>
             <span>Detections</span>
           </Link>
           <Link to="/events" className={styles.actionCard}>
-            <span className={styles.actionIcon}>◈</span>
+            <span className={styles.actionIcon}>EV</span>
             <span>Events</span>
           </Link>
           <Link to="/investigations" className={styles.actionCard}>
-            <span className={styles.actionIcon}>📋</span>
+            <span className={styles.actionIcon}>IN</span>
             <span>Investigations</span>
           </Link>
           <Link to="/incidents" className={styles.actionCard}>
-            <span className={styles.actionIcon}>🔥</span>
+            <span className={styles.actionIcon}>IC</span>
             <span>Incidents</span>
           </Link>
           <Link to="/risk" className={styles.actionCard}>
-            <span className={styles.actionIcon}>📊</span>
+            <span className={styles.actionIcon}>RK</span>
             <span>Risk</span>
           </Link>
           <Link to="/iocs" className={styles.actionCard}>
-            <span className={styles.actionIcon}>🎯</span>
+            <span className={styles.actionIcon}>IO</span>
             <span>IOCs</span>
           </Link>
           <Link to="/endpoints" className={styles.actionCard}>
-            <span className={styles.actionIcon}>🖥</span>
+            <span className={styles.actionIcon}>EP</span>
             <span>Endpoints</span>
           </Link>
           <Link to="/triage" className={styles.actionCard}>
-            <span className={styles.actionIcon}>🔍</span>
+            <span className={styles.actionIcon}>TR</span>
             <span>Triage</span>
           </Link>
           <Link to="/detection-rules" className={styles.actionCard}>
-            <span className={styles.actionIcon}>📜</span>
+            <span className={styles.actionIcon}>DR</span>
             <span>Detection Rules</span>
           </Link>
           <Link to="/policies" className={styles.actionCard}>
-            <span className={styles.actionIcon}>⚙</span>
+            <span className={styles.actionIcon}>PL</span>
             <span>Policies</span>
           </Link>
         </div>

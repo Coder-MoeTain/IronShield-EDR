@@ -1,0 +1,21 @@
+[
+  {
+    "event_type": "process_create",
+    "process_name": "powershell.exe",
+    "command_line": "-enc SQBtAHAAbwByAHQAYQBuAHQ=",
+    "parent_process_name": "explorer.exe"
+  },
+  {
+    "event_type": "service_create",
+    "process_name": "sc.exe",
+    "command_line": "sc create badsvc",
+    "parent_process_name": "cmd.exe"
+  },
+  {
+    "event_type": "process_create",
+    "process_name": "notepad.exe",
+    "command_line": "notepad.exe readme.txt",
+    "parent_process_name": "explorer.exe"
+  }
+]
+

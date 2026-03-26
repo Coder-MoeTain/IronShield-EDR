@@ -1,12 +1,16 @@
-# Build IronShield EDR Agent executable bound to http://localhost:3001
-# Output: agent-csharp/dist/IronShieldEDR-Agent-localhost/
+# DEPRECATED (enterprise): this script created a localhost-bound build with a fallback dev token.
+# Keep for historical reference only. Use Install-Agent.ps1 with explicit -ServerUrl and -RegistrationToken,
+# and provide config via config.json / environment variables.
 
 $ErrorActionPreference = "Stop"
 $scriptRoot = $PSScriptRoot
-$distDir = Join-Path $scriptRoot "dist\IronShieldEDR-Agent-localhost"
-$serverUrl = "http://localhost:3001"
-# Match server-node\.env AGENT_REGISTRATION_TOKEN for local dev; override with $env:EDR_REGISTRATION_TOKEN
-$registrationToken = if ($env:EDR_REGISTRATION_TOKEN) { $env:EDR_REGISTRATION_TOKEN } else { "cyber123" }
+$distDir = Join-Path $scriptRoot "dist\IronShieldEDR-Agent"
+$serverUrl = if ($env:EDR_SERVER_URL) { $env:EDR_SERVER_URL } else { "" }
+$registrationToken = if ($env:EDR_REGISTRATION_TOKEN) { $env:EDR_REGISTRATION_TOKEN } else { "" }
+
+if ([string]::IsNullOrWhiteSpace($serverUrl) -or [string]::IsNullOrWhiteSpace($registrationToken)) {
+    throw "Set EDR_SERVER_URL and EDR_REGISTRATION_TOKEN in your environment before building."
+}
 
 Write-Host "[Build] Publishing agent for Windows (self-contained)..." -ForegroundColor Cyan
 Push-Location $scriptRoot
@@ -36,7 +40,7 @@ $config = @{
     EventBatchIntervalSeconds = 30
 } | ConvertTo-Json
 $config | Set-Content $configPath -Encoding UTF8
-Write-Host "[Config] Created config.json with ServerUrl=$serverUrl (RegistrationToken set for localhost)" -ForegroundColor Green
+Write-Host "[Config] Created config.json with ServerUrl=$serverUrl" -ForegroundColor Green
 
 # Create queue directory
 New-Item -ItemType Directory -Path (Join-Path $distDir "queue") -Force | Out-Null

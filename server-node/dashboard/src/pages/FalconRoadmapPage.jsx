@@ -21,6 +21,12 @@ function fmtTime(v) {
   }
 }
 
+function postureToneClass(band) {
+  if (band === 'weak') return 'badgeOff';
+  if (band === 'moderate') return '';
+  return 'badgeOn';
+}
+
 export default function FalconRoadmapPage() {
   const { area } = useParams();
   const { api } = useAuth();
@@ -74,9 +80,32 @@ export default function FalconRoadmapPage() {
           </p>
           <div className={styles.kpiRow}>
             <div className={styles.kpi}>
-              <div className={styles.kpiVal}>{d.endpoints_with_logged_in_user ?? 0}</div>
-              <div className={styles.kpiLab}>Hosts with console user</div>
+              <div className={styles.kpiVal}>{d.posture_score ?? 0}</div>
+              <div className={styles.kpiLab}>Zero Trust posture score</div>
             </div>
+            <div className={styles.kpi}>
+              <div className={styles.kpiVal}>{d.identity_coverage_pct ?? 0}%</div>
+              <div className={styles.kpiLab}>Identity coverage</div>
+            </div>
+            <div className={styles.kpi}>
+              <div className={styles.kpiVal}>{d.spread_accounts_3plus_hosts ?? 0}</div>
+              <div className={styles.kpiLab}>Accounts on 3+ hosts</div>
+            </div>
+            <div className={styles.kpi}>
+              <div className={styles.kpiVal}>
+                {(d.privileged_console_accounts ?? 0) + (d.privileged_event_accounts_7d ?? 0)}
+              </div>
+              <div className={styles.kpiLab}>Privileged-like accounts</div>
+            </div>
+          </div>
+          <div className={styles.warn} style={{ marginBottom: '0.8rem' }}>
+            <strong>Posture:</strong>{' '}
+            <span className={`${styles.badge} ${styles[postureToneClass(d.posture_band)] || ''}`}>
+              {(d.posture_band || 'unknown').toUpperCase()}
+            </span>{' '}
+            <span className={styles.muted}>
+              Coverage: {d.endpoints_with_logged_in_user ?? 0}/{d.endpoints_total ?? 0} hosts with current user context.
+            </span>
           </div>
           <h3 className={styles.sectionTitle}>Users seen on endpoints (console)</h3>
           <div className={styles.tableWrap}>
@@ -105,6 +134,60 @@ export default function FalconRoadmapPage() {
               </tbody>
             </table>
           </div>
+          <h3 className={styles.sectionTitle}>Account spread risk (users on 3+ hosts)</h3>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Hosts</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(d.spread_accounts || []).length === 0 ? (
+                  <tr>
+                    <td colSpan={2} className={styles.muted}>
+                      No high-spread accounts detected from endpoint heartbeats.
+                    </td>
+                  </tr>
+                ) : (
+                  d.spread_accounts.map((row) => (
+                    <tr key={row.username}>
+                      <td className={styles.mono}>{row.username}</td>
+                      <td>{row.host_count}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          <h3 className={styles.sectionTitle}>Privileged-like account activity (console)</h3>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Hosts</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(d.privileged_console_accounts_list || []).length === 0 ? (
+                  <tr>
+                    <td colSpan={2} className={styles.muted}>
+                      No privileged-like console usernames observed.
+                    </td>
+                  </tr>
+                ) : (
+                  d.privileged_console_accounts_list.map((row) => (
+                    <tr key={row.username}>
+                      <td className={styles.mono}>{row.username}</td>
+                      <td>{row.host_count}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
           <h3 className={styles.sectionTitle}>Top usernames in normalized events (7 days)</h3>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
@@ -123,6 +206,33 @@ export default function FalconRoadmapPage() {
                   </tr>
                 ) : (
                   d.top_usernames_in_events_7d.map((row) => (
+                    <tr key={row.username}>
+                      <td className={styles.mono}>{row.username}</td>
+                      <td>{row.event_count}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          <h3 className={styles.sectionTitle}>Privileged-like usernames in events (7 days)</h3>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Events</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(d.privileged_event_accounts_list_7d || []).length === 0 ? (
+                  <tr>
+                    <td colSpan={2} className={styles.muted}>
+                      No privileged-like usernames in the current event window.
+                    </td>
+                  </tr>
+                ) : (
+                  d.privileged_event_accounts_list_7d.map((row) => (
                     <tr key={row.username}>
                       <td className={styles.mono}>{row.username}</td>
                       <td>{row.event_count}</td>
@@ -224,7 +334,8 @@ export default function FalconRoadmapPage() {
       {payload?.area === 'managed-hunting' && d ? (
         <div className={styles.box}>
           <p className={styles.note}>
-            There is no vendor SOC in self-hosted mode. Use <strong>saved hunts</strong> and the Hunting UI; below lists hunts and recent run metadata.
+            Overwatch in self-hosted mode combines <strong>saved hunts</strong>, <strong>XDR detections</strong>, and <strong>triage workflow</strong>.
+            Use this view to prioritize analyst activity and run targeted hunts.
           </p>
           {d.tenant_note ? <p className={styles.warn}>{d.tenant_note}</p> : null}
           <div className={styles.kpiRow}>
@@ -232,6 +343,57 @@ export default function FalconRoadmapPage() {
               <div className={styles.kpiVal}>{d.saved_hunt_count ?? 0}</div>
               <div className={styles.kpiLab}>Saved hunts</div>
             </div>
+            <div className={styles.kpi}>
+              <div className={styles.kpiVal}>{d.xdr_events_24h ?? 0}</div>
+              <div className={styles.kpiLab}>XDR events (24h)</div>
+            </div>
+            <div className={styles.kpi}>
+              <div className={styles.kpiVal}>{d.xdr_detections_24h ?? 0}</div>
+              <div className={styles.kpiLab}>XDR detections (24h)</div>
+            </div>
+            <div className={styles.kpi}>
+              <div className={styles.kpiVal}>{d.xdr_critical_24h ?? 0}</div>
+              <div className={styles.kpiLab}>Critical detections</div>
+            </div>
+            <div className={styles.kpi}>
+              <div className={styles.kpiVal}>{d.incidents_open ?? 0}</div>
+              <div className={styles.kpiLab}>Open incidents</div>
+            </div>
+            <div className={styles.kpi}>
+              <div className={styles.kpiVal}>{d.triage_pending ?? 0}</div>
+              <div className={styles.kpiLab}>Pending triage</div>
+            </div>
+            <div className={styles.kpi}>
+              <div className={styles.kpiVal}>{d.avg_hunt_matches_7d ?? 0}</div>
+              <div className={styles.kpiLab}>Avg hunt matches (7d)</div>
+            </div>
+          </div>
+          <h3 className={styles.sectionTitle}>Recommended Overwatch hunts</h3>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Use case</th>
+                  <th>Suggested filter</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(d.recommendations || []).length === 0 ? (
+                  <tr>
+                    <td colSpan={2} className={styles.muted}>
+                      No recommendations available.
+                    </td>
+                  </tr>
+                ) : (
+                  d.recommendations.map((r) => (
+                    <tr key={r.id}>
+                      <td>{r.title}</td>
+                      <td className={styles.mono}>{JSON.stringify(r.query_params || {})}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
           <h3 className={styles.sectionTitle}>Saved hunts</h3>
           <div className={styles.tableWrap}>
@@ -254,6 +416,33 @@ export default function FalconRoadmapPage() {
                     <tr key={h.id}>
                       <td>{h.name}</td>
                       <td className={styles.mono}>{fmtTime(h.created_at)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          <h3 className={styles.sectionTitle}>Top endpoints by XDR detections (24h)</h3>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Endpoint</th>
+                  <th>Detections</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(d.top_detection_endpoints_24h || []).length === 0 ? (
+                  <tr>
+                    <td colSpan={2} className={styles.muted}>
+                      No endpoint hotspots in the last 24h.
+                    </td>
+                  </tr>
+                ) : (
+                  d.top_detection_endpoints_24h.map((r) => (
+                    <tr key={`${r.endpoint_id || 'none'}-${r.hostname || 'unknown'}`}>
+                      <td>{r.hostname || `Endpoint #${r.endpoint_id ?? 'unknown'}`}</td>
+                      <td>{r.detections}</td>
                     </tr>
                   ))
                 )}
@@ -290,7 +479,11 @@ export default function FalconRoadmapPage() {
           <p className={styles.links}>
             <Link to="/hunting">Hunting</Link>
             {' · '}
-            <Link to="/enterprise">SIEM export (Enterprise)</Link>
+            <Link to="/xdr/detections">XDR detections</Link>
+            {' · '}
+            <Link to="/triage">Triage queue</Link>
+            {' · '}
+            <Link to="/incidents">Incidents</Link>
           </p>
         </div>
       ) : null}

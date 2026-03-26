@@ -34,7 +34,10 @@ export default function Alerts() {
   const filters = useMemo(
     () => ({
       status: searchParams.get('status') || '',
+      status_group: searchParams.get('status_group') || '',
+      assigned_state: searchParams.get('assigned_state') || '',
       severity: searchParams.get('severity') || '',
+      rule_id: searchParams.get('rule_id') || '',
       dateFrom: searchParams.get('dateFrom') || '',
       dateTo: searchParams.get('dateTo') || '',
       assigned_to: searchParams.get('assigned_to') || '',
@@ -49,7 +52,10 @@ export default function Alerts() {
     (updater) => {
       const base = {
         status: searchParams.get('status') || '',
+        status_group: searchParams.get('status_group') || '',
+        assigned_state: searchParams.get('assigned_state') || '',
         severity: searchParams.get('severity') || '',
+        rule_id: searchParams.get('rule_id') || '',
         dateFrom: searchParams.get('dateFrom') || '',
         dateTo: searchParams.get('dateTo') || '',
         assigned_to: searchParams.get('assigned_to') || '',
@@ -170,7 +176,10 @@ export default function Alerts() {
           page: 'detections',
           filters: {
             status: filters.status,
+            status_group: filters.status_group,
+            assigned_state: filters.assigned_state,
             severity: filters.severity,
+            rule_id: filters.rule_id,
             dateFrom: filters.dateFrom,
             dateTo: filters.dateTo,
             assigned_to: filters.assigned_to,
@@ -195,7 +204,10 @@ export default function Alerts() {
     setFilters((base) => ({
       ...base,
       status: f.status ?? '',
+      status_group: f.status_group ?? '',
+      assigned_state: f.assigned_state ?? '',
       severity: f.severity ?? '',
+      rule_id: f.rule_id ?? '',
       dateFrom: f.dateFrom ?? '',
       dateTo: f.dateTo ?? '',
       assigned_to: f.assigned_to ?? '',
@@ -285,15 +297,37 @@ export default function Alerts() {
       </div>
 
       <div className={`${styles.filters} falcon-filter-bar`}>
+        <input
+          type="text"
+          placeholder="Rule ID"
+          value={filters.rule_id}
+          onChange={(e) => setFilters({ rule_id: e.target.value, offset: 0 })}
+        />
         <select
           value={filters.status}
-          onChange={(e) => setFilters({ status: e.target.value, offset: 0 })}
+          onChange={(e) => setFilters({ status: e.target.value, status_group: '', offset: 0 })}
         >
           <option value="">All statuses</option>
           <option value="new">New</option>
           <option value="investigating">Investigating</option>
           <option value="closed">Closed</option>
           <option value="false_positive">False Positive</option>
+        </select>
+        <select
+          value={filters.status_group}
+          onChange={(e) => setFilters({ status_group: e.target.value, status: '', offset: 0 })}
+        >
+          <option value="">All queues</option>
+          <option value="active">Active triage (new + investigating)</option>
+          <option value="closed_only">Closed only (closed + false positive)</option>
+        </select>
+        <select
+          value={filters.assigned_state}
+          onChange={(e) => setFilters({ assigned_state: e.target.value, offset: 0 })}
+        >
+          <option value="">Any assignment</option>
+          <option value="unassigned">Unassigned</option>
+          <option value="assigned">Assigned</option>
         </select>
         <select
           value={filters.severity}

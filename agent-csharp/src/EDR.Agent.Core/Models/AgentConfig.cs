@@ -6,7 +6,27 @@ namespace EDR.Agent.Core.Models;
 public class AgentConfig
 {
     /// <summary>Server base URL (e.g., https://edr.example.com)</summary>
-    public string ServerUrl { get; set; } = "http://localhost:3000";
+    public string ServerUrl { get; set; } = "";
+
+    /// <summary>
+    /// Enterprise: require HTTPS for ServerUrl. If false, http:// is allowed (not recommended).
+    /// </summary>
+    public bool RequireHttps { get; set; } = true;
+
+    /// <summary>
+    /// Enterprise: optional server TLS certificate pinning by thumbprint (SHA-1, hex).
+    /// If non-empty, the server certificate thumbprint MUST match one entry (case-insensitive, spaces ignored).
+    /// Example: "‎‎a1b2c3...".
+    /// </summary>
+    public List<string> PinnedServerCertThumbprints { get; set; } = new();
+
+    /// <summary>
+    /// Enterprise mTLS: optional client certificate (PFX/PKCS#12) used for agent->server authentication.
+    /// </summary>
+    public string? ClientCertificatePfxPath { get; set; }
+
+    /// <summary>Optional password for ClientCertificatePfxPath.</summary>
+    public string? ClientCertificatePfxPassword { get; set; }
 
     /// <summary>Bootstrap token for initial registration</summary>
     public string RegistrationToken { get; set; } = "";
@@ -52,4 +72,19 @@ public class AgentConfig
     /// Optional PEM-encoded RSA public key for verifying agent release signatures (signature over sha256 hex).
     /// </summary>
     public string? AgentUpdatePublicKeyPem { get; set; }
+
+    /// <summary>
+    /// If true, invoke updater helper to install staged update artifact (with rollback manifest).
+    /// </summary>
+    public bool AutoInstallUpdates { get; set; } = false;
+
+    /// <summary>
+    /// Optional full path to EDR.Agent.Updater executable.
+    /// </summary>
+    public string? UpdaterExecutablePath { get; set; }
+
+    /// <summary>
+    /// Optional target binary path that updater will replace. Defaults to current service executable.
+    /// </summary>
+    public string? UpdateTargetPath { get; set; }
 }

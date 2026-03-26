@@ -23,9 +23,15 @@ export default function AlertDetail() {
   const [loading, setLoading] = useState(true);
   const [actionMsg, setActionMsg] = useState('');
   const [suppressionReason, setSuppressionReason] = useState('');
+  const [qualityEvents, setQualityEvents] = useState([]);
+  const [disposition, setDisposition] = useState('');
+  const [dispositionReason, setDispositionReason] = useState('');
+  const [analystConfidence, setAnalystConfidence] = useState('');
+  const [qualityTags, setQualityTags] = useState('');
 
   const fetchAlert = () => api(`/api/admin/alerts/${id}`).then((r) => r.json());
   const fetchNotes = () => api(`/api/admin/alerts/${id}/notes`).then((r) => r.json());
+  const fetchQualityEvents = () => api(`/api/admin/alerts/${id}/quality-events?limit=20`).then((r) => r.json());
 
   const patchAlert = async (body) => {
     const r = await api(`/api/admin/alerts/${id}`, {
@@ -40,10 +46,23 @@ export default function AlertDetail() {
   };
 
   useEffect(() => {
-    Promise.all([fetchAlert(), fetchNotes()])
-      .then(([a, n]) => {
+    Promise.all([fetchAlert(), fetchNotes(), fetchQualityEvents()])
+      .then(([a, n, q]) => {
         setAlert(a);
         setNotes(n || []);
+        setQualityEvents(Array.isArray(q) ? q : []);
+        const latest = Array.isArray(q) && q.length ? q[0] : null;
+        if (latest?.analyst_disposition) setDisposition(latest.analyst_disposition);
+        if (latest?.disposition_reason) setDispositionReason(latest.disposition_reason);
+        if (latest?.analyst_confidence != null) setAnalystConfidence(String(Math.round(Number(latest.analyst_confidence) * 100)));
+        if (latest?.quality_tags_json) {
+          const parsed = Array.isArray(latest.quality_tags_json)
+            ? latest.quality_tags_json
+            : typeof latest.quality_tags_json === 'string'
+              ? JSON.parse(latest.quality_tags_json || '[]')
+              : [];
+          setQualityTags(Array.isArray(parsed) ? parsed.join(', ') : '');
+        }
       })
       .catch(() => setAlert(null))
       .finally(() => setLoading(false));
@@ -78,6 +97,33 @@ export default function AlertDetail() {
     setNote('');
     const n = await fetchNotes();
     setNotes(n || []);
+  };
+
+  const submitDisposition = async () => {
+    try {
+      const confidence = analystConfidence === '' ? null : Math.min(100, Math.max(0, Number(analystConfidence)));
+      const body = {
+        analyst_disposition: disposition || null,
+        disposition_reason: dispositionReason.trim() || null,
+        analyst_confidence: confidence == null || Number.isNaN(confidence) ? null : confidence / 100,
+        quality_tags: qualityTags
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean),
+      };
+      const r = await api(`/api/admin/alerts/${id}/disposition`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+      const updated = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(updated.error || `HTTP ${r.status}`);
+      setAlert(updated);
+      const q = await fetchQualityEvents();
+      setQualityEvents(Array.isArray(q) ? q : []);
+      setActionMsg('Disposition updated');
+    } catch (e) {
+      setActionMsg('Failed: ' + (e.message || 'Unknown error'));
+    }
   };
 
   const doAction = async (action) => {
@@ -331,6 +377,71 @@ export default function AlertDetail() {
               ))}
             </div>
           </div>
+
+          <div className={styles.dispositionBox}>
+            <label>Analyst disposition</label>
+            <select value={disposition} onChange={(e) => setDisposition(e.target.value)}>
+              <option value="">Not set</option>
+              <option value="true_positive">True positive</option>
+              <option value="false_positive">False positive</option>
+              <option value="benign_admin_activity">Benign admin activity</option>
+              <option value="duplicate">Duplicate</option>
+              <option value="test">Test / simulation</option>
+            </select>
+            <label>Disposition reason</label>
+            <textarea
+              value={dispositionReason}
+              onChange={(e) => setDispositionReason(e.target.value)}
+              rows={2}
+              placeholder="Reason to improve rule precision and tuning..."
+            />
+            <div className={styles.dispositionRow}>
+              <div>
+                <label>Analyst confidence (0-100)</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={analystConfidence}
+                  onChange={(e) => setAnalystConfidence(e.target.value)}
+                  placeholder="e.g. 80"
+                />
+              </div>
+              <div>
+                <label>Quality tags (comma separated)</label>
+                <input
+                  type="text"
+                  value={qualityTags}
+                  onChange={(e) => setQualityTags(e.target.value)}
+                  placeholder="noisy, script, admin-tooling"
+                />
+              </div>
+            </div>
+            <button type="button" className={styles.btnSecondary} onClick={submitDisposition}>
+              Save disposition feedback
+            </button>
+          </div>
+
+          <h3 className={styles.notesTitle}>Detection quality history</h3>
+          {qualityEvents.length > 0 ? (
+            <ul className={styles.notesList}>
+              {qualityEvents.map((q) => (
+                <li key={q.id} className={styles.noteItem}>
+                  <span className={styles.noteMeta}>
+                    {q.created_by || 'system'} · {new Date(q.created_at).toLocaleString()}
+                  </span>
+                  <p>
+                    {(q.event_type || 'event').replace(/_/g, ' ')}
+                    {q.analyst_disposition ? ` · ${q.analyst_disposition.replace(/_/g, ' ')}` : ''}
+                    {q.analyst_confidence != null ? ` · conf ${Math.round(Number(q.analyst_confidence) * 100)}%` : ''}
+                  </p>
+                  {q.disposition_reason ? <p>{q.disposition_reason}</p> : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className={styles.noNotes}>No quality events yet.</p>
+          )}
 
           <h3 className={styles.notesTitle}>Investigation Notes</h3>
           {notes.length > 0 ? (

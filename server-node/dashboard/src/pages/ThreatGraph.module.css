@@ -1,45 +1,226 @@
-.wrap {
-  overflow: auto;
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.statCard {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.8rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  box-shadow: var(--shadow-sm);
+}
+
+.statCard span {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.statCard strong {
+  font-size: 1.1rem;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: 1.2fr 0.5fr 0.5fr;
+  gap: 0.6rem;
+  margin-bottom: 0.9rem;
+}
+
+.input,
+.select {
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
   border-radius: 8px;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.9rem;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 0.85rem;
+}
+
+.wrap {
+  overflow: auto;
+  background: radial-gradient(circle at 50% 40%, rgba(56, 189, 248, 0.08), transparent 55%), var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
   padding: 0.5rem;
   box-shadow: var(--shadow-sm);
+  position: relative;
 }
 
 .svg {
   width: 100%;
-  max-width: 900px;
+  min-width: 900px;
   height: auto;
   display: block;
-  margin: 0 auto;
 }
 
 .edge {
   stroke: rgba(100, 116, 139, 0.55);
-  stroke-width: 1.25;
+  stroke-width: 1.1;
 }
 
 [data-theme='dark'] .edge {
   stroke: rgba(148, 163, 184, 0.45);
 }
 
+.edgeActive {
+  stroke: rgba(14, 165, 233, 0.9);
+  stroke-width: 1.7;
+}
+
 .nodeHost {
-  fill: rgba(59, 130, 246, 0.5);
+  fill: rgba(37, 99, 235, 0.42);
   stroke: rgba(96, 165, 250, 0.9);
   stroke-width: 1.5;
 }
 
 .nodeAlert {
-  fill: rgba(245, 158, 11, 0.45);
+  fill: rgba(245, 158, 11, 0.35);
   stroke: rgba(251, 191, 36, 0.85);
   stroke-width: 1.25;
+}
+
+.nodeCritical {
+  fill: rgba(220, 38, 38, 0.4);
+  stroke: rgba(248, 113, 113, 0.9);
+}
+
+.nodeHigh {
+  fill: rgba(234, 88, 12, 0.36);
+  stroke: rgba(251, 146, 60, 0.9);
+}
+
+.nodeMedium {
+  fill: rgba(245, 158, 11, 0.34);
+  stroke: rgba(252, 211, 77, 0.88);
+}
+
+.nodeLow {
+  fill: rgba(14, 165, 233, 0.3);
+  stroke: rgba(125, 211, 252, 0.9);
+}
+
+.nodeInfo {
+  fill: rgba(148, 163, 184, 0.3);
+  stroke: rgba(203, 213, 225, 0.86);
+}
+
+.nodeGroup {
+  cursor: pointer;
+}
+
+.nodeSelected {
+  stroke-width: 2.4;
 }
 
 .label {
   fill: var(--text-secondary);
   font-size: 10px;
   font-family: var(--font-mono, monospace);
+}
+
+.panel {
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  padding: 0.85rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.panel h3 {
+  margin: 0 0 0.55rem;
+  font-size: 0.98rem;
+}
+
+.panel h4 {
+  margin: 0.8rem 0 0.5rem;
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+}
+
+.kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 0.22rem 0;
+}
+
+.kv span {
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+}
+
+.kv strong {
+  text-align: right;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.82rem;
+}
+
+.links {
+  margin: 0.8rem 0 0.4rem;
+}
+
+.linkBtn {
+  display: inline-block;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.35rem 0.55rem;
+  text-decoration: none;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+}
+
+.neighbors {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.neighbor {
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-radius: 8px;
+  text-align: left;
+  padding: 0.45rem 0.5rem;
+  cursor: pointer;
+}
+
+.neighbor span {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.neighbor strong {
+  font-size: 0.81rem;
+}
+
+.muted {
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+}
+
+.loading {
+  position: absolute;
+  inset: auto 0.7rem 0.7rem auto;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.16rem 0.5rem;
 }
 
 .hint {
@@ -55,4 +236,16 @@
 
 [data-theme='dark'] .err {
   color: #f87171;
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .controls {
+    grid-template-columns: 1fr;
+  }
 }

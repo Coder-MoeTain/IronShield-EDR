@@ -39,6 +39,9 @@ public static class EventSerializer
         if (evt.ServiceName != null) dict["service_name"] = evt.ServiceName;
         if (evt.LogonType != null) dict["logon_type"] = evt.LogonType;
         if (evt.PowerShellCommand != null) dict["powershell_command"] = evt.PowerShellCommand;
+        if (evt.CommandLineEntropy.HasValue) dict["command_line_entropy"] = evt.CommandLineEntropy.Value;
+        if (evt.SuspiciousIndicatorCount.HasValue) dict["suspicious_indicator_count"] = evt.SuspiciousIndicatorCount.Value;
+        if (evt.CollectorConfidence.HasValue) dict["collector_confidence"] = evt.CollectorConfidence.Value;
         if (evt.RawData != null)
         {
             foreach (var kv in evt.RawData)

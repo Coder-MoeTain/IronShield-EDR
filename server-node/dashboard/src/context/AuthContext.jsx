@@ -45,15 +45,17 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const login = async (username, password) => {
+  const login = async (username, password, mfaCode = null) => {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, mfa_code: mfaCode || undefined }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Login failed');
+      const e = new Error(err.error || 'Login failed');
+      e.mfaRequired = !!err.mfa_required;
+      throw e;
     }
     const data = await res.json();
     admin401Redirecting = false;

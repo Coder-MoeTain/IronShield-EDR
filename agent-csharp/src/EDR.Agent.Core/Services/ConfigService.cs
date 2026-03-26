@@ -47,12 +47,24 @@ public class ConfigService
         // Environment overrides
         if (Environment.GetEnvironmentVariable("EDR_SERVER_URL") is { } url)
             Config.ServerUrl = url.TrimEnd('/');
+        if (Environment.GetEnvironmentVariable("EDR_REQUIRE_HTTPS") is { } requireHttpsRaw)
+        {
+            if (bool.TryParse(requireHttpsRaw, out var requireHttps))
+                Config.RequireHttps = requireHttps;
+        }
         if (Environment.GetEnvironmentVariable("EDR_REGISTRATION_TOKEN") is { } token)
             Config.RegistrationToken = token;
         if (Environment.GetEnvironmentVariable("EDR_AGENT_KEY") is { } key)
             Config.AgentKey = key;
         if (Environment.GetEnvironmentVariable("EDR_TENANT_SLUG") is { } tslug && !string.IsNullOrWhiteSpace(tslug))
             Config.TenantSlug = tslug.Trim();
+
+        // Normalize and validate
+        Config.ServerUrl = (Config.ServerUrl ?? "").Trim().TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(Config.ServerUrl))
+        {
+            Console.WriteLine("[Config] Missing ServerUrl. Set EDR_SERVER_URL or create config.json (see config.example.json).");
+        }
 
         return Config;
     }

@@ -51,6 +51,8 @@ import FalconRoadmapPage from './pages/FalconRoadmapPage';
 import XdrEvents from './pages/XdrEvents';
 import XdrDetections from './pages/XdrDetections';
 import XdrRealtime from './pages/XdrRealtime';
+import ResponseApprovals from './pages/ResponseApprovals';
+import RbacManagement from './pages/RbacManagement';
 
 function PrivateRoute({ children }) {
   const { token, logout } = useAuth();
@@ -108,6 +110,7 @@ export default function App() {
           <Route path="endpoints/:endpointId/process-tree" element={<ProcessTree />} />
           <Route path="process-monitor" element={<ProcessMonitor />} />
           <Route path="network" element={<Network />} />
+          <Route path="respond/approvals" element={<ResponseApprovals />} />
           <Route path="av" element={<AvOverview />} />
           <Route path="av/detections" element={<AvDetections />} />
           <Route path="av/detections/:id" element={<AvDetectionDetail />} />
@@ -121,6 +124,7 @@ export default function App() {
           <Route path="enterprise" element={<EnterpriseSettings />} />
           <Route path="tenants" element={<TenantManagement />} />
           <Route path="mssp" element={<MsspConsole />} />
+          <Route path="rbac" element={<RbacManagement />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

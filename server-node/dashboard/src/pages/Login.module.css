@@ -115,6 +115,17 @@
   cursor: not-allowed;
 }
 
+.ssoBtn {
+  display: block;
+  text-align: center;
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
 .error {
   padding: 0.75rem;
   background: rgba(220, 38, 38, 0.12);

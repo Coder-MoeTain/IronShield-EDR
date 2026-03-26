@@ -40,6 +40,41 @@ Register a new endpoint. Returns agent key for future requests.
 
 ---
 
+### GET /api/agent/update/check
+
+Check for agent updates (targeted by tenant + rollout ring).
+
+**Headers:** `X-Agent-Key`, optional `X-Agent-Version`
+
+**Query:**
+- `version`: current agent version
+
+**Response (200):**
+```json
+{
+  "update_available": true,
+  "version": "1.2.3",
+  "download_url": "https://...",
+  "checksum_sha256": "64-hex",
+  "signature_base64": "base64-or-null",
+  "ring": "stable",
+  "health_gate": null
+}
+```
+
+### POST /api/agent/key/rotate
+
+Rotate agent key (server issues a new key; old key becomes invalid).
+
+**Headers:** `X-Agent-Key`
+
+**Response (200):**
+```json
+{
+  "agent_key": "64-char-hex-string"
+}
+```
+
 ### POST /api/agent/heartbeat
 
 Send heartbeat. Requires agent key.
@@ -80,6 +115,7 @@ Upload batch of telemetry events.
 **Request:**
 ```json
 {
+  "batch_id": "unique-batch-id-for-idempotency",
   "events": [
     {
       "event_id": "proc_123_2024-01-15T10:00:00Z",
@@ -99,6 +135,30 @@ Upload batch of telemetry events.
 ```json
 {
   "inserted": 1
+}
+```
+
+If `batch_id` is re-sent for the same endpoint, the server responds with:
+
+```json
+{
+  "inserted": 0,
+  "deduped": true
+}
+```
+
+---
+
+### POST /api/agent/key/rotate
+
+Rotate agent key (server issues a new key; old key becomes invalid).
+
+**Headers:** `X-Agent-Key`
+
+**Response (200):**
+```json
+{
+  "agent_key": "64-char-hex-string"
 }
 ```
 
@@ -153,7 +213,8 @@ All admin endpoints require: `Authorization: Bearer <token>`
 ```json
 {
   "username": "admin",
-  "password": "ChangeMe123!"
+  "password": "ChangeMe123!",
+  "mfa_code": "123456"
 }
 ```
 
@@ -168,6 +229,27 @@ All admin endpoints require: `Authorization: Bearer <token>`
   }
 }
 ```
+
+If MFA is required and `mfa_code` is missing/invalid:
+```json
+{
+  "error": "MFA required",
+  "mfa_required": true
+}
+```
+
+### SSO federation
+
+- `GET /api/auth/sso/oidc/start` - starts OIDC redirect flow.
+- `GET /api/auth/sso/oidc/callback` - OIDC callback, issues local JWT session.
+- `POST /api/auth/sso/saml/acs` - SAML ACS proxy endpoint (trusted gateway mode).
+
+### MFA management
+
+- `GET /api/auth/mfa/status`
+- `POST /api/auth/mfa/setup`
+- `POST /api/auth/mfa/enable` with `{ "code": "123456" }`
+- `POST /api/auth/mfa/disable` with `{ "code": "123456" }`
 
 ---
 

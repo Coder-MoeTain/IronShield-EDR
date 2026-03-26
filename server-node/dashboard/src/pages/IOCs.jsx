@@ -17,6 +17,8 @@ export default function IOCs() {
   const [newValue, setNewValue] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newSeverity, setNewSeverity] = useState('medium');
+  const [query, setQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
 
   const fetchData = () => {
     setLoading(true);
@@ -56,6 +58,24 @@ export default function IOCs() {
     fetchData();
   };
 
+  const filteredIocs = iocs.filter((ioc) => {
+    const q = query.trim().toLowerCase();
+    const value = (ioc.ioc_value || '').toLowerCase();
+    const type = (ioc.ioc_type || '').toLowerCase();
+    const severity = (ioc.severity || '').toLowerCase();
+    const queryMatch = !q || value.includes(q) || type.includes(q) || severity.includes(q);
+    const typeMatch = typeFilter === 'all' || type === typeFilter;
+    return queryMatch && typeMatch;
+  });
+
+  const matchesLast24h = matches.filter((m) => {
+    if (!m.matched_at) return false;
+    const ts = new Date(m.matched_at).getTime();
+    return Number.isFinite(ts) && Date.now() - ts <= 24 * 60 * 60 * 1000;
+  }).length;
+
+  const highPriorityIocs = iocs.filter((i) => ['high', 'critical'].includes((i.severity || '').toLowerCase())).length;
+
   if (loading && iocs.length === 0) return <PageShell loading loadingLabel="Loading IOCs…" />;
 
   return (
@@ -70,6 +90,41 @@ export default function IOCs() {
       }
     >
     <div className={styles.container}>
+      <div className={styles.toolbar}>
+        <input
+          className={styles.search}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search IOC value, type, or severity"
+          aria-label="Search IOCs"
+        />
+        <select className={styles.filter} value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+          <option value="all">All types</option>
+          <option value="hash">Hash</option>
+          <option value="ip">IP</option>
+          <option value="domain">Domain</option>
+          <option value="path">Path</option>
+          <option value="url">URL</option>
+        </select>
+      </div>
+      <div className={styles.metrics}>
+        <div className={styles.metricCard}>
+          <span className={styles.metricLabel}>Watchlist entries</span>
+          <strong className={styles.metricValue}>{iocs.length}</strong>
+        </div>
+        <div className={styles.metricCard}>
+          <span className={styles.metricLabel}>High priority IOCs</span>
+          <strong className={styles.metricValue}>{highPriorityIocs}</strong>
+        </div>
+        <div className={styles.metricCard}>
+          <span className={styles.metricLabel}>Total matches</span>
+          <strong className={styles.metricValue}>{matches.length}</strong>
+        </div>
+        <div className={styles.metricCard}>
+          <span className={styles.metricLabel}>Matches (24h)</span>
+          <strong className={styles.metricValue}>{matchesLast24h}</strong>
+        </div>
+      </div>
 
       {showAdd && (
         <div className={styles.addCard}>
@@ -99,7 +154,7 @@ export default function IOCs() {
 
       <div className={styles.grid}>
         <div className={styles.panel}>
-          <h2>Watchlist ({iocs.length})</h2>
+          <h2>Watchlist ({filteredIocs.length})</h2>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
@@ -111,7 +166,7 @@ export default function IOCs() {
                 </tr>
               </thead>
               <tbody>
-                {iocs.map((i) => (
+                {filteredIocs.map((i) => (
                   <tr key={i.id}>
                     <td className={styles.mono}>{i.ioc_type}</td>
                     <td className={styles.valueCell} title={i.ioc_value}>{i.ioc_value?.slice(0, 40)}{(i.ioc_value?.length || 0) > 40 ? '…' : ''}</td>
@@ -123,7 +178,7 @@ export default function IOCs() {
                 ))}
               </tbody>
             </table>
-            {iocs.length === 0 && <div className={styles.empty}>No IOCs. Add hash, IP, or domain indicators.</div>}
+            {filteredIocs.length === 0 && <div className={styles.empty}>No matching IOCs. Adjust search/filter or add new indicators.</div>}
           </div>
         </div>
 

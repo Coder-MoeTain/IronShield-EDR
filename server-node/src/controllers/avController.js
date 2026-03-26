@@ -151,35 +151,6 @@ async function getDashboardSummary(req, res, next) {
   }
 }
 
-async function seedTestData(req, res, next) {
-  try {
-    const [ep] = await db.query('SELECT id, hostname FROM endpoints ORDER BY id LIMIT 1');
-    if (!ep) {
-      return res.status(400).json({ error: 'No endpoints. Register an agent first.' });
-    }
-    const scanResultId = await AvScanService.saveScanResult(ep.id, {
-      file_path: 'C:\\Users\\Test\\Downloads\\eicar.com',
-      file_name: 'eicar.com',
-      sha256: '275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f',
-      detection_name: 'EICAR-Test-File',
-      detection_type: 'hash',
-      severity: 'low',
-      score: 100,
-      disposition: 'quarantined',
-    });
-    await AvQuarantineService.create(ep.id, {
-      original_path: 'C:\\Users\\Test\\Downloads\\eicar.com',
-      quarantine_path: 'C:\\ProgramData\\EDR\\quarantine\\abc123',
-      sha256: '275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f',
-      detection_name: 'EICAR-Test-File',
-      quarantined_by: 'test-seed',
-    });
-    res.json({ ok: true, message: 'Test detection and quarantine added. Refresh the page.', scan_result_id: scanResultId });
-  } catch (err) {
-    next(err);
-  }
-}
-
 async function listDetections(req, res, next) {
   try {
     const filters = { ...req.query };
@@ -435,7 +406,6 @@ module.exports = {
   getPendingTasks,
   submitTaskResult,
   getDashboardSummary,
-  seedTestData,
   listDetections,
   getDetection,
   listQuarantine,

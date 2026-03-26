@@ -35,7 +35,7 @@
 [CmdletBinding()]
 param(
     [Parameter()]
-    [string]$ServerUrl = "http://localhost:3001",
+    [string]$ServerUrl = "",
 
     [Parameter()]
     [string]$RegistrationToken = "",
@@ -188,10 +188,13 @@ function Install-Agent {
 if ($Uninstall) {
     Uninstall-Agent
 } else {
+    if ([string]::IsNullOrWhiteSpace($ServerUrl)) {
+        Write-Error "ServerUrl is required. Example: -ServerUrl `"https://edr.example.com`""
+        exit 1
+    }
     if ([string]::IsNullOrWhiteSpace($RegistrationToken)) {
-        Write-Warning "RegistrationToken is empty. Agent will register on first run if server allows."
-        $r = Read-Host "Continue anyway? (y/N)"
-        if ($r -ne "y" -and $r -ne "Y") { exit 0 }
+        Write-Error "RegistrationToken is required for initial enrollment."
+        exit 1
     }
     Install-Agent
 }

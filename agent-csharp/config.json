@@ -1,9 +1,17 @@
 {
-  "ServerUrl": "http://localhost:3001",
+  "ServerUrl": "http://127.0.0.1:3000",
+  "RequireHttps": true,
+  "PinnedServerCertThumbprints": [],
+  "ClientCertificatePfxPath": "",
+  "ClientCertificatePfxPassword": "",
   "TenantSlug": "",
   "RegistrationToken": "cyber123",
   "HeartbeatIntervalMinutes": 5,
   "EventBatchIntervalSeconds": 30,
-  "ScriptAllowlistPrefixes": ["C:\\IronShield\\Scripts\\"],
+  "AutoInstallUpdates": false,
+  "UpdaterExecutablePath": "C:\\\\Program Files\\\\IronShield\\\\EDR.Agent.Updater.exe",
+  "UpdateTargetPath": "C:\\\\Program Files\\\\IronShield\\\\EDR.Agent.Service.exe",
+  "ScriptAllowlistPrefixes": ["C:\\\\IronShield\\\\Scripts\\\\"],
   "ScriptAllowlistSha256": []
 }
+

@@ -12,6 +12,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..', '..', '..');
 const outDir = join(repoRoot, 'docs', 'images');
 const base = process.env.README_CAPTURE_URL || 'http://localhost:5173';
+const username = process.env.README_CAPTURE_USERNAME;
+const password = process.env.README_CAPTURE_PASSWORD;
 
 mkdirSync(outDir, { recursive: true });
 
@@ -22,8 +24,11 @@ try {
   await page.goto(`${base}/login`, { waitUntil: 'networkidle' });
   await page.screenshot({ path: join(outDir, 'login.png'), type: 'png' });
 
-  await page.fill('input[placeholder="Username"]', 'admin');
-  await page.fill('input[placeholder="Password"]', 'ChangeMe123!');
+  if (!username || !password) {
+    throw new Error('Set README_CAPTURE_USERNAME and README_CAPTURE_PASSWORD to capture authenticated screenshots.');
+  }
+  await page.fill('input[placeholder="Username"]', username);
+  await page.fill('input[placeholder="Password"]', password);
   await Promise.all([
     page.waitForURL((u) => !u.pathname.includes('/login'), { timeout: 15000 }),
     page.click('button[type="submit"]'),

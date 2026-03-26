@@ -4,6 +4,20 @@
 const db = require('../utils/db');
 const RetentionService = require('../services/RetentionService');
 
+function validateReleaseInput(body = {}) {
+  const version = String(body.version || '').trim();
+  if (!version) return 'version required';
+  if (!/^v?\d+\.\d+\.\d+$/.test(version)) return 'version must be semantic (x.y.z)';
+
+  const checksum = body.checksum_sha256 == null ? '' : String(body.checksum_sha256).trim().toLowerCase();
+  if (!checksum || !/^[a-f0-9]{64}$/.test(checksum)) return 'checksum_sha256 must be 64-char lowercase hex';
+
+  if (!body.download_url || !/^https:\/\//i.test(String(body.download_url))) {
+    return 'download_url must be https';
+  }
+  return null;
+}
+
 async function listNotificationChannels(req, res, next) {
   try {
     let sql = 'SELECT id, tenant_id, type, name, is_active, created_at FROM notification_channels WHERE 1=1';
@@ -116,7 +130,8 @@ async function listAgentReleases(req, res, next) {
 async function createAgentRelease(req, res, next) {
   try {
     const { version, download_url, checksum_sha256, release_notes, is_current } = req.body || {};
-    if (!version) return res.status(400).json({ error: 'version required' });
+    const validationError = validateReleaseInput(req.body || {});
+    if (validationError) return res.status(400).json({ error: validationError });
     if (is_current) {
       await db.execute('UPDATE agent_releases SET is_current = FALSE');
     }
@@ -167,4 +182,5 @@ module.exports = {
   createAgentRelease,
   updateAgentRelease,
   deleteAgentRelease,
+  validateReleaseInput,
 };

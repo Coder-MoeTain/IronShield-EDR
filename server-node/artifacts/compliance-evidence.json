@@ -1,0 +1,33 @@
+{
+  "generated_at": "2026-03-26T15:17:31.671Z",
+  "controls": {
+    "tls_enforced_prod": true,
+    "mtls_enforced_prod": true,
+    "mfa_required_local_login": false,
+    "mfa_required_all_admins": false
+  },
+  "quality": {
+    "test_files": 8,
+    "detection_replay_script": true,
+    "dr_drill_script": true,
+    "detection_replay_matches": 2
+  },
+  "dr_latest": null,
+  "dr_evidence_file": null,
+  "detection_replay_latest": {
+    "events": 3,
+    "rules": 2,
+    "matches": 2,
+    "report": [
+      {
+        "event": "process_create",
+        "rule": "Encoded PowerShell"
+      },
+      {
+        "event": "service_create",
+        "rule": "Suspicious Service Parent"
+      }
+    ]
+  },
+  "detection_replay_file": "D:\\MyProjects\\IronShield-EDR\\server-node\\artifacts\\detection-replay.json"
+}
