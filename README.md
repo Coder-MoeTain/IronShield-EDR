@@ -38,7 +38,8 @@
   <a href="docs/crowdstrike-ui-phase10.md">Host timeline (Phase 10)</a> •
   <a href="docs/falcon-advanced-ui.md">Falcon-class advanced UI (RTR, graph, analytics)</a> •
   <a href="docs/crowdstrike-detection-rules.md">Detection rules (Custom IOA)</a> •
-  <a href="docs/crowdstrike-network-activity.md">Network activity (Falcon-style)</a>
+  <a href="docs/crowdstrike-network-activity.md">Network activity (Falcon-style)</a> •
+  <a href="docs/enterprise-hardening.md">Enterprise hardening</a>
 </p>
 
 ---

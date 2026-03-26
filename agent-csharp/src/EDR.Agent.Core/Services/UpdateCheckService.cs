@@ -63,6 +63,7 @@ public class UpdateCheckService
                 Version = version,
                 DownloadUrl = root.TryGetProperty("download_url", out var u) ? u.GetString() : null,
                 ChecksumSha256 = root.TryGetProperty("checksum_sha256", out var c) ? c.GetString() : null,
+                SignatureBase64 = root.TryGetProperty("signature_base64", out var s) ? s.GetString() : null,
                 ReleaseNotes = root.TryGetProperty("release_notes", out var n) ? n.GetString() : null,
             };
         }
@@ -78,5 +79,6 @@ public class UpdateInfo
     public string? Version { get; set; }
     public string? DownloadUrl { get; set; }
     public string? ChecksumSha256 { get; set; }
+    public string? SignatureBase64 { get; set; }
     public string? ReleaseNotes { get; set; }
 }

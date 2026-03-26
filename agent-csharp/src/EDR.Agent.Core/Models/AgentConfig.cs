@@ -42,4 +42,14 @@ public class AgentConfig
 
     /// <summary>Optional SHA-256 hex hashes; when non-empty, script file must match one of these (in addition to path prefix).</summary>
     public List<string> ScriptAllowlistSha256 { get; set; } = new();
+
+    /// <summary>
+    /// Enterprise: enable update download verification (downloads update artifact and verifies checksum/signature; does not install).
+    /// </summary>
+    public bool VerifyAgentUpdates { get; set; } = false;
+
+    /// <summary>
+    /// Optional PEM-encoded RSA public key for verifying agent release signatures (signature over sha256 hex).
+    /// </summary>
+    public string? AgentUpdatePublicKeyPem { get; set; }
 }

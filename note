@@ -1,0 +1,2 @@
+agent-csharp > dotnet run --project src\EDR.Agent.Service\EDR.Agent.Service.csproj -- --console
+server-node > npm start

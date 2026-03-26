@@ -7,6 +7,8 @@ using EDR.Agent.Core.Services;
 using EDR.Agent.Core.Transport;
 using EDR.Agent.Core.Utils;
 using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.IO;
 
@@ -419,7 +421,14 @@ public class AgentWorker
             {
                 Console.WriteLine($"[Agent] Command poll error: {ex.Message}");
             }
-            await Task.Delay(TimeSpan.FromSeconds(pollInterval), ct);
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(pollInterval), ct);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
     }
 
@@ -561,7 +570,14 @@ public class AgentWorker
 
         while (!ct.IsCancellationRequested)
         {
-            await Task.Delay(TimeSpan.FromSeconds(pollInterval), ct);
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(pollInterval), ct);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
             try
             {
                 var policy = await _transport.GetPolicyAsync(ct);
@@ -622,7 +638,14 @@ public class AgentWorker
         var firstWait = true;
         while (!ct.IsCancellationRequested)
         {
-            await Task.Delay(firstWait ? TimeSpan.FromSeconds(45) : TimeSpan.FromHours(24), ct);
+            try
+            {
+                await Task.Delay(firstWait ? TimeSpan.FromSeconds(45) : TimeSpan.FromHours(24), ct);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
             firstWait = false;
             try
             {
@@ -630,13 +653,58 @@ public class AgentWorker
                 if (update != null)
                 {
                     Console.WriteLine($"[Agent] Update available: {update.Version}. Download: {update.DownloadUrl}");
-                    // Future: download and apply update
+                    if (_config.VerifyAgentUpdates)
+                    {
+                        var (ok, msg) = await VerifyUpdateArtifactAsync(update, _config.AgentUpdatePublicKeyPem, ct);
+                        Console.WriteLine(ok
+                            ? $"[Agent] Update verification OK: {msg}"
+                            : $"[Agent] Update verification FAILED: {msg}");
+                    }
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[Agent] Update check error: {ex.Message}");
             }
+        }
+    }
+
+    private static async Task<(bool Ok, string Message)> VerifyUpdateArtifactAsync(
+        UpdateInfo update,
+        string? publicKeyPem,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(update.DownloadUrl))
+            return (false, "missing download_url");
+        if (string.IsNullOrWhiteSpace(update.ChecksumSha256) || update.ChecksumSha256.Trim().Length != 64)
+            return (false, "missing/invalid checksum_sha256 (expected 64 hex chars)");
+
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
+            var bytes = await http.GetByteArrayAsync(update.DownloadUrl, ct);
+            var sha = SHA256.HashData(bytes);
+            var hex = Convert.ToHexString(sha).ToLowerInvariant();
+            var expected = update.ChecksumSha256.Trim().ToLowerInvariant();
+            if (!string.Equals(hex, expected, StringComparison.OrdinalIgnoreCase))
+                return (false, $"checksum mismatch expected={expected} got={hex}");
+
+            // Optional signature verification: signature over UTF8(sha256_hex)
+            if (!string.IsNullOrWhiteSpace(update.SignatureBase64) && !string.IsNullOrWhiteSpace(publicKeyPem))
+            {
+                using var rsa = RSA.Create();
+                rsa.ImportFromPem(publicKeyPem);
+                var sig = Convert.FromBase64String(update.SignatureBase64.Trim());
+                var data = Encoding.UTF8.GetBytes(expected);
+                var ok = rsa.VerifyData(data, sig, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+                if (!ok) return (false, "RSA signature invalid");
+            }
+
+            return (true, $"sha256={expected.Substring(0, 12)}… size={bytes.Length}B");
+        }
+        catch (Exception e)
+        {
+            return (false, e.Message);
         }
     }
 
@@ -649,7 +717,14 @@ public class AgentWorker
 
         while (!ct.IsCancellationRequested)
         {
-            await Task.Delay(TimeSpan.FromSeconds(pollInterval), ct);
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(pollInterval), ct);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
             try
             {
                 var policy = await _transport.GetAvPolicyAsync(ct);
