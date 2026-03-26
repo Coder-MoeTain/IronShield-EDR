@@ -36,6 +36,7 @@ async function checkUpdate(currentVersion) {
     version: release.version,
     download_url: release.download_url,
     checksum_sha256: release.checksum_sha256,
+    signature_base64: release.signature_base64 || null,
     release_notes: release.release_notes,
   };
 }

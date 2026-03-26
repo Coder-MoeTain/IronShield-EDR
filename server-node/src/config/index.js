@@ -6,6 +6,17 @@ require('dotenv').config();
 module.exports = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '3000', 10),
+  metrics: {
+    enabled: process.env.METRICS_ENABLED !== 'false',
+    token: process.env.METRICS_TOKEN || null,
+  },
+  http: {
+    trustProxy: process.env.TRUST_PROXY === 'true',
+    corsOrigins: (process.env.CORS_ORIGINS || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+  },
   db: {
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '3306', 10),

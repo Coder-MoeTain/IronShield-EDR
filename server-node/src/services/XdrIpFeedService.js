@@ -5,6 +5,65 @@ const { addIoc } = require('./IocMatchingService');
 const IPV4_RE =
   /\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g;
 
+/**
+ * 10 recommended public IP feeds (no API key).
+ * Notes:
+ * - These are community feeds; validate licensing/terms for your environment.
+ * - Some feeds may rate-limit or change format over time.
+ */
+const RECOMMENDED_IP_FEEDS = [
+  {
+    name: 'abuse.ch Feodo Tracker (recommended)',
+    url: 'https://feodotracker.abuse.ch/downloads/ipblocklist_recommended.txt',
+    severity: 'high',
+  },
+  {
+    name: 'abuse.ch SSLBL (botnet C2 IPs)',
+    url: 'https://sslbl.abuse.ch/blacklist/sslipblacklist.txt',
+    severity: 'high',
+  },
+  {
+    name: 'abuse.ch URLhaus (online hosts)',
+    url: 'https://urlhaus.abuse.ch/downloads/hostfile/',
+    severity: 'high',
+  },
+  {
+    name: 'Emerging Threats compromised IPs',
+    url: 'https://rules.emergingthreats.net/blockrules/compromised-ips.txt',
+    severity: 'high',
+  },
+  {
+    name: 'IPsum (stamparm) level 1',
+    url: 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/1.txt',
+    severity: 'medium',
+  },
+  {
+    name: 'IPsum (stamparm) level 2',
+    url: 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/2.txt',
+    severity: 'high',
+  },
+  {
+    name: 'Blocklist.de attackers (all)',
+    url: 'https://lists.blocklist.de/lists/all.txt',
+    severity: 'medium',
+  },
+  {
+    name: 'CINS Army (suspicious IP list)',
+    url: 'https://cinsscore.com/list/ci-badguys.txt',
+    severity: 'medium',
+  },
+  {
+    name: 'Greensnow (blocklist)',
+    url: 'https://blocklist.greensnow.co/greensnow.txt',
+    severity: 'medium',
+  },
+  {
+    name: 'BruteForceBlocker (public brute-force list)',
+    url: 'https://danger.rulez.sk/projects/bruteforceblocker/blist.php',
+    severity: 'medium',
+  },
+];
+
 function uniq(arr) {
   return [...new Set(arr)];
 }
@@ -50,6 +109,34 @@ async function createFeed(feed, tenantId = null) {
   );
   const [row] = await db.query('SELECT * FROM xdr_ip_blacklist_feeds ORDER BY id DESC LIMIT 1');
   return row || null;
+}
+
+async function bootstrapRecommendedFeeds(tenantId = null) {
+  // Deduplicate by URL (case-insensitive)
+  const existing = await listFeeds(tenantId);
+  const existingUrls = new Set((existing || []).map((f) => String(f.url || '').toLowerCase().trim()).filter(Boolean));
+
+  let created = 0;
+  for (const f of RECOMMENDED_IP_FEEDS) {
+    const u = String(f.url || '').toLowerCase().trim();
+    if (!u || existingUrls.has(u)) continue;
+    try {
+      await createFeed(
+        {
+          name: f.name,
+          url: f.url,
+          severity: f.severity || 'high',
+          is_active: 1,
+        },
+        tenantId
+      );
+      created++;
+      existingUrls.add(u);
+    } catch {
+      // ignore duplicates/validation issues
+    }
+  }
+  return { ok: true, created, total: RECOMMENDED_IP_FEEDS.length };
 }
 
 async function updateFeed(id, patch, tenantId = null) {
@@ -162,5 +249,12 @@ async function syncFeedById(id, tenantId = null) {
   return { ok: true, imported, total: ips.length };
 }
 
-module.exports = { listFeeds, createFeed, updateFeed, deleteFeed, syncFeedById };
+module.exports = {
+  listFeeds,
+  createFeed,
+  bootstrapRecommendedFeeds,
+  updateFeed,
+  deleteFeed,
+  syncFeedById,
+};
 

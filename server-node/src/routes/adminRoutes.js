@@ -8,10 +8,12 @@ const { authAdmin } = require('../middleware/auth');
 const { attachTenant } = require('../middleware/tenantMiddleware');
 const { requirePermission, requireAnyPermission } = require('../middleware/rbac');
 const { tenantRateLimit } = require('../middleware/tenantRateLimit');
+const { adminAuditTrail } = require('../middleware/adminAuditTrail');
 
 router.use(authAdmin);
 router.use(attachTenant);
 router.use(tenantRateLimit);
+router.use(adminAuditTrail);
 
 // Phase 7: Antivirus (mount early to avoid param route conflicts)
 const avController = require('../controllers/avController');
@@ -93,6 +95,7 @@ router.get('/xdr/detections', requireAnyPermission('*', 'xdr:read'), xdrData.lis
 const xdrIpFeeds = require('../controllers/xdrIpFeedController');
 router.get('/xdr/ip-feeds', requireAnyPermission('*', 'manage_integrations', 'xdr:read'), xdrIpFeeds.listFeeds);
 router.post('/xdr/ip-feeds', requireAnyPermission('*', 'manage_integrations', 'xdr:write'), xdrIpFeeds.createFeed);
+router.post('/xdr/ip-feeds/bootstrap', requireAnyPermission('*', 'manage_integrations', 'xdr:write'), xdrIpFeeds.bootstrap);
 router.patch('/xdr/ip-feeds/:id', requireAnyPermission('*', 'manage_integrations', 'xdr:write'), xdrIpFeeds.updateFeed);
 router.delete('/xdr/ip-feeds/:id', requireAnyPermission('*', 'manage_integrations', 'xdr:write'), xdrIpFeeds.deleteFeed);
 router.post('/xdr/ip-feeds/:id/sync', requireAnyPermission('*', 'manage_integrations', 'xdr:write'), xdrIpFeeds.syncFeed);

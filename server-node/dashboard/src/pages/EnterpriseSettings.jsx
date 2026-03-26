@@ -87,6 +87,19 @@ export default function EnterpriseSettings() {
     setMsg({ text: 'Feed deleted.', isError: false });
   };
 
+  const bootstrapRecommendedFeeds = async () => {
+    setMsg({ text: '', isError: false });
+    try {
+      const r = await api('/api/admin/xdr/ip-feeds/bootstrap', { method: 'POST' });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+      setMsg({ text: `Added ${d.created ?? 0} recommended feeds (catalog: ${d.total ?? 10}).`, isError: false });
+      fetchIpFeeds();
+    } catch (e) {
+      setMsg({ text: 'Failed: ' + (e.message || 'Unknown error'), isError: true });
+    }
+  };
+
   const runRetention = async () => {
     setMsg({ text: '', isError: false });
     try {
@@ -386,13 +399,14 @@ export default function EnterpriseSettings() {
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2>Third-party IP blacklist feeds</h2>
-            <button
-              type="button"
-              className={styles.btnPrimary}
-              onClick={() => setModal({ type: 'ip-feed' })}
-            >
-              + Add feed
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button type="button" className={styles.btnSecondary} onClick={bootstrapRecommendedFeeds}>
+                + Recommended feeds (10)
+              </button>
+              <button type="button" className={styles.btnPrimary} onClick={() => setModal({ type: 'ip-feed' })}>
+                + Add feed
+              </button>
+            </div>
           </div>
           <p className={styles.hint}>
             Configure a third-party security API / feed URL. Sync imports IPs into <strong>IOC watchlist</strong> (type:

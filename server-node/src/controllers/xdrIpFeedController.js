@@ -45,5 +45,14 @@ async function syncFeed(req, res, next) {
   }
 }
 
-module.exports = { listFeeds, createFeed, updateFeed, deleteFeed, syncFeed };
+async function bootstrap(req, res, next) {
+  try {
+    const out = await XdrIpFeedService.bootstrapRecommendedFeeds(req.tenantId ?? null);
+    res.json(out);
+  } catch (e) {
+    next(e);
+  }
+}
+
+module.exports = { listFeeds, createFeed, updateFeed, deleteFeed, syncFeed, bootstrap };
 
