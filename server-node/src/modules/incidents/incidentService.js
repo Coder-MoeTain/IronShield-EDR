@@ -41,7 +41,20 @@ async function getById(id) {
      WHERE ial.incident_id = ?`,
     [id]
   );
-  return { ...incident, alerts };
+  let xdr_events = [];
+  try {
+    xdr_events = await db.query(
+      `SELECT xe.* FROM xdr_events xe
+       JOIN incident_xdr_event_links ixl ON ixl.xdr_event_id = xe.id
+       WHERE ixl.incident_id = ?
+       ORDER BY xe.timestamp ASC
+       LIMIT 500`,
+      [id]
+    );
+  } catch (_) {
+    xdr_events = [];
+  }
+  return { ...incident, alerts, xdr_events };
 }
 
 async function create(data) {
@@ -69,8 +82,15 @@ async function linkAlert(incidentId, alertId) {
   );
 }
 
+async function linkXdrEvent(incidentId, xdrEventId) {
+  await db.execute(
+    'INSERT IGNORE INTO incident_xdr_event_links (incident_id, xdr_event_id) VALUES (?, ?)',
+    [incidentId, xdrEventId]
+  );
+}
+
 async function updateStatus(id, status) {
   await db.execute('UPDATE incidents SET status = ? WHERE id = ?', [status, id]);
 }
 
-module.exports = { list, getById, create, linkAlert, updateStatus };
+module.exports = { list, getById, create, linkAlert, linkXdrEvent, updateStatus };

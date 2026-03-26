@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import PageShell from '../components/PageShell';
+import { asJsonList } from '../utils/apiJson';
 import styles from './Alerts.module.css';
 
 export default function Policies() {
@@ -10,7 +11,7 @@ export default function Policies() {
 
   useEffect(() => {
     api('/api/admin/policies')
-      .then((r) => r.json())
+      .then((r) => asJsonList(r))
       .then(setPolicies)
       .catch(() => setPolicies([]))
       .finally(() => setLoading(false));

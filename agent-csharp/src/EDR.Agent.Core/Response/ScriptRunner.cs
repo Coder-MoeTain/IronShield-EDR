@@ -78,7 +78,10 @@ public sealed class ScriptRunner
         var stdout = (await outTask.ConfigureAwait(false)).Trim();
         var stderr = (await errTask.ConfigureAwait(false)).Trim();
         if (p.ExitCode != 0)
-            return (false, $"Exit {p.ExitCode}: {stderr || stdout}");
+        {
+            var detail = string.IsNullOrEmpty(stderr) ? stdout : stderr;
+            return (false, $"Exit {p.ExitCode}: {detail}");
+        }
         return (true, stdout.Length > 2000 ? stdout[..2000] + "…" : stdout);
     }
 }

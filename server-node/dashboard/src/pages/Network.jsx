@@ -44,6 +44,7 @@ export default function Network() {
   const { api } = useAuth();
   const [searchParams] = useSearchParams();
   const [kpi, setKpi] = useState(emptyKpi);
+  const [bandwidth, setBandwidth] = useState({ rx: null, tx: null, at: null });
   const [traffic, setTraffic] = useState([]);
   const [outgoingIps, setOutgoingIps] = useState([]);
   const [connections, setConnections] = useState([]);
@@ -172,6 +173,28 @@ export default function Network() {
       .catch(() => setEndpoints([]));
   }, [api]);
 
+  useEffect(() => {
+    if (!endpointId) {
+      setBandwidth({ rx: null, tx: null, at: null });
+      return;
+    }
+    api(`/api/admin/endpoints/${endpointId}/metrics?limit=1`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const m = d?.metrics?.[0];
+        if (!m) {
+          setBandwidth({ rx: null, tx: null, at: null });
+          return;
+        }
+        setBandwidth({
+          rx: m.network_rx_mbps ?? null,
+          tx: m.network_tx_mbps ?? null,
+          at: m.collected_at ?? null,
+        });
+      })
+      .catch(() => setBandwidth({ rx: null, tx: null, at: null }));
+  }, [api, endpointId]);
+
   const trafficRows = useMemo(
     () => (Array.isArray(traffic) ? traffic : []),
     [traffic]
@@ -274,6 +297,16 @@ export default function Network() {
           <span className={styles.statValue}>{hostsWithActivity.toLocaleString()}</span>
           <span className={styles.statLabel}>Hosts with activity</span>
         </div>
+        {endpointId ? (
+          <div className={styles.statCard}>
+            <span className={styles.statValue}>
+              {bandwidth.rx != null ? `${bandwidth.rx}` : '—'} / {bandwidth.tx != null ? `${bandwidth.tx}` : '—'}
+            </span>
+            <span className={styles.statLabel}>
+              Bandwidth RX/TX Mbps {bandwidth.at ? `· ${timeAgo(bandwidth.at)}` : ''}
+            </span>
+          </div>
+        ) : null}
       </div>
 
       <div className={styles.tabs} role="tablist">

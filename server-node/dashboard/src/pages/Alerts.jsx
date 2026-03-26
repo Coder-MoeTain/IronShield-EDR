@@ -9,6 +9,7 @@ import styles from './Alerts.module.css';
 
 function timeAgo(date) {
   const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return '—';
   const now = new Date();
   const sec = Math.floor((now - d) / 1000);
   if (sec < 60) return 'Just now';
@@ -77,12 +78,27 @@ export default function Alerts() {
     });
     setLoading(true);
     api(`/api/admin/alerts?${params}`)
-      .then((r) => r.json())
-      .then((data) => {
-        setAlerts(data.alerts || data || []);
-        setSummary(data.summary || null);
+      .then(async (r) => {
+        let data = {};
+        try {
+          data = await r.json();
+        } catch {
+          data = {};
+        }
+        if (!r.ok) {
+          setAlerts([]);
+          setSummary(null);
+          return;
+        }
+        const list = data.alerts;
+        setAlerts(Array.isArray(list) ? list : []);
+        const sum = data.summary;
+        setSummary(sum != null && typeof sum === 'object' && !Array.isArray(sum) ? sum : null);
       })
-      .catch(() => setAlerts([]))
+      .catch(() => {
+        setAlerts([]);
+        setSummary(null);
+      })
       .finally(() => setLoading(false));
   }, [api, filters]);
 
@@ -92,7 +108,11 @@ export default function Alerts() {
 
   useEffect(() => {
     api('/api/admin/saved-views?page=detections')
-      .then((r) => r.json())
+      .then(async (r) => {
+        const data = await r.json().catch(() => []);
+        if (!r.ok) return [];
+        return Array.isArray(data) ? data : [];
+      })
       .then(setSavedViews)
       .catch(() => setSavedViews([]));
   }, [api]);
@@ -398,7 +418,11 @@ export default function Alerts() {
                 </td>
                 <td className={styles.timeCell}>
                   <span className={styles.timeAgo}>{timeAgo(a.first_seen)}</span>
-                  <span className={styles.timeFull}>{new Date(a.first_seen).toLocaleString()}</span>
+                  <span className={styles.timeFull}>
+                    {a.first_seen && !Number.isNaN(new Date(a.first_seen).getTime())
+                      ? new Date(a.first_seen).toLocaleString()
+                      : '—'}
+                  </span>
                 </td>
                 <td className={styles.titleCell}>
                   <Link to={`/alerts/${a.id}`} onClick={(e) => e.stopPropagation()} className={styles.alertTitle}>

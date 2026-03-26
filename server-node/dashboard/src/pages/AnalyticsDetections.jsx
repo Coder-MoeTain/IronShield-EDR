@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import PageShell from '../components/PageShell';
 import {
   Chart as ChartJS,
@@ -18,6 +19,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 export default function AnalyticsDetections() {
   const { api } = useAuth();
+  const { theme } = useTheme();
   const [data, setData] = useState(null);
 
   useEffect(() => {
@@ -45,6 +47,27 @@ export default function AnalyticsDetections() {
       }
     : null;
 
+  const chartOptions = useMemo(() => {
+    const tick = theme === 'light' ? '#475569' : '#94a3b8';
+    const grid = theme === 'light' ? 'rgba(15, 23, 42, 0.08)' : 'rgba(240, 246, 252, 0.08)';
+    return {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          ticks: { color: tick },
+          grid: { color: grid },
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { color: tick },
+          grid: { color: grid },
+        },
+      },
+    };
+  }, [theme]);
+
   return (
     <PageShell
       kicker="Analytics"
@@ -55,14 +78,7 @@ export default function AnalyticsDetections() {
 
       {chartData && (
         <div className={styles.chartBox}>
-          <Bar
-            data={chartData}
-            options={{
-              responsive: true,
-              plugins: { legend: { display: false } },
-              scales: { y: { beginAtZero: true } },
-            }}
-          />
+          <Bar key={theme} data={chartData} options={chartOptions} />
         </div>
       )}
 

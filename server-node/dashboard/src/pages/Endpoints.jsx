@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import PageShell from '../components/PageShell';
 import FalconEmptyState from '../components/FalconEmptyState';
+import { asJsonList } from '../utils/apiJson';
 import styles from './Endpoints.module.css';
 
 export default function Endpoints() {
@@ -15,7 +16,7 @@ export default function Endpoints() {
 
   useEffect(() => {
     api('/api/admin/host-groups')
-      .then((r) => r.json())
+      .then((r) => asJsonList(r))
       .then(setHostGroups)
       .catch(() => setHostGroups([]));
   }, [api]);
@@ -23,7 +24,7 @@ export default function Endpoints() {
   const fetchEndpoints = () => {
     const q = hostGroupFilter ? `?hostGroupId=${encodeURIComponent(hostGroupFilter)}` : '';
     api(`/api/admin/endpoints${q}`)
-      .then((r) => r.json())
+      .then((r) => asJsonList(r))
       .then(setEndpoints)
       .catch(() => setEndpoints([]))
       .finally(() => setLoading(false));

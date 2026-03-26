@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import PageShell from '../components/PageShell';
+import { asJsonList } from '../utils/apiJson';
 import styles from './Endpoints.module.css';
 
 /** @param {{ embedded?: boolean }} props — When true, hide standalone page chrome (use inside Detection Rules). */
@@ -21,14 +22,10 @@ export default function Suppressions({ embedded = false }) {
 
   const load = () => {
     setLoading(true);
-    Promise.all([
-      api('/api/admin/suppressions').then((r) => r.json()),
-      api('/api/admin/detection-rules').then((r) => r.json()),
-    ])
-      .then(([s, r]) => {
-        setRows(Array.isArray(s) ? s : []);
-        const ruleList = Array.isArray(r) ? r : r.rules || [];
-        setRules(ruleList);
+    Promise.all([api('/api/admin/suppressions'), api('/api/admin/detection-rules')])
+      .then(async ([rs, rr]) => {
+        setRows(await asJsonList(rs));
+        setRules(await asJsonList(rr));
       })
       .catch(() => {
         setRows([]);

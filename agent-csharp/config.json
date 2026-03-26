@@ -1,7 +1,7 @@
 {
   "ServerUrl": "http://localhost:3001",
   "TenantSlug": "",
-  "RegistrationToken": "change-this-registration-token",
+  "RegistrationToken": "cyber123",
   "HeartbeatIntervalMinutes": 5,
   "EventBatchIntervalSeconds": 30,
   "ScriptAllowlistPrefixes": ["C:\\IronShield\\Scripts\\"],

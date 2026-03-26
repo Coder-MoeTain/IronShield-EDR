@@ -187,7 +187,7 @@
 
 .actionForm select, .actionForm input {
   padding: 0.5rem 0.75rem;
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--bg-tertiary);
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text-primary);
@@ -205,15 +205,97 @@
 }
 
 .actionItem {
-  display: flex;
-  gap: 1rem;
-  padding: 0.5rem 0;
+  padding: 0.65rem 0;
   border-bottom: 1px solid var(--border);
   font-size: 0.9rem;
 }
 
+.actionRow {
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.actionType {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.actionMeta {
+  display: inline-flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
 .actionStatus {
   color: var(--text-muted);
+}
+
+.actionStatusOk {
+  color: var(--accent-green);
+}
+
+.actionStatusBad {
+  color: var(--accent-red);
+}
+
+.actionDetails {
+  margin-top: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  background: rgba(37, 99, 235, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: auto;
+}
+
+[data-theme='dark'] .actionDetails {
+  background: rgba(88, 166, 255, 0.05);
+}
+
+.actionDetailsGrid {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 0.35rem 0.75rem;
+  align-items: start;
+}
+
+.actionDetailsKey {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.actionDetailsVal {
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  min-width: 0;
+}
+
+.actionPre {
+  margin: 0.35rem 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.78rem;
+}
+
+.actionToggle {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent-blue);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.actionToggle:hover {
+  text-decoration: underline;
 }
 
 .msg {

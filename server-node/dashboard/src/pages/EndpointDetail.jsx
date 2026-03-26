@@ -2,13 +2,62 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import PageShell from '../components/PageShell';
+import RtrHostPanel from '../components/RtrHostPanel';
 import styles from './EndpointDetail.module.css';
+
+function formatUptime(sec) {
+  if (sec == null || sec === '') return '—';
+  const n = Number(sec);
+  if (!Number.isFinite(n) || n < 0) return '—';
+  const s = Math.floor(n);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m`;
+  return `${s}s`;
+}
+
+function safeJson(v) {
+  if (v == null) return null;
+  if (typeof v === 'object') return v;
+  if (typeof v === 'string') {
+    try {
+      return JSON.parse(v);
+    } catch {
+      return v;
+    }
+  }
+  return v;
+}
+
+function pretty(v) {
+  const j = safeJson(v);
+  if (j == null) return '';
+  if (typeof j === 'string') return j;
+  try {
+    return JSON.stringify(j, null, 2);
+  } catch {
+    return String(j);
+  }
+}
+
+function fmtTs(v) {
+  if (!v) return '—';
+  try {
+    return new Date(v).toLocaleString();
+  } catch {
+    return String(v);
+  }
+}
 
 export default function EndpointDetail() {
   const { id } = useParams();
   const { api } = useAuth();
   const [endpoint, setEndpoint] = useState(null);
   const [actions, setActions] = useState([]);
+  const [expandedActionIds, setExpandedActionIds] = useState(() => new Set());
   const [loading, setLoading] = useState(true);
   const [actionType, setActionType] = useState('request_heartbeat');
   const [processId, setProcessId] = useState('');
@@ -116,6 +165,29 @@ export default function EndpointDetail() {
     return () => clearInterval(interval);
   }, [id]);
 
+  const queueDepth =
+    endpoint?.sensor_queue_depth != null && endpoint.sensor_queue_depth !== ''
+      ? Number(endpoint.sensor_queue_depth)
+      : null;
+  const opStatus = (() => {
+    if (!endpoint) return null;
+    const s = (endpoint.sensor_operational_status || '').toLowerCase();
+    if (s === 'degraded') return 'degraded';
+    if (s === 'ok' || s === 'healthy' || s === 'operational') return 'ok';
+    const hb = endpoint.last_heartbeat_at ? new Date(endpoint.last_heartbeat_at).getTime() : 0;
+    if (hb && Date.now() - hb < 5 * 60 * 1000) return 'ok';
+    return null;
+  })();
+
+  const toggleExpanded = (actionId) => {
+    setExpandedActionIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(actionId)) next.delete(actionId);
+      else next.add(actionId);
+      return next;
+    });
+  };
+
   if (loading) return <PageShell loading loadingLabel="Loading host…" />;
   if (!endpoint) {
     return (
@@ -133,6 +205,9 @@ export default function EndpointDetail() {
       actions={(
         <>
           <Link to="/endpoints" className="falcon-btn falcon-btn-ghost">← Endpoints</Link>
+          <Link to="/rtr" className="falcon-btn falcon-btn-ghost" title="Open global RTR console">
+            RTR console
+          </Link>
           <span className={`${styles.badge} ${endpoint.status === 'online' ? styles.online : styles.offline}`}>
             {endpoint.status}
           </span>
@@ -452,6 +527,10 @@ export default function EndpointDetail() {
             <dd>{(metricsOverride?.ram_percent ?? endpoint.ram_percent) != null ? `${(metricsOverride?.ram_percent ?? endpoint.ram_percent)}%` : '-'}</dd>
             <dt>Disk</dt>
             <dd>{(metricsOverride?.disk_percent ?? endpoint.disk_percent) != null ? `${(metricsOverride?.disk_percent ?? endpoint.disk_percent)}%` : '-'}</dd>
+            <dt>Net RX</dt>
+            <dd>{(metricsOverride?.network_rx_mbps) != null ? `${metricsOverride.network_rx_mbps} Mbps` : '-'}</dd>
+            <dt>Net TX</dt>
+            <dd>{(metricsOverride?.network_tx_mbps) != null ? `${metricsOverride.network_tx_mbps} Mbps` : '-'}</dd>
           </dl>
           {(metricsOverride?.cpu_percent ?? endpoint.cpu_percent) == null &&
             (metricsOverride?.ram_percent ?? endpoint.ram_percent) == null && (
@@ -459,6 +538,115 @@ export default function EndpointDetail() {
           )}
         </div>
       </div>
+      <div className={styles.section}>
+        <h3>Real Time Response (RTR)</h3>
+        <p className={styles.containHint}>
+          Allowlisted remote shell on this host (same as <Link to="/rtr">Respond → RTR</Link>). Ensure the EDR policy
+          includes <span className="mono">rtr_shell</span> in allowed response actions.
+        </p>
+        <RtrHostPanel endpointId={String(id)} hostname={endpoint.hostname} />
+      </div>
+
+      <div className={styles.section}>
+        <h3>Malware remediation (dashboard)</h3>
+        <p className={styles.containHint}>
+          One-click response actions for the case study (WPS Update persistence + C2 IP + known payload locations).
+          This queues containment + cleanup actions for the agent.
+        </p>
+        <div className={styles.actionForm} style={{ flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="falcon-btn"
+            onClick={async () => {
+              setActionMsg('');
+              try {
+                const endpointId = parseInt(id, 10);
+                const queue = async (action_type, parameters) => {
+                  const r = await api(`/api/admin/endpoints/${endpointId}/actions`, {
+                    method: 'POST',
+                    body: JSON.stringify({ action_type, parameters }),
+                  });
+                  const j = await r.json().catch(() => ({}));
+                  if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
+                  return j;
+                };
+
+                // Contain + block C2
+                await queue('isolate_host');
+                await queue('block_ip', { ip: '103.238.225.248' });
+
+                // Block hashes (IOC watchlist is server-side)
+                const hashes = [
+                  '247FC07DE4BA8B986A57187F2CA730EEFFA9DDAA96F62BEFE41BC8AE120548A4', // wpscfgio.exe
+                  '1D24C5A17275F1424B08DF7F4D9B893E38214A357E741721BB564C73858D24DB', // mfewcui.exe
+                  '0A9F43D688F8D1A55F3D7DE8948CF8340A5A9065F3DD2C8A383131A80E1EC2BE', // kso.dll
+                  '36299261F41E012B04F914D231C1E5007DB362F101EE6DB4ED638ACFF9697BA9', // gatewayutils.dll
+                  '42258C3021E887D6191D8716CFA87CE24624BF730E4CA63A4E25B46746623846', // mfewcui.dat
+                  '7D292C71613008F7BCF55564638558A4B90C83FAA2DB24F83C58E6CB132C963F', // payload
+                ];
+                for (const sha of hashes) {
+                  await queue('block_hash', { sha256: sha });
+                }
+
+                // Quarantine known files (if present)
+                const files = [
+                  'C:\\Users\\Public\\office6wkDz\\wpscfgio.exe',
+                  'C:\\Users\\Public\\office6wkDz\\mfewcui.exe',
+                  'C:\\Users\\Public\\office6wkDz\\mfewcui.dat',
+                  'C:\\Program Files (x86)\\Microsoft\\MiscrosoftSACoreCom\\kso.dll',
+                  'C:\\Program Files (x86)\\Microsoft\\MiscrosoftSACoreCom\\gatewayutils.dll',
+                ];
+                for (const fp of files) {
+                  await queue('quarantine_file', { file_path: fp });
+                }
+
+                // Remove persistence
+                await queue('delete_schtask', { task_name: 'WPS Update' });
+                await queue('delete_schtask', { task_name: 'HPSmart Update' }); // safe even if not present
+                await queue('delete_run_key', {
+                  hive: 'HKCU',
+                  key_path: 'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run',
+                  value_name: 'wpsUpdate',
+                });
+                await queue('delete_run_key', {
+                  hive: 'HKCU',
+                  key_path: 'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run',
+                  value_name: 'MicrosoftSACoreCom',
+                });
+
+                // Remove folders (safeguarded allowlist on agent)
+                await queue('delete_path', { path: 'C:\\Users\\Public\\office6wkDz\\' });
+                await queue('delete_path', { path: 'C:\\Program Files (x86)\\Microsoft\\MiscrosoftSACoreCom\\' });
+
+                setActionMsg('Remediation queued. Watch action status below; keep host isolated until completed.');
+                const list = await api(`/api/admin/endpoints/${endpointId}/actions`);
+                setActions(await list.json());
+              } catch (e) {
+                setActionMsg(`Remediation failed: ${e.message || 'Unknown error'}`);
+              }
+            }}
+          >
+            Remediate WPS Update malware (queue actions)
+          </button>
+          <button
+            type="button"
+            className="falcon-btn falcon-btn-ghost"
+            onClick={async () => {
+              try {
+                const endpointId = parseInt(id, 10);
+                const list = await api(`/api/admin/endpoints/${endpointId}/actions`);
+                setActions(await list.json());
+                setActionMsg('Actions refreshed.');
+              } catch {
+                setActionMsg('Failed to refresh actions');
+              }
+            }}
+          >
+            Refresh actions
+          </button>
+        </div>
+      </div>
+
       <div className={styles.section}>
         <h3>Response &amp; containment</h3>
         <p className={styles.containHint}>
@@ -510,13 +698,71 @@ export default function EndpointDetail() {
         </div>
         {actionMsg && <p className={styles.msg}>{actionMsg}</p>}
         <div className={styles.actionList}>
-          {actions.slice(0, 10).map((a) => (
-            <div key={a.id} className={styles.actionItem}>
-              <span>{a.action_type}</span>
-              <span className={styles.actionStatus}>{a.status}</span>
-              <span>{new Date(a.created_at).toLocaleString()}</span>
-            </div>
-          ))}
+          {actions.slice(0, 15).map((a) => {
+            const isOpen = expandedActionIds.has(a.id);
+            const status = String(a.status || '').toLowerCase();
+            const statusClass =
+              status === 'completed'
+                ? styles.actionStatusOk
+                : status === 'failed'
+                  ? styles.actionStatusBad
+                  : styles.actionStatus;
+            const hasDetails =
+              a.parameters != null ||
+              a.result_message != null ||
+              a.result_json != null ||
+              a.sent_at != null ||
+              a.completed_at != null ||
+              a.requested_by != null;
+            return (
+              <div key={a.id} className={styles.actionItem}>
+                <div className={styles.actionRow}>
+                  <span className={styles.actionType}>
+                    <span className="mono">#{a.id}</span> {a.action_type}
+                  </span>
+                  <span className={statusClass}>{a.status}</span>
+                  <span className={styles.actionMeta}>
+                    <span>Queued: <span className="mono">{fmtTs(a.created_at)}</span></span>
+                    {a.sent_at ? <span>Sent: <span className="mono">{fmtTs(a.sent_at)}</span></span> : null}
+                    {a.completed_at ? <span>Done: <span className="mono">{fmtTs(a.completed_at)}</span></span> : null}
+                    {a.requested_by ? <span>By: <span className="mono">{a.requested_by}</span></span> : null}
+                  </span>
+                  {hasDetails ? (
+                    <button type="button" className={styles.actionToggle} onClick={() => toggleExpanded(a.id)}>
+                      {isOpen ? 'Hide details' : 'Show details'}
+                    </button>
+                  ) : null}
+                </div>
+
+                {hasDetails && isOpen ? (
+                  <div className={styles.actionDetails}>
+                    <div className={styles.actionDetailsGrid}>
+                      <div className={styles.actionDetailsKey}>Parameters</div>
+                      <div className={styles.actionDetailsVal}>
+                        {a.parameters != null ? <pre className={styles.actionPre}>{pretty(a.parameters)}</pre> : '—'}
+                      </div>
+
+                      <div className={styles.actionDetailsKey}>Result</div>
+                      <div className={styles.actionDetailsVal}>
+                        {a.result_message != null && String(a.result_message).trim()
+                          ? String(a.result_message)
+                          : status === 'completed'
+                            ? 'Completed'
+                            : status === 'failed'
+                              ? 'Failed'
+                              : '—'}
+                      </div>
+
+                      <div className={styles.actionDetailsKey}>Output</div>
+                      <div className={styles.actionDetailsVal}>
+                        {a.result_json != null ? <pre className={styles.actionPre}>{pretty(a.result_json)}</pre> : '—'}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       </div>
       <div className={styles.section}>

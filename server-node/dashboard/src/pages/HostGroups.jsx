@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import PageShell from '../components/PageShell';
+import { asJsonList } from '../utils/apiJson';
 import styles from './Endpoints.module.css';
 
 export default function HostGroups() {
@@ -13,7 +14,7 @@ export default function HostGroups() {
   const load = () => {
     setLoading(true);
     api('/api/admin/host-groups')
-      .then((r) => r.json())
+      .then((r) => asJsonList(r))
       .then(setGroups)
       .catch(() => setGroups([]))
       .finally(() => setLoading(false));

@@ -60,6 +60,12 @@
   font-size: 0.9rem;
 }
 
+.hint {
+  margin: 0.25rem 0 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
 .msgError {
   background: rgba(239, 68, 68, 0.1) !important;
   border-color: rgba(239, 68, 68, 0.3) !important;
@@ -227,7 +233,7 @@
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--bg-tertiary);
   color: var(--text-primary);
 }
 

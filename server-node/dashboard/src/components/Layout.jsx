@@ -43,6 +43,9 @@ const MENU_ITEMS = [
       { to: '/raw-events', Icon: IconExplore, label: 'Raw events' },
       { to: '/process-monitor', Icon: IconExplore, label: 'Process monitor' },
       { to: '/hunting', Icon: IconExplore, label: 'Hunting' },
+      { to: '/xdr/events', Icon: IconExplore, label: 'XDR events' },
+      { to: '/xdr/detections', Icon: IconExplore, label: 'XDR detections' },
+      { to: '/xdr/realtime', Icon: IconActivity, label: 'XDR realtime' },
     ],
   },
   {
@@ -66,11 +69,11 @@ const MENU_ITEMS = [
     children: [
       { to: '/threat-graph', Icon: IconGraph, label: 'Threat graph' },
       { to: '/analytics-detections', Icon: IconExplore, label: 'Detection analytics' },
-      { to: '/falcon/identity', Icon: IconIntel, label: 'Identity (roadmap)' },
-      { to: '/falcon/exposure', Icon: IconNetwork, label: 'Exposure (roadmap)' },
-      { to: '/falcon/managed-hunting', Icon: IconExplore, label: 'Managed hunting (roadmap)' },
-      { to: '/falcon/prevention-deep', Icon: IconShield, label: 'Deep prevention (roadmap)' },
-      { to: '/falcon/integrations', Icon: IconEnterprise, label: 'Integrations (roadmap)' },
+      { to: '/falcon/identity', Icon: IconIntel, label: 'Identity / Zero Trust' },
+      { to: '/falcon/exposure', Icon: IconNetwork, label: 'Exposure / attack surface' },
+      { to: '/falcon/managed-hunting', Icon: IconExplore, label: 'Managed hunting / Overwatch' },
+      { to: '/falcon/prevention-deep', Icon: IconShield, label: 'Deep prevention' },
+      { to: '/falcon/integrations', Icon: IconEnterprise, label: 'Integrations / XDR fabric' },
     ],
   },
   {

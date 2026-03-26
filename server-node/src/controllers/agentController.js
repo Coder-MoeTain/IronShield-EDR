@@ -98,10 +98,33 @@ async function eventsBatch(req, res, next) {
   }
 }
 
+function normalizeActionRowForAgent(row) {
+  if (!row) return row;
+  const out = { ...row };
+  if (typeof out.id === 'bigint') out.id = Number(out.id);
+  let p = out.parameters;
+  if (p == null) return out;
+  if (Buffer.isBuffer(p)) {
+    try {
+      p = JSON.parse(p.toString('utf8'));
+    } catch {
+      p = null;
+    }
+  } else if (typeof p === 'string') {
+    try {
+      p = JSON.parse(p);
+    } catch {
+      /* leave string if not valid JSON */
+    }
+  }
+  out.parameters = p;
+  return out;
+}
+
 async function getPendingActions(req, res, next) {
   try {
     const actions = await ResponseActionService.getPendingForAgent(req.agentKey);
-    res.json({ actions });
+    res.json({ actions: actions.map(normalizeActionRowForAgent) });
   } catch (err) {
     next(err);
   }

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import PageShell from '../components/PageShell';
 import FalconEmptyState from '../components/FalconEmptyState';
 import { falconSeverityClass } from '../utils/falconUi';
+import { asJsonList } from '../utils/apiJson';
 import styles from './IOCs.module.css';
 
 export default function IOCs() {
@@ -19,13 +20,10 @@ export default function IOCs() {
 
   const fetchData = () => {
     setLoading(true);
-    Promise.all([
-      api('/api/admin/iocs').then((r) => r.json()),
-      api('/api/admin/iocs/matches').then((r) => r.json()),
-    ])
-      .then(([i, m]) => {
-        setIocs(i || []);
-        setMatches(m || []);
+    Promise.all([api('/api/admin/iocs'), api('/api/admin/iocs/matches')])
+      .then(async ([r1, r2]) => {
+        setIocs(await asJsonList(r1));
+        setMatches(await asJsonList(r2));
       })
       .catch(() => {})
       .finally(() => setLoading(false));

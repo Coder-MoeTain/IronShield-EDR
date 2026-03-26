@@ -6,6 +6,7 @@ import FalconTableShell from '../components/FalconTableShell';
 import FalconEmptyState from '../components/FalconEmptyState';
 import FalconPagination from '../components/FalconPagination';
 import { falconSeverityClass } from '../utils/falconUi';
+import { asJsonList } from '../utils/apiJson';
 import styles from './Incidents.module.css';
 
 function timeAgo(date) {
@@ -32,7 +33,7 @@ export default function Incidents() {
     });
     setLoading(true);
     api(`/api/admin/incidents?${params}`)
-      .then((r) => r.json())
+      .then((r) => asJsonList(r))
       .then(setIncidents)
       .catch(() => setIncidents([]))
       .finally(() => setLoading(false));

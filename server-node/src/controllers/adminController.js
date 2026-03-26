@@ -388,6 +388,28 @@ async function listDetectionRules(req, res, next) {
   }
 }
 
+async function getDetectionRule(req, res, next) {
+  try {
+    const rule = await DetectionRuleService.getById(req.params.id);
+    if (!rule) return res.status(404).json({ error: 'Rule not found' });
+    res.json(rule);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function createDetectionRule(req, res, next) {
+  try {
+    const rule = await DetectionRuleService.create(req.body || {});
+    res.status(201).json(rule);
+  } catch (err) {
+    if (err.message?.includes('required') || err.message?.includes('invalid') || err.message?.includes('must')) {
+      return res.status(400).json({ error: err.message });
+    }
+    next(err);
+  }
+}
+
 async function updateDetectionRule(req, res, next) {
   try {
     const { id } = req.params;

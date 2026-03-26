@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import PageShell from '../components/PageShell';
 import Suppressions from './Suppressions';
 import { falconSeverityClass } from '../utils/falconUi';
+import { asJsonListOrKeyed } from '../utils/apiJson';
 import styles from './DetectionRules.module.css';
 
 export default function DetectionRules() {
@@ -27,10 +28,10 @@ export default function DetectionRules() {
     if (severity) p.set('severity', severity);
     if (enabled) p.set('enabled', enabled);
     api(`/api/admin/detection-rules?${p}`)
-      .then((r) => r.json())
-      .then((data) => {
-        setRules(data.rules || data || []);
-        setSummary(data.summary || null);
+      .then((r) => asJsonListOrKeyed(r, 'rules'))
+      .then(({ list, summary }) => {
+        setRules(list);
+        setSummary(summary);
       })
       .catch(() => {
         setRules([]);

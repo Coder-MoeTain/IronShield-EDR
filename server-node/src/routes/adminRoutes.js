@@ -77,6 +77,25 @@ router.get('/export/siem-alerts', requireAnyPermission('audit:read', '*'), admin
 router.get('/analytics/rare-paths', adminController.getAnomalies);
 router.get('/analytics/detections-summary', require('../controllers/analyticsMlController').detectionSummary);
 router.get('/threat-graph', require('../controllers/threatGraphController').getGraph);
+router.get('/advanced-modules/:area', require('../controllers/advancedModulesController').getModule);
+
+// Phase 8: Threat intel (IOC watchlist)
+const xdrThreatIntel = require('../controllers/xdrThreatIntelController');
+router.get('/xdr/iocs', xdrThreatIntel.listIocs);
+router.post('/xdr/iocs', requireAnyPermission('*', 'manage_integrations', 'xdr:write'), xdrThreatIntel.addIoc);
+
+// Phase 4/5: XDR data views
+const xdrData = require('../controllers/xdrDataController');
+router.get('/xdr/events', requireAnyPermission('*', 'xdr:read'), xdrData.listXdrEvents);
+router.get('/xdr/detections', requireAnyPermission('*', 'xdr:read'), xdrData.listXdrDetections);
+
+// Third-party IP blacklist feed -> IOC watchlist
+const xdrIpFeeds = require('../controllers/xdrIpFeedController');
+router.get('/xdr/ip-feeds', requireAnyPermission('*', 'manage_integrations', 'xdr:read'), xdrIpFeeds.listFeeds);
+router.post('/xdr/ip-feeds', requireAnyPermission('*', 'manage_integrations', 'xdr:write'), xdrIpFeeds.createFeed);
+router.patch('/xdr/ip-feeds/:id', requireAnyPermission('*', 'manage_integrations', 'xdr:write'), xdrIpFeeds.updateFeed);
+router.delete('/xdr/ip-feeds/:id', requireAnyPermission('*', 'manage_integrations', 'xdr:write'), xdrIpFeeds.deleteFeed);
+router.post('/xdr/ip-feeds/:id/sync', requireAnyPermission('*', 'manage_integrations', 'xdr:write'), xdrIpFeeds.syncFeed);
 
 const rtrController = require('../controllers/rtrController');
 router.post('/rtr/sessions', requireAnyPermission('actions:write', '*'), rtrController.createSession);
@@ -157,5 +176,7 @@ router.delete('/retention-policies/:id', requireAnyPermission('*', 'manage_tenan
 router.post('/retention-policies/run', requireAnyPermission('*', 'manage_tenants'), phase6.runRetention);
 router.get('/agent-releases', phase6.listAgentReleases);
 router.post('/agent-releases', requireAnyPermission('*'), phase6.createAgentRelease);
+router.patch('/agent-releases/:id', requireAnyPermission('*'), phase6.updateAgentRelease);
+router.delete('/agent-releases/:id', requireAnyPermission('*'), phase6.deleteAgentRelease);
 
 module.exports = router;

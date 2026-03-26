@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import PageShell from '../components/PageShell';
+import { asJsonList } from '../utils/apiJson';
 import styles from './AuditLogs.module.css';
 
 export default function AuditLogs() {
@@ -10,7 +11,7 @@ export default function AuditLogs() {
 
   useEffect(() => {
     api('/api/admin/audit-logs')
-      .then((r) => r.json())
+      .then((r) => asJsonList(r))
       .then(setLogs)
       .catch(() => setLogs([]))
       .finally(() => setLoading(false));

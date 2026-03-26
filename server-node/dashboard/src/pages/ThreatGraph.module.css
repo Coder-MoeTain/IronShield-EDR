@@ -1,9 +1,10 @@
 .wrap {
   overflow: auto;
-  background: var(--surface-elevated, #1a1d24);
-  border: 1px solid var(--border-subtle, #2a2f3a);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.5rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .svg {
@@ -15,8 +16,12 @@
 }
 
 .edge {
-  stroke: rgba(148, 163, 184, 0.45);
+  stroke: rgba(100, 116, 139, 0.55);
   stroke-width: 1.25;
+}
+
+[data-theme='dark'] .edge {
+  stroke: rgba(148, 163, 184, 0.45);
 }
 
 .nodeHost {
@@ -32,7 +37,7 @@
 }
 
 .label {
-  fill: var(--text-secondary, #94a3b8);
+  fill: var(--text-secondary);
   font-size: 10px;
   font-family: var(--font-mono, monospace);
 }
@@ -40,10 +45,14 @@
 .hint {
   margin-top: 1rem;
   font-size: 0.88rem;
-  color: var(--text-muted);
+  color: var(--text-secondary);
 }
 
 .err {
-  color: #f87171;
+  color: var(--accent-red, #b91c1c);
   margin-bottom: 0.75rem;
+}
+
+[data-theme='dark'] .err {
+  color: #f87171;
 }

@@ -21,7 +21,12 @@ function authAdmin(req, res, next) {
     req.user = { ...decoded, tenantId: decoded.tenantId ?? null };
     next();
   } catch (err) {
-    logger.warn({ err: err.message }, 'Invalid JWT');
+    // Expired tokens are normal (browser still has localStorage); avoid WARN spam per request.
+    if (err.name === 'TokenExpiredError') {
+      logger.debug({ err: err.message }, 'JWT expired');
+    } else {
+      logger.warn({ err: err.message, name: err.name }, 'Invalid JWT');
+    }
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 }

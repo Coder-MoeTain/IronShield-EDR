@@ -29,4 +29,24 @@ module.exports = {
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
     password: process.env.REDIS_PASSWORD || undefined,
   },
+  kafka: {
+    brokers: (process.env.KAFKA_BROKERS || 'localhost:9092')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+    clientId: process.env.KAFKA_CLIENT_ID || 'ironshield-edr',
+    enabled: process.env.KAFKA_ENABLED === 'true',
+    topics: {
+      rawEndpoint: process.env.KAFKA_TOPIC_RAW_ENDPOINT || 'xdr.raw.endpoint',
+      rawWeb: process.env.KAFKA_TOPIC_RAW_WEB || 'xdr.raw.web',
+      rawAuth: process.env.KAFKA_TOPIC_RAW_AUTH || 'xdr.raw.auth',
+      rawZeek: process.env.KAFKA_TOPIC_RAW_ZEEK || 'xdr.raw.zeek',
+      normalized: process.env.KAFKA_TOPIC_NORMALIZED || 'xdr.normalized',
+      detections: process.env.KAFKA_TOPIC_DETECTIONS || 'xdr.detections',
+    },
+    groupId: process.env.KAFKA_GROUP_ID || 'ironshield-workers',
+  },
+  ingest: {
+    key: process.env.XDR_INGEST_KEY || null,
+  },
 };

@@ -10,6 +10,8 @@ const AlertService = require('./AlertService');
 const IocMatchingService = require('./IocMatchingService');
 const QueueService = require('./QueueService');
 const NetworkService = require('./NetworkService');
+const KafkaProducer = require('../kafka/producer');
+const config = require('../config');
 
 /**
  * Process unprocessed raw events for an endpoint (normalize, IOC match, detect, alert)
@@ -119,6 +121,21 @@ async function ingestBatch(endpointId, events) {
 
   const result = await db.execute(sql, values);
   logger.info({ endpointId, count: result.affectedRows }, 'Events ingested');
+
+  // Kafka-first pipeline (Phase 1 XDR): publish event batch to topic for async normalization/detection.
+  if (config.kafka?.enabled) {
+    try {
+      await KafkaProducer.publishRawEndpointEvent({
+        endpoint_id: endpointId,
+        received_at: new Date().toISOString(),
+        count: Math.min(result.affectedRows, 500),
+        events: events.slice(0, 500),
+      });
+    } catch (e) {
+      logger.warn({ err: e.message }, 'Kafka publish failed, falling back to legacy processing');
+      // fall through to legacy queue/sync
+    }
+  }
 
   if (QueueService.isEnabled()) {
     await QueueService.addProcessJob(endpointId, Math.min(result.affectedRows, 100));

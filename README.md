@@ -48,6 +48,7 @@
 | When | What |
 |:-----|:-----|
 | **Mar 2025** | **Network activity (Falcon-style)** — Explore page: KPI strip backed by `GET /api/admin/network/summary`, time window + endpoint filters, **Exclude localhost**, remote IP / process search, **Scope** badges (RFC1918 / External / Loopback), tabs (Connections, Outgoing IPs, Traffic by endpoint, Network logs). Docs: [crowdstrike-network-activity.md](docs/crowdstrike-network-activity.md). |
+| **Mar 2026** | **XDR UI + integrations** — Added XDR pages for `xdr_events` and `xdr_detections`, live **Realtime** feed (`/ws`), host/network bandwidth (RX/TX Mbps), and Enterprise settings for **3rd‑party IP blacklist feeds** → IOC watchlist (`/api/admin/xdr/ip-feeds`). |
 | **Mar 2025** | **README** — Screenshot gallery (vector UI previews) + this changelog. Rebuild dashboard after UI changes: `cd server-node && npm run build-dashboard`. |
 | **Earlier** | Falcon parity phases (sensor telemetry, tenants, NGAV, EDR policy, policy compliance, host timeline), **Detection rules** (Custom IOA), **RTR**, **Threat graph**, **Hunting**, **IOC** watchlist — see [falcon-parity-features.md](docs/falcon-parity-features.md). |
 
@@ -84,6 +85,22 @@ Vector-style UI previews (same style as the project banner). Replace with **PNG/
   <sub>Architecture diagram: <a href="#-architecture">Architecture</a> · Banner: <code>assets/banner.svg</code></sub>
 </p>
 
+### Real UI captures (from this repo)
+
+These are real UI screenshots committed under `docs/images/`.
+
+<p align="center">
+  <img src="docs/images/dashboard.png" alt="Dashboard screenshot" width="860">
+</p>
+
+<p align="center">
+  <img src="docs/images/banner.png" alt="Banner screenshot" width="860">
+</p>
+
+<p align="center">
+  <img src="docs/images/architecture.png" alt="Architecture screenshot" width="720">
+</p>
+
 ---
 
 ## ✨ Features
@@ -93,21 +110,26 @@ Vector-style UI previews (same style as the project banner). Replace with **PNG/
 - **Endpoint Monitoring** — Process events, Windows Event Log, network connections, file hashing
 - **Detection Engine** — JSON/Sigma-style rules with MITRE ATT&CK mapping
 - **Response Actions** — Kill process, triage collection, host isolation (policy)
+- **Real Time Response (RTR)** — Remote shell sessions + command queueing, with allowlists and audit trail
 - **MSSP Operations** — Per-client overview (endpoints, alerts, investigations) for internal SOC workflows
 - **Alert Management** — Severity, status, notes, investigation linking
 - **Incident Correlation** — Group related alerts into incidents
 - **Risk Scoring** — Endpoint risk based on alert severity and count
-- **IOC Watchlist** — Hash, IP, domain, path indicators
+- **IOC Watchlist** — Hash, IP, domain, URL indicators (matched during ingestion)
+- **Threat intel integrations** — Add **3rd‑party IP blacklist feeds** from Enterprise settings → imports into IOC watchlist
 - **Antivirus Module** — File scanning, signatures, heuristics, quarantine
+- **XDR foundation** — Canonical multi-source event store (`xdr_events`), detections (`xdr_detections`), live `/ws` stream
 
 ### Dashboard Highlights
 
 - **Network activity** — Falcon-style Explore view: KPIs, filters, scope badges, logs ([docs](docs/crowdstrike-network-activity.md); [screenshots](#screenshots))
+- **Bandwidth telemetry** — Agent-reported RX/TX Mbps in host metrics and Network Explore when filtering by endpoint
 - **Process Monitor** — Suspect process detection with suspicious path indicators
 - **Process Tree** — Visualize process hierarchy from normalized events
 - **Investigations** — Case management with notes and endpoint linking
 - **Global Search** — Search across endpoints, alerts, events, hashes
 - **AV Dashboard** — Detections, quarantine, policies, signatures, file reputation
+- **XDR pages** — XDR events, XDR detections, and a Realtime console (WebSocket)
 
 ---
 

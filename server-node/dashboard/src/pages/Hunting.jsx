@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import PageShell from '../components/PageShell';
+import { asJsonList } from '../utils/apiJson';
 import styles from './Endpoints.module.css';
 
 const DEFAULT_FILTERS = {
@@ -25,7 +26,7 @@ export default function Hunting() {
 
   const loadHunts = () => {
     api('/api/admin/hunt-queries')
-      .then((r) => r.json())
+      .then((r) => asJsonList(r))
       .then(setHunts)
       .catch(() => setHunts([]));
   };

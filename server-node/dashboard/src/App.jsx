@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { isJwtExpired } from './utils/jwt';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -47,10 +48,16 @@ import RtrConsole from './pages/RtrConsole';
 import ThreatGraph from './pages/ThreatGraph';
 import AnalyticsDetections from './pages/AnalyticsDetections';
 import FalconRoadmapPage from './pages/FalconRoadmapPage';
+import XdrEvents from './pages/XdrEvents';
+import XdrDetections from './pages/XdrDetections';
+import XdrRealtime from './pages/XdrRealtime';
 
 function PrivateRoute({ children }) {
-  const { token } = useAuth();
-  if (!token) return <Navigate to="/login" replace />;
+  const { token, logout } = useAuth();
+  useEffect(() => {
+    if (token && isJwtExpired(token)) logout();
+  }, [token, logout]);
+  if (!token || isJwtExpired(token)) return <Navigate to="/login" replace />;
   return children;
 }
 
@@ -73,6 +80,9 @@ export default function App() {
           <Route path="threat-graph" element={<ThreatGraph />} />
           <Route path="analytics-detections" element={<AnalyticsDetections />} />
           <Route path="falcon/:area" element={<FalconRoadmapPage />} />
+          <Route path="xdr/events" element={<XdrEvents />} />
+          <Route path="xdr/detections" element={<XdrDetections />} />
+          <Route path="xdr/realtime" element={<XdrRealtime />} />
           <Route path="endpoints/:id" element={<EndpointDetail />} />
           <Route path="events" element={<Events />} />
           <Route path="raw-events" element={<RawEvents />} />

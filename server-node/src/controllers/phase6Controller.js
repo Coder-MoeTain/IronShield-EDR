@@ -130,6 +130,30 @@ async function createAgentRelease(req, res, next) {
   }
 }
 
+async function updateAgentRelease(req, res, next) {
+  try {
+    const { is_current } = req.body || {};
+    if (is_current === undefined) return res.status(400).json({ error: 'No updates provided' });
+    if (is_current) {
+      await db.execute('UPDATE agent_releases SET is_current = FALSE');
+    }
+    await db.execute('UPDATE agent_releases SET is_current = ? WHERE id = ?', [!!is_current, req.params.id]);
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deleteAgentRelease(req, res, next) {
+  try {
+    const r = await db.execute('DELETE FROM agent_releases WHERE id = ?', [req.params.id]);
+    if (!r.affectedRows) return res.status(404).json({ error: 'Not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   listNotificationChannels,
   createNotificationChannel,
@@ -141,4 +165,6 @@ module.exports = {
   runRetention,
   listAgentReleases,
   createAgentRelease,
+  updateAgentRelease,
+  deleteAgentRelease,
 };

@@ -13,11 +13,13 @@ const ROLE_PERMISSIONS = {
     'investigations:read', 'investigations:write', 'triage:read', 'triage:write',
     'actions:write', 'audit:read', 'notifications:read',
     'manage_integrations', 'manage_tenants',
+    'xdr:read', 'xdr:write',
   ],
   viewer: [
     'endpoints:read', 'alerts:read', 'events:read', 'rules:read',
     'incidents:read', 'iocs:read', 'risk:read', 'policies:read',
     'investigations:read', 'triage:read', 'audit:read', 'notifications:read',
+    'xdr:read',
   ],
 };
 

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import PageShell from '../components/PageShell';
 import { falconSeverityClass } from '../utils/falconUi';
+import { asJsonList } from '../utils/apiJson';
 import styles from './AvOverview.module.css';
 
 export default function AvOverview() {
@@ -52,8 +53,8 @@ export default function AvOverview() {
   useEffect(() => {
     if (runScanOpen) {
       api('/api/admin/endpoints')
-        .then((r) => r.json())
-        .then((d) => setEndpoints(Array.isArray(d) ? d : (d.endpoints || [])))
+        .then((r) => asJsonList(r))
+        .then(setEndpoints)
         .catch(() => setEndpoints([]));
     }
   }, [runScanOpen, api]);

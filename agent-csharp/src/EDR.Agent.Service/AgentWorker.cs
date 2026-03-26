@@ -8,6 +8,7 @@ using EDR.Agent.Core.Transport;
 using EDR.Agent.Core.Utils;
 using System.Diagnostics;
 using System.Text.Json;
+using System.IO;
 
 namespace EDR.Agent.Service;
 
@@ -37,11 +38,13 @@ public class AgentWorker
     /// <summary>NGAV state from last AV poll (-1 = not yet loaded).</summary>
     private volatile int _ngavSignatureCount = -1;
     private volatile string? _ngavBundleVersion;
-    private volatile bool? _ngavRealtimeEnabled;
+    private bool? _ngavRealtimeEnabled;
 
     /// <summary>Last EDR (sensor) policy from management server — Phase 8 policy sync telemetry.</summary>
     private int? _lastEdrPolicyId;
     private DateTimeOffset? _lastEdrPolicySyncUtc;
+
+    private int _heartbeatConnectedLogged;
 
     public AgentWorker(ConfigService configService, object? _)
     {
@@ -85,6 +88,9 @@ public class AgentWorker
         if (loaded > 0)
             Console.WriteLine($"[Agent] Loaded {loaded} events from queue");
 
+        Console.WriteLine($"[Agent] ServerUrl={_config.ServerUrl}");
+        Console.WriteLine($"[Agent] RegistrationToken={(string.IsNullOrEmpty(_config.RegistrationToken) ? "(missing — set in config.json or EDR_REGISTRATION_TOKEN)" : "(set)")} AgentKey={(string.IsNullOrEmpty(_config.AgentKey) ? "(none — will register if token is set)" : "(present)")}");
+
         // Ensure registered
         if (string.IsNullOrEmpty(_config.AgentKey))
         {
@@ -93,6 +99,11 @@ public class AgentWorker
         else
         {
             _transport.SetAgentKey(_config.AgentKey);
+        }
+
+        if (string.IsNullOrEmpty(_config.AgentKey))
+        {
+            Console.WriteLine("[Agent] No agent key after registration step — heartbeats and uploads are disabled until registration succeeds (check ServerUrl, backend running, and registration token).");
         }
 
         _updateChecker = new UpdateCheckService(_config.ServerUrl, AgentVersion);
@@ -141,13 +152,26 @@ public class AgentWorker
             var payload = _systemInfo.GetHeartbeatPayload(AgentVersion);
             EnrichSensorTelemetry(payload);
             await _transport.HeartbeatAsync(payload, ct);
+            LogHeartbeatConnectedOnce();
             if (payload.Connections is { Count: > 0 } conns)
             {
                 try { await _transport.PushNetworkConnectionsAsync(conns.Select(c => new { local_address = c.LocalAddress, local_port = c.LocalPort, remote_address = c.RemoteAddress, remote_port = c.RemotePort, protocol = c.Protocol, state = c.State }), ct); }
-                catch { }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Agent] Initial network push failed: {ex.Message}");
+                }
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Agent] Initial heartbeat failed: {ex.Message}");
+        }
+    }
+
+    private void LogHeartbeatConnectedOnce()
+    {
+        if (Interlocked.CompareExchange(ref _heartbeatConnectedLogged, 1, 0) != 0) return;
+        Console.WriteLine("[Agent] Connected — heartbeat accepted by server. Refresh All hosts in the dashboard if status looks stale.");
     }
 
     private async Task HeartbeatLoopAsync(CancellationToken ct)
@@ -161,6 +185,7 @@ public class AgentWorker
                     var payload = _systemInfo.GetHeartbeatPayload(AgentVersion);
                     EnrichSensorTelemetry(payload);
                     await _transport.HeartbeatAsync(payload, ct);
+                    LogHeartbeatConnectedOnce();
                     if (payload.Connections is { Count: > 0 } conns)
                     {
                         try
@@ -352,8 +377,36 @@ public class AgentWorker
                         else if (action.ActionType == "rtr_shell")
                         {
                             var cmd = GetActionParam(action, "command");
-                            var (rtrOk, rtrMsg, rtrRes) = await rtrShell.ExecuteAsync(cmd, ct);
-                            await poller.SubmitResultAsync(action.Id, rtrOk, rtrMsg, rtrRes, ct);
+                            if (string.IsNullOrWhiteSpace(cmd))
+                            {
+                                Console.WriteLine("[Agent] rtr_shell: missing \"command\" in parameters (server may have sent parameters as a string; agent updated to parse both).");
+                                await poller.SubmitResultAsync(action.Id, false, "Missing command in action parameters", null, ct);
+                            }
+                            else
+                            {
+                                var (rtrOk, rtrMsg, rtrRes) = await rtrShell.ExecuteAsync(cmd, ct);
+                                await poller.SubmitResultAsync(action.Id, rtrOk, rtrMsg, rtrRes, ct);
+                            }
+                        }
+                        else if (action.ActionType == "delete_schtask")
+                        {
+                            var taskName = GetActionParam(action, "task_name") ?? GetActionParam(action, "name");
+                            var (ok, msg) = await DeleteScheduledTaskAsync(taskName, ct);
+                            await poller.SubmitResultAsync(action.Id, ok, msg, null, ct);
+                        }
+                        else if (action.ActionType == "delete_run_key")
+                        {
+                            var hive = GetActionParam(action, "hive") ?? "HKCU";
+                            var keyPath = GetActionParam(action, "key_path") ?? GetActionParam(action, "keyPath");
+                            var valueName = GetActionParam(action, "value_name") ?? GetActionParam(action, "valueName");
+                            var (ok, msg) = await DeleteRunValueAsync(hive, keyPath, valueName, ct);
+                            await poller.SubmitResultAsync(action.Id, ok, msg, null, ct);
+                        }
+                        else if (action.ActionType == "delete_path")
+                        {
+                            var path = GetActionParam(action, "path");
+                            var (ok, msg) = await DeletePathAsync(path, ct);
+                            await poller.SubmitResultAsync(action.Id, ok, msg, null, ct);
                         }
                     }
                     catch (Exception ex)
@@ -372,9 +425,130 @@ public class AgentWorker
 
     private static string? GetActionParam(ResponseAction action, string key)
     {
-        if (!action.Parameters.HasValue || action.Parameters.Value.ValueKind != JsonValueKind.Object) return null;
-        if (!action.Parameters.Value.TryGetProperty(key, out var p)) return null;
-        return p.ValueKind == JsonValueKind.String ? p.GetString() : p.ToString();
+        if (!action.Parameters.HasValue) return null;
+        try
+        {
+            var el = action.Parameters.Value;
+            // API may send parameters as a JSON string (double-encoded) — same as ProcessId handling.
+            if (el.ValueKind == JsonValueKind.String)
+            {
+                var s = el.GetString();
+                if (string.IsNullOrWhiteSpace(s)) return null;
+                using var doc = JsonDocument.Parse(s);
+                el = doc.RootElement;
+            }
+            if (el.ValueKind != JsonValueKind.Object) return null;
+            if (!el.TryGetProperty(key, out var p)) return null;
+            return p.ValueKind == JsonValueKind.String ? p.GetString() : p.ToString();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static bool IsSafeRemediationPath(string fullPath)
+    {
+        try
+        {
+            var p = Path.GetFullPath(fullPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var allowedRoots = new[]
+            {
+                @"C:\Users\Public",
+                @"C:\Program Files (x86)\Microsoft",
+                @"C:\Program Files\Microsoft",
+            };
+            return allowedRoots.Any(r =>
+                p.StartsWith(Path.GetFullPath(r).TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(p, Path.GetFullPath(r).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase)
+            );
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static Task<(bool Ok, string Message)> DeleteScheduledTaskAsync(string? taskName, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(taskName)) return Task.FromResult((false, "task_name required"));
+        var name = taskName.Trim();
+        if (name.Length > 128) return Task.FromResult((false, "task_name too long"));
+        return RunProcessAsync("schtasks.exe", $"/delete /tn \"{name}\" /f", ct);
+    }
+
+    private static Task<(bool Ok, string Message)> DeleteRunValueAsync(string hive, string? keyPath, string? valueName, CancellationToken ct)
+    {
+        var h = (hive ?? "HKCU").Trim().ToUpperInvariant();
+        if (h is not ("HKCU" or "HKEY_CURRENT_USER"))
+            return Task.FromResult((false, "Only HKCU is allowed for delete_run_key"));
+        if (string.IsNullOrWhiteSpace(keyPath) || string.IsNullOrWhiteSpace(valueName))
+            return Task.FromResult((false, "key_path and value_name required"));
+        var kp = keyPath.Trim().TrimStart('\\');
+        var vn = valueName.Trim();
+        // Safety: restrict to Run key (this is the malware persistence described)
+        if (!kp.Equals(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", StringComparison.OrdinalIgnoreCase))
+            return Task.FromResult((false, "Only HKCU\\...\\Run is allowed"));
+        return RunProcessAsync("reg.exe", $"delete \"HKCU\\{kp}\" /v \"{vn}\" /f", ct);
+    }
+
+    private static Task<(bool Ok, string Message)> DeletePathAsync(string? path, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return Task.FromResult((false, "path required"));
+        var full = path.Trim().TrimEnd('\\');
+        if (!IsSafeRemediationPath(full)) return Task.FromResult((false, "Path not allowed for delete_path"));
+        try
+        {
+            if (File.Exists(full))
+            {
+                File.Delete(full);
+                return Task.FromResult((true, "File deleted"));
+            }
+            if (Directory.Exists(full))
+            {
+                Directory.Delete(full, true);
+                return Task.FromResult((true, "Directory deleted"));
+            }
+            return Task.FromResult((true, "Path not found (already removed)"));
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult((false, ex.Message));
+        }
+    }
+
+    private static async Task<(bool Ok, string Message)> RunProcessAsync(string fileName, string arguments, CancellationToken ct)
+    {
+        try
+        {
+            using var p = new Process();
+            p.StartInfo = new ProcessStartInfo
+            {
+                FileName = fileName,
+                Arguments = arguments,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+            };
+            p.Start();
+            using var reg = ct.Register(() => { try { p.Kill(true); } catch { } });
+            if (!p.WaitForExit(30_000))
+            {
+                try { p.Kill(true); } catch { }
+                return (false, "Timed out");
+            }
+            var stdout = await p.StandardOutput.ReadToEndAsync();
+            var stderr = await p.StandardError.ReadToEndAsync();
+            if (p.ExitCode == 0) return (true, string.IsNullOrWhiteSpace(stdout) ? "ok" : stdout.Trim());
+            var msg = string.IsNullOrWhiteSpace(stderr) ? stdout : stderr;
+            msg = string.IsNullOrWhiteSpace(msg) ? $"exit {p.ExitCode}" : msg.Trim();
+            return (false, msg);
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
     }
 
     private async Task TriageTaskPollLoopAsync(CancellationToken ct)

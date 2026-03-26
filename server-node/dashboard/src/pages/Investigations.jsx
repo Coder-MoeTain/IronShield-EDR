@@ -6,6 +6,7 @@ import FalconTableShell from '../components/FalconTableShell';
 import FalconEmptyState from '../components/FalconEmptyState';
 import FalconPagination from '../components/FalconPagination';
 import { falconSeverityClass } from '../utils/falconUi';
+import { asJsonList } from '../utils/apiJson';
 import styles from './Alerts.module.css';
 
 export default function Investigations() {
@@ -22,7 +23,7 @@ export default function Investigations() {
   useEffect(() => {
     const params = new URLSearchParams(filters);
     api(`/api/admin/investigations?${params}`)
-      .then((r) => r.json())
+      .then((r) => asJsonList(r))
       .then(setCases)
       .catch(() => setCases([]))
       .finally(() => setLoading(false));
@@ -30,8 +31,8 @@ export default function Investigations() {
 
   useEffect(() => {
     api('/api/admin/endpoints?limit=200')
-      .then((r) => r.json())
-      .then((d) => setEndpoints(d.endpoints || d || []))
+      .then((r) => asJsonList(r))
+      .then(setEndpoints)
       .catch(() => setEndpoints([]));
   }, []);
 
@@ -53,7 +54,7 @@ export default function Investigations() {
     setNewEndpointId('');
     const params = new URLSearchParams(filters);
     const r = await api(`/api/admin/investigations?${params}`);
-    setCases(await r.json());
+    setCases(await asJsonList(r));
   };
 
   return (
