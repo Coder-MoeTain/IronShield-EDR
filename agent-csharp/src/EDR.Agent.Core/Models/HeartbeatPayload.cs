@@ -106,6 +106,42 @@ public class HeartbeatPayload
     /// <summary>ISO 8601 UTC when EDR policy was last fetched successfully.</summary>
     [JsonPropertyName("last_edr_policy_sync_utc")]
     public string? LastEdrPolicySyncUtc { get; set; }
+
+    /// <summary>TCP/UDP listening sockets on the host (Windows).</summary>
+    [JsonPropertyName("listening_ports")]
+    public List<ListeningPortPayload>? ListeningPorts { get; set; }
+
+    /// <summary>SMB / Win32 shares exposed by the host (Windows WMI).</summary>
+    [JsonPropertyName("shared_folders")]
+    public List<SharedFolderPayload>? SharedFolders { get; set; }
+}
+
+public class ListeningPortPayload
+{
+    [JsonPropertyName("local_address")]
+    public string? LocalAddress { get; set; }
+
+    [JsonPropertyName("local_port")]
+    public int LocalPort { get; set; }
+
+    [JsonPropertyName("protocol")]
+    public string Protocol { get; set; } = "TCP";
+}
+
+public class SharedFolderPayload
+{
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("path")]
+    public string? Path { get; set; }
+
+    /// <summary>Win32_Share Type: 0=disk, 1=print, 3=IPC, etc.</summary>
+    [JsonPropertyName("share_type")]
+    public int? ShareType { get; set; }
+
+    [JsonPropertyName("caption")]
+    public string? Caption { get; set; }
 }
 
 public class NetworkConnectionPayload

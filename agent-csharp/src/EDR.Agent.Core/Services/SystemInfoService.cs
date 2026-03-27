@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Management;
@@ -83,6 +85,8 @@ public class SystemInfoService
             MacAddress = GetMacAddress(),
             AgentVersion = agentVersion ?? "1.0.0",
             Connections = GetNetworkConnections(),
+            ListeningPorts = GetListeningPorts(),
+            SharedFolders = GetSharedFolders(),
             CpuPercent = cpu,
             RamPercent = ramPct,
             RamTotalMb = ramTotalMb,
@@ -244,6 +248,90 @@ public class SystemInfoService
                     RemotePort = conn.RemoteEndPoint.Port,
                     Protocol = "TCP",
                     State = conn.State.ToString(),
+                });
+            }
+            return list.Count > 0 ? list : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// TCP/UDP listening sockets (Windows only). Bounded for heartbeat size.
+    /// </summary>
+    public List<ListeningPortPayload>? GetListeningPorts()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return null;
+
+        try
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var list = new List<ListeningPortPayload>();
+            var props = IPGlobalProperties.GetIPGlobalProperties();
+            foreach (var ep in props.GetActiveTcpListeners())
+            {
+                if (list.Count >= 300) break;
+                var key = $"tcp|{ep.Address}|{ep.Port}";
+                if (!seen.Add(key)) continue;
+                list.Add(new ListeningPortPayload
+                {
+                    LocalAddress = ep.Address?.ToString(),
+                    LocalPort = ep.Port,
+                    Protocol = "TCP",
+                });
+            }
+            foreach (var ep in props.GetActiveUdpListeners())
+            {
+                if (list.Count >= 300) break;
+                var key = $"udp|{ep.Address}|{ep.Port}";
+                if (!seen.Add(key)) continue;
+                list.Add(new ListeningPortPayload
+                {
+                    LocalAddress = ep.Address?.ToString(),
+                    LocalPort = ep.Port,
+                    Protocol = "UDP",
+                });
+            }
+            list.Sort((a, b) => a.LocalPort.CompareTo(b.LocalPort));
+            return list.Count > 0 ? list : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// SMB shares from Win32_Share (Windows only).
+    /// </summary>
+    public List<SharedFolderPayload>? GetSharedFolders()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return null;
+
+        try
+        {
+            var list = new List<SharedFolderPayload>();
+            using var searcher = new ManagementObjectSearcher("SELECT Name, Path, Type, Caption FROM Win32_Share");
+            foreach (ManagementObject obj in searcher.Get())
+            {
+                if (list.Count >= 150) break;
+                var name = obj["Name"]?.ToString();
+                if (string.IsNullOrEmpty(name)) continue;
+                int? st = null;
+                if (obj["Type"] != null)
+                {
+                    try { st = Convert.ToInt32(obj["Type"]); } catch { }
+                }
+                list.Add(new SharedFolderPayload
+                {
+                    Name = name,
+                    Path = obj["Path"]?.ToString(),
+                    ShareType = st,
+                    Caption = obj["Caption"]?.ToString(),
                 });
             }
             return list.Count > 0 ? list : null;
