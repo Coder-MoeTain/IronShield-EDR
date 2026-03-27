@@ -278,3 +278,49 @@
 .eventLink:hover {
   opacity: 1;
 }
+
+/* Dark mode: Kill / Isolate / Triage / Investigate / Tree + table chrome */
+:global([data-theme="dark"]) .actionBtn {
+  background: rgba(2, 12, 28, 0.95);
+  border-color: rgba(34, 211, 238, 0.22);
+  color: var(--text-primary, #e0f2fe);
+}
+
+:global([data-theme="dark"]) .actionBtn:hover {
+  background: rgba(6, 32, 52, 0.98);
+  border-color: rgba(34, 211, 238, 0.5);
+  color: #f0f9ff;
+}
+
+:global([data-theme="dark"]) .tableWrap {
+  background: rgba(6, 20, 40, 0.82);
+  border-color: rgba(34, 211, 238, 0.18);
+}
+
+:global([data-theme="dark"]) .table th {
+  background: rgba(3, 12, 28, 0.98);
+  border-bottom-color: rgba(34, 211, 238, 0.1);
+}
+
+:global([data-theme="dark"]) .filters input {
+  background: rgba(2, 12, 28, 0.95) !important;
+  border-color: rgba(34, 211, 238, 0.22) !important;
+}
+
+:global([data-theme="dark"]) .refreshBtn {
+  background: rgba(2, 12, 28, 0.95);
+  border-color: rgba(34, 211, 238, 0.22);
+  color: var(--text-primary, #e0f2fe);
+}
+
+:global([data-theme="dark"]) .actionMsg {
+  background: rgba(3, 12, 28, 0.95);
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  color: var(--text-primary, #e0f2fe);
+}
+
+:global([data-theme="dark"]) .closeDetail {
+  background: rgba(2, 12, 28, 0.95);
+  border-color: rgba(34, 211, 238, 0.22);
+  color: var(--text-primary, #e0f2fe);
+}

@@ -6,6 +6,7 @@ const ResponseActionService = require('./ResponseActionService');
 
 const ALLOWED_PLAYBOOK_ACTIONS = new Set([
   'kill_process',
+  'shutdown_agent',
   'request_heartbeat',
   'collect_triage',
   'isolate_host',

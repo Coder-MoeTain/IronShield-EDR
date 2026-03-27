@@ -95,6 +95,14 @@
   border-color: rgba(224, 30, 55, 0.45);
 }
 
+.newsBand {
+  width: 100%;
+}
+
+.httpMapBand {
+  width: 100%;
+}
+
 .statsBar {
   display: flex;
   align-items: center;
@@ -164,6 +172,7 @@
 .kpiAlerts .kpiValue { color: var(--accent-amber); }
 .kpiCritical .kpiValue { color: var(--accent-red); }
 .kpiSuspect .kpiValue { color: var(--accent-amber); }
+.kpiPending .kpiValue { color: #f59e0b; }
 
 /* Charts Row - Full width line charts */
 .chartsRow {
@@ -178,9 +187,22 @@
   gap: 1.5rem;
 }
 
+.chartsRowWide {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.chartsRow3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
 @media (max-width: 1100px) {
   .chartsRow { grid-template-columns: 1fr; }
   .chartsRow2 { grid-template-columns: 1fr 1fr; }
+  .chartsRow3 { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 700px) {
@@ -234,6 +256,17 @@
 .chartBodySmall {
   height: 200px;
   padding: 1rem 1.25rem;
+}
+
+.chartBodyTall {
+  height: 280px;
+  padding: 1rem 1.25rem;
+}
+
+.chartBodyHoriz {
+  height: 240px;
+  padding: 0.75rem 1rem 1rem;
+  min-height: 200px;
 }
 
 .chartEmpty {

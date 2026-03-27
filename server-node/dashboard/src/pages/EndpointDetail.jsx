@@ -656,7 +656,9 @@ export default function EndpointDetail() {
         <div className={styles.actionForm}>
           <select value={actionType} onChange={(e) => setActionType(e.target.value)}>
             <option value="request_heartbeat">Request Heartbeat</option>
-            <option value="kill_process">Kill Process</option>
+            <option value="kill_process">Kill Process (tree via taskkill)</option>
+            <option value="shutdown_agent">Shutdown agent process</option>
+            <option value="rtr_shell">RTR shell command</option>
             <option value="isolate_host">Network containment (isolate)</option>
             <option value="lift_isolation">Lift containment</option>
             <option value="mark_investigating">Mark Investigating</option>
@@ -668,6 +670,16 @@ export default function EndpointDetail() {
           </select>
           {actionType === 'kill_process' && (
             <input type="number" placeholder="Process ID" value={processId} onChange={(e) => setProcessId(e.target.value)} />
+          )}
+          {actionType === 'rtr_shell' && (
+            <input
+              type="text"
+              placeholder="Command (agent allowlist, e.g. whoami)"
+              value={processId}
+              onChange={(e) => setProcessId(e.target.value)}
+              className="mono"
+              style={{ minWidth: '260px' }}
+            />
           )}
           {(actionType === 'quarantine_file' || actionType === 'run_script') && (
             <input type="text" placeholder={actionType === 'quarantine_file' ? 'Full file path' : 'Script path (allowlisted)'} value={processId} onChange={(e) => setProcessId(e.target.value)} className="mono" style={{ minWidth: '240px' }} />
@@ -681,6 +693,8 @@ export default function EndpointDetail() {
           <button onClick={async () => {
             let params;
             if (actionType === 'kill_process' && processId) params = { process_id: parseInt(processId, 10) };
+            else if (actionType === 'shutdown_agent') params = {};
+            else if (actionType === 'rtr_shell' && processId) params = { command: processId.trim() };
             else if (actionType === 'quarantine_file' && processId) params = { file_path: processId };
             else if (actionType === 'block_ip' && processId) params = { ip: processId.trim() };
             else if (actionType === 'block_hash' && processId) params = { sha256: processId.trim() };

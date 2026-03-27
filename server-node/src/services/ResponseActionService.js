@@ -4,14 +4,14 @@
 const db = require('../utils/db');
 const logger = require('../utils/logger');
 
+/** Actions that stay pending until a second analyst approves (two-person rule in UI). */
 const DANGEROUS_ACTIONS = new Set([
-  'kill_process',
+  // kill_process, rtr_shell: execute immediately (no SOC approval queue)
   'isolate_host',
   'lift_isolation',
   'quarantine_file',
   'block_ip',
   'run_script',
-  'rtr_shell',
   'delete_schtask',
   'delete_run_key',
   'delete_path',

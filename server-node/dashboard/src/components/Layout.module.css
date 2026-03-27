@@ -4,6 +4,43 @@
   min-height: 100vh;
 }
 
+.layoutProfessional .main {
+  flex: 1;
+  min-width: 0;
+}
+
+.layoutProfessional .content {
+  padding-left: 1.75rem;
+  padding-right: 1.75rem;
+}
+
+.proQuickNav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  margin-right: auto;
+}
+
+.proQuickLink {
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-display);
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 0.25rem 0.15rem;
+  border-radius: var(--radius-sm, 4px);
+  white-space: nowrap;
+}
+
+.proQuickLink:hover {
+  color: var(--text-primary);
+}
+
+.proQuickLinkActive {
+  color: var(--brand-red, #e01e37);
+}
+
 .sidebar {
   position: relative;
   width: 256px;
@@ -13,6 +50,8 @@
   display: flex;
   flex-direction: column;
   box-shadow: 2px 0 12px rgba(0, 0, 0, 0.35);
+  /* Undo html rem +1pt so nav rail matches previous visual size */
+  zoom: calc(16px / (16px + 1pt));
 }
 
 /* Brand accent rail (Falcon-style top stripe) */
@@ -63,14 +102,14 @@
 
 .logoTitle {
   font-weight: 700;
-  font-size: 0.9375rem;
+  font-size: calc(0.9375rem + 2pt);
   letter-spacing: -0.02em;
   color: var(--text-primary);
   line-height: 1.2;
 }
 
 .logoSub {
-  font-size: 0.625rem;
+  font-size: calc(0.625rem + 2pt);
   text-transform: uppercase;
   letter-spacing: 0.14em;
   color: var(--text-muted);
@@ -105,7 +144,7 @@
   border: none;
   background: none;
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem + 2pt);
   font-weight: 500;
   cursor: pointer;
   position: relative;
@@ -155,7 +194,7 @@
 .navChevron {
   position: absolute;
   right: 0.45rem;
-  font-size: 0.6rem;
+  font-size: calc(0.6rem + 2pt);
   opacity: 0.55;
 }
 
@@ -176,14 +215,14 @@
 
 .navSubItem {
   padding-left: 1.75rem !important;
-  font-size: 0.75rem;
+  font-size: calc(0.75rem + 2pt);
   font-weight: 400;
 }
 
 .user {
   padding: 0.85rem 0.75rem;
   border-top: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.06));
-  font-size: 0.78rem;
+  font-size: calc(0.78rem + 2pt);
   background: rgba(0, 0, 0, 0.2);
 }
 
@@ -191,13 +230,13 @@
   display: block;
   font-weight: 600;
   color: var(--text-primary);
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem + 2pt);
 }
 
 .userRole {
   display: block;
   color: var(--text-muted);
-  font-size: 0.625rem;
+  font-size: calc(0.625rem + 2pt);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-top: 0.15rem;
@@ -206,7 +245,7 @@
 .logout {
   margin-top: 0.55rem;
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: calc(0.75rem + 2pt);
   padding: 0.2rem 0;
 }
 
@@ -239,9 +278,9 @@
 }
 
 [data-theme='dark'] .mainHeader {
-  background: rgba(12, 14, 17, 0.78);
-  border-bottom-color: rgba(255, 255, 255, 0.06);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  background: var(--topbar-bg, rgba(3, 8, 16, 0.92));
+  border-bottom-color: var(--border);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
 }
 
 .content {
@@ -268,4 +307,61 @@
 
 [data-theme="light"] .user {
   background: rgba(0, 0, 0, 0.02);
+}
+
+/* Dark — Crucix-style rail: black void, teal accent rail, flat geometry */
+[data-theme='dark'] .sidebar {
+  background: #000000;
+  border-right-color: rgba(6, 182, 212, 0.2);
+  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.8);
+}
+
+[data-theme='dark'] .sidebar::before {
+  height: 2px;
+  background: linear-gradient(90deg, #06b6d4 0%, #0891b2 45%, #06b6d4 100%);
+}
+
+[data-theme='dark'] .logoMark {
+  border-radius: 0;
+  background: linear-gradient(160deg, rgba(6, 182, 212, 0.14), rgba(6, 182, 212, 0.03));
+  border-color: rgba(6, 182, 212, 0.5);
+  color: #22d3ee;
+}
+
+[data-theme='dark'] .logoSub {
+  color: rgba(6, 182, 212, 0.75);
+  letter-spacing: 0.16em;
+}
+
+[data-theme='dark'] .nav a,
+[data-theme='dark'] .navGroupBtn {
+  border-radius: 0;
+}
+
+[data-theme='dark'] .navActive {
+  background: rgba(6, 182, 212, 0.1) !important;
+  color: #ecfeff !important;
+  box-shadow: inset 3px 0 0 #06b6d4;
+}
+
+[data-theme='dark'] .nav a:hover,
+[data-theme='dark'] .navGroupBtn:hover {
+  background: rgba(6, 182, 212, 0.06);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .logout:hover {
+  color: #22d3ee;
+}
+
+[data-theme='dark'] .mainHeader {
+  background: #000000;
+  border-bottom: 1px solid rgba(6, 182, 212, 0.2);
+  box-shadow: 0 1px 0 rgba(6, 182, 212, 0.06);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-theme='dark'] .proQuickLinkActive {
+  color: #22d3ee;
 }

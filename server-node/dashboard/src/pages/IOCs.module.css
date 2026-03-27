@@ -58,3 +58,27 @@
   .search { min-width: 0; }
   .metrics { grid-template-columns: 1fr; }
 }
+
+/* Dark mode: Watchlist / Recent Matches panels — replace light glass headers with cyber navy */
+:global([data-theme="dark"]) .panel {
+  background: rgba(6, 20, 40, 0.82);
+  border-color: rgba(34, 211, 238, 0.18);
+  backdrop-filter: blur(12px);
+}
+
+:global([data-theme="dark"]) .panel h2 {
+  background: rgba(3, 12, 28, 0.98);
+  border-bottom-color: rgba(34, 211, 238, 0.14);
+  color: var(--text-primary, #e0f2fe);
+}
+
+:global([data-theme="dark"]) .table th {
+  background: rgba(3, 12, 28, 0.98);
+  border-bottom-color: rgba(34, 211, 238, 0.1);
+}
+
+:global([data-theme="dark"]) .addCard input,
+:global([data-theme="dark"]) .addCard select {
+  background: rgba(2, 12, 28, 0.95) !important;
+  border-color: rgba(34, 211, 238, 0.22) !important;
+}

@@ -333,6 +333,46 @@ function toNull(v) {
   return v === undefined ? null : v;
 }
 
+/** Ports treated as web (HTTP/HTTPS) traffic for dashboard map */
+const HTTP_MAP_PORTS = [80, 443, 8080, 8443, 8000, 8888, 9443];
+
+/**
+ * Aggregated agent→remote edges for HTTP(S) connections (Activity dashboard map).
+ * @param {number|null} tenantId
+ * @param {number} hours 1–168
+ * @returns {Promise<Array<{ endpoint_id: number, remote_address: string, hostname: string, w: number }>>}
+ */
+async function getHttpMapAggregates(tenantId, hours = 24) {
+  try {
+    const h = Math.min(Math.max(parseInt(hours, 10) || 24, 1), 168);
+    const portPh = HTTP_MAP_PORTS.map(() => '?').join(', ');
+    let sql = `
+      SELECT nc.endpoint_id, nc.remote_address, MAX(e.hostname) AS hostname, COUNT(*) AS w
+      FROM network_connections nc
+      JOIN endpoints e ON e.id = nc.endpoint_id
+      WHERE nc.remote_address IS NOT NULL AND nc.remote_address != '' AND nc.remote_address != '0.0.0.0'
+      AND nc.last_seen >= DATE_SUB(NOW(), INTERVAL ? HOUR)
+      AND nc.remote_port IN (${portPh})
+    `;
+    const params = [h, ...HTTP_MAP_PORTS];
+    if (tenantId != null) {
+      sql += ' AND e.tenant_id = ?';
+      params.push(tenantId);
+    }
+    sql += ' GROUP BY nc.endpoint_id, nc.remote_address ORDER BY w DESC LIMIT 800';
+    const rows = await safeQuery(sql, params);
+    return (rows || []).map((r) => ({
+      endpoint_id: r.endpoint_id,
+      remote_address: r.remote_address,
+      hostname: r.hostname,
+      w: Math.max(1, Number(r.w) || 1),
+    }));
+  } catch (err) {
+    logger.warn({ err: err.message }, 'NetworkService.getHttpMapAggregates');
+    return [];
+  }
+}
+
 async function upsertConnection(endpointId, conn) {
   const local_address = toNull(conn.local_address);
   const local_port = toNull(conn.local_port);
@@ -371,5 +411,6 @@ module.exports = {
   getTrafficSummary,
   getNetworkKpi,
   getNetworkEventsFromNormalized,
+  getHttpMapAggregates,
   upsertConnection,
 };

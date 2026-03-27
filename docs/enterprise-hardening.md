@@ -130,3 +130,7 @@ GitHub Actions workflows:
 - `.github/workflows/ci.yml` — backend syntax check + dashboard build
 - `.github/workflows/codeql.yml` — CodeQL JS analysis
 
+## Threat model, control mapping, and assurance (substitute artifacts)
+
+For a structured **threat model workbook**, **NIST-style control mapping**, and a **continuous assurance** program (dependency audit + tests + review checklist), see [docs/security/README.md](security/README.md). Run `npm run security-assurance` from `server-node` for automated checks.
+

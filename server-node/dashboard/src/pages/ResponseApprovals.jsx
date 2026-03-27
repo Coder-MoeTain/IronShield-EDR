@@ -23,9 +23,9 @@ export default function ResponseApprovals() {
   const [busyId, setBusyId] = useState(null);
 
   const canAct = useMemo(() => {
-    // Match server-side SoD role guard for approve/reject actions.
+    // Match server-side SoD role guard for approve/reject (adminRoutes + sod.js).
     const role = String(user?.role || '').toLowerCase();
-    return role === 'analyst' || role === 'super_admin';
+    return role === 'admin' || role === 'analyst' || role === 'super_admin';
   }, [user?.role]);
 
   const isOwnRequest = useCallback(
@@ -53,7 +53,7 @@ export default function ResponseApprovals() {
   const act = async (id, action) => {
     const row = rows.find((x) => String(x.id) === String(id));
     if (!canAct) {
-      setMsg({ text: 'Approval requires analyst or super_admin role.', isError: true });
+      setMsg({ text: 'Approval requires admin, analyst, or super_admin role.', isError: true });
       return;
     }
     if (row && isOwnRequest(row)) {
@@ -63,7 +63,7 @@ export default function ResponseApprovals() {
     setMsg({ text: '', isError: false });
     setBusyId(id);
     try {
-      let body = null;
+      let body = '{}';
       if (action === 'reject') {
         const reason = window.prompt('Reject reason (optional):', '');
         if (reason === null) return;
@@ -137,7 +137,7 @@ export default function ResponseApprovals() {
                         const own = isOwnRequest(r);
                         const blocked = !canAct || own;
                         const reason = !canAct
-                          ? 'Requires analyst or super_admin role'
+                          ? 'Requires admin, analyst, or super_admin role'
                           : own
                             ? 'Two-person rule: requester cannot approve/reject own action'
                             : '';

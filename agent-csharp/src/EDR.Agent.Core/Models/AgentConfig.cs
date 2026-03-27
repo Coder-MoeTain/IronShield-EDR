@@ -57,6 +57,12 @@ public class AgentConfig
     /// <summary>Local queue path (JSON file or directory)</summary>
     public string LocalQueuePath { get; set; } = "queue";
 
+    /// <summary>Max events read per poll from Windows channels (Security, System, Application) combined budget.</summary>
+    public int MaxWindowsEventLogEventsPerPoll { get; set; } = 500;
+
+    /// <summary>Max Sysmon Operational events per poll.</summary>
+    public int MaxSysmonEventsPerPoll { get; set; } = 500;
+
     /// <summary>Optional path prefixes allowed for run_script response (e.g. C:\\IronShield\\Scripts\\)</summary>
     public List<string> ScriptAllowlistPrefixes { get; set; } = new();
 

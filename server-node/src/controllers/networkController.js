@@ -2,6 +2,7 @@
  * Network activity API
  */
 const NetworkService = require('../services/NetworkService');
+const geoIpService = require('../services/geoIpService');
 
 async function listConnections(req, res, next) {
   try {
@@ -61,10 +62,23 @@ async function getNetworkLogs(req, res, next) {
   }
 }
 
+/** Batch geolocate IPs for world map (geoip-lite, max 500). */
+async function geoLookup(req, res, next) {
+  try {
+    const raw = Array.isArray(req.body?.ips) ? req.body.ips : [];
+    const ips = raw.slice(0, 500).map((x) => String(x));
+    const results = geoIpService.batchLookup(ips);
+    res.json({ results });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   listConnections,
   getOutgoingIps,
   getTrafficSummary,
   getNetworkSummary,
   getNetworkLogs,
+  geoLookup,
 };

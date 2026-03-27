@@ -28,22 +28,37 @@ if (config.http?.trustProxy) {
   app.set('trust proxy', 1);
 }
 
+function originMatchesRequest(origin, req) {
+  if (!origin || !req) return false;
+  const host = req.get('host');
+  if (!host) return false;
+  const proto = req.protocol || 'http';
+  try {
+    const u = new URL(origin);
+    return u.protocol === `${proto}:` && u.host === host;
+  } catch {
+    return false;
+  }
+}
+
 // Security middleware
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(
+app.use((req, res, next) => {
   cors({
     origin: (origin, cb) => {
-      // Allow non-browser clients (no Origin) and same-origin calls.
+      // Allow non-browser clients (no Origin).
       if (!origin) return cb(null, true);
       const allow = config.http?.corsOrigins || [];
-      if (allow.length === 0) {
-        return cb(new Error('CORS blocked (CORS_ORIGINS not configured)'), false);
+      if (allow.length > 0) {
+        return allow.includes(origin) ? cb(null, true) : cb(new Error('CORS blocked'), false);
       }
-      return allow.includes(origin) ? cb(null, true) : cb(new Error('CORS blocked'), false);
+      // No allowlist: allow same-origin only (e.g. module scripts / assets still send Origin).
+      if (originMatchesRequest(origin, req)) return cb(null, true);
+      return cb(new Error('CORS blocked (CORS_ORIGINS not configured)'), false);
     },
     credentials: false,
-  })
-);
+  })(req, res, next);
+});
 app.use(express.json({ limit: '2mb' }));
 
 // Rate limiting

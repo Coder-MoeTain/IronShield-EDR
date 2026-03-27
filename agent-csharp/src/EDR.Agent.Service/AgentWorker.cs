@@ -58,8 +58,8 @@ public class AgentWorker
         _collectors = new List<EventCollectorBase>
         {
             new ProcessCollector(),
-            new WindowsEventCollector(),
-            new SysmonCollector(),
+            new WindowsEventCollector(_config),
+            new SysmonCollector(_config),
             new NetworkCollector(),
         };
     }
@@ -75,8 +75,8 @@ public class AgentWorker
         _collectors = new List<EventCollectorBase>
         {
             new ProcessCollector(),
-            new WindowsEventCollector(),
-            new SysmonCollector(),
+            new WindowsEventCollector(_config),
+            new SysmonCollector(_config),
             new NetworkCollector(),
         };
     }
@@ -393,6 +393,12 @@ public class AgentWorker
                         else if (action.ActionType == "mark_investigating")
                         {
                             await poller.SubmitResultAsync(action.Id, true, "Acknowledged", null, ct);
+                        }
+                        else if (action.ActionType == "shutdown_agent")
+                        {
+                            await poller.SubmitResultAsync(action.Id, true, "Agent shutdown requested", null, ct);
+                            Console.WriteLine("[Agent] shutdown_agent: exiting process.");
+                            Environment.Exit(0);
                         }
                         else if (action.ActionType == "rtr_shell")
                         {

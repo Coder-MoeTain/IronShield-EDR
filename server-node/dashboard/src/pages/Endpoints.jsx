@@ -86,7 +86,7 @@ export default function Endpoints() {
               <th>Policy</th>
               <th>Status</th>
               <th>Last Heartbeat</th>
-              <th></th>
+              <th className={styles.actionsHead} aria-label="Actions" />
             </tr>
           </thead>
           <tbody>
@@ -190,7 +190,7 @@ export default function Endpoints() {
                     ? new Date(ep.last_heartbeat_at).toLocaleString()
                     : '-'}
                 </td>
-                <td>
+                <td className={styles.actionsCell}>
                   <Link to={`/endpoints/${ep.id}`} className={styles.viewLink}>View</Link>
                   {' '}
                   <button

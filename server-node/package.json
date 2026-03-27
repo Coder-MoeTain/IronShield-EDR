@@ -49,6 +49,7 @@
     "run-dr-drill": "powershell -NoProfile -File scripts/run-dr-drill.ps1",
     "run-detection-replay": "node scripts/detection-replay.js --expect-matches 2",
     "export-compliance-evidence": "node scripts/export-compliance-evidence.js",
+    "security-assurance": "node scripts/security-assurance.js",
     "build-dashboard": "cd dashboard && npm install && npm run build"
   },
   "dependencies": {
@@ -58,6 +59,7 @@
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
+    "geoip-lite": "^1.4.10",
     "helmet": "^7.1.0",
     "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.2",

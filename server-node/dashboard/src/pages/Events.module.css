@@ -292,3 +292,47 @@
   color: var(--text-muted);
   text-align: center;
 }
+
+/* Dark mode: Details / Tree / Endpoint quick actions + table chrome (cyber navy) */
+:global([data-theme="dark"]) .quickBtn {
+  background: rgba(2, 12, 28, 0.95);
+  border-color: rgba(34, 211, 238, 0.22);
+  color: var(--text-primary, #e0f2fe);
+}
+
+:global([data-theme="dark"]) .quickBtn:hover {
+  background: rgba(6, 32, 52, 0.98);
+  border-color: rgba(34, 211, 238, 0.5);
+  color: #f0f9ff;
+}
+
+:global([data-theme="dark"]) .tableWrap {
+  background: rgba(6, 20, 40, 0.82);
+  border-color: rgba(34, 211, 238, 0.18);
+}
+
+:global([data-theme="dark"]) .table th {
+  background: rgba(3, 12, 28, 0.98);
+  border-bottom-color: rgba(34, 211, 238, 0.1);
+}
+
+:global([data-theme="dark"]) .eventRow:hover {
+  background: rgba(34, 211, 238, 0.06);
+}
+
+:global([data-theme="dark"]) .statCard:hover {
+  background: rgba(6, 20, 40, 0.95);
+  border-color: rgba(34, 211, 238, 0.35);
+}
+
+:global([data-theme="dark"]) .filters input,
+:global([data-theme="dark"]) .filters select {
+  background: rgba(2, 12, 28, 0.95) !important;
+  border-color: rgba(34, 211, 238, 0.22) !important;
+}
+
+:global([data-theme="dark"]) .pagination button {
+  background: rgba(2, 12, 28, 0.95);
+  border-color: rgba(34, 211, 238, 0.22);
+  color: var(--text-primary, #e0f2fe);
+}

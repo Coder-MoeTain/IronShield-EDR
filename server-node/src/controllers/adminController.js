@@ -21,11 +21,32 @@ const ProcessTimelineService = require('../services/ProcessTimelineService');
 const ComplianceService = require('../services/ComplianceService');
 const db = require('../utils/db');
 const DetectionRuleService = require('../services/DetectionRuleService');
+const NetworkService = require('../services/NetworkService');
+const { getCyberNews } = require('../services/cyberNewsService');
 
 async function dashboardSummary(req, res, next) {
   try {
     const summary = await DashboardService.getSummary(req.tenantId);
     res.json(summary);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function cyberNews(req, res, next) {
+  try {
+    const data = await getCyberNews();
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function dashboardHttpMap(req, res, next) {
+  try {
+    const hours = Math.min(parseInt(req.query.hours, 10) || 24, 168);
+    const connections = await NetworkService.getHttpMapAggregates(req.tenantId, hours);
+    res.json({ hours, connections });
   } catch (err) {
     next(err);
   }
@@ -637,6 +658,8 @@ async function getComplianceSummary(req, res, next) {
 
 module.exports = {
   dashboardSummary,
+  cyberNews,
+  dashboardHttpMap,
   listEndpoints,
   getEndpoint,
   patchEndpoint,

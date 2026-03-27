@@ -1,0 +1,103 @@
+{
+  "$schema": "IronShield control mapping v1 — NIST CSF 2.0–aligned (informal)",
+  "last_reviewed": null,
+  "deployment_notes": "Fill last_reviewed as ISO date when you review. Add deployment-specific rows in overrides (separate file optional).",
+  "controls": [
+    {
+      "id": "GV.RR-02",
+      "framework": "NIST CSF 2.0",
+      "name": "Cybersecurity supply chain risk management",
+      "status": "partial",
+      "evidence": ["package.json", "docs/security/assurance-program.md"],
+      "notes": "npm audit via security-assurance; vendor SBOM not automated in-repo."
+    },
+    {
+      "id": "GV.SC-01",
+      "framework": "NIST CSF 2.0",
+      "name": "Configuration management",
+      "status": "partial",
+      "evidence": ["server-node/.env.example", "docs/enterprise-hardening.md"],
+      "notes": "Env-based config; formal CMDB is organizational."
+    },
+    {
+      "id": "PR.AA-01",
+      "framework": "NIST CSF 2.0",
+      "name": "Identities and credentials for users",
+      "status": "implemented",
+      "evidence": ["server-node/src/middleware/auth.js", "server-node/src/routes/authRoutes.js"],
+      "notes": "JWT + admin_users session_version invalidation."
+    },
+    {
+      "id": "PR.AA-05",
+      "framework": "NIST CSF 2.0",
+      "name": "Access permissions",
+      "status": "implemented",
+      "evidence": ["server-node/src/middleware/rbac.js", "server-node/src/routes/adminRoutes.js"],
+      "notes": "RBAC on admin routes; tenant scoping."
+    },
+    {
+      "id": "PR.DS-01",
+      "framework": "NIST CSF 2.0",
+      "name": "Data-at-rest protection",
+      "status": "partial",
+      "evidence": ["database/schema.sql"],
+      "notes": "DB encryption/TDE is deployment (MySQL/host); app stores secrets in env."
+    },
+    {
+      "id": "PR.DS-10",
+      "framework": "NIST CSF 2.0",
+      "name": "Data-in-transit protection",
+      "status": "implemented",
+      "evidence": ["server-node/src/index.js", "docs/enterprise-hardening.md"],
+      "notes": "TLS optional in Node; production expects TLS at proxy or Node HTTPS."
+    },
+    {
+      "id": "PR.IR-01",
+      "framework": "NIST CSF 2.0",
+      "name": "Incident response preparation",
+      "status": "partial",
+      "evidence": ["docs/ha-dr-runbook.md", "server-node/src/controllers/adminController.js"],
+      "notes": "Investigations/playbooks in product; IR process is organizational."
+    },
+    {
+      "id": "DE.CM-01",
+      "framework": "NIST CSF 2.0",
+      "name": "Networks monitored",
+      "status": "implemented",
+      "evidence": ["agent-csharp/src/EDR.Agent.Core/Collectors", "server-node/src/routes/ingestRoutes.js"],
+      "notes": "Agent collectors + ingest; scope is Windows agent deployment."
+    },
+    {
+      "id": "DE.AE-02",
+      "framework": "NIST CSF 2.0",
+      "name": "Potentially adverse events analyzed",
+      "status": "implemented",
+      "evidence": ["server-node/src/services", "docs/crowdstrike-detection-rules.md"],
+      "notes": "Detection engine, correlation, XDR tables."
+    },
+    {
+      "id": "RS.MA-01",
+      "framework": "NIST CSF 2.0",
+      "name": "Incident management",
+      "status": "partial",
+      "evidence": ["server-node/src/services", "docs/falcon-parity-features.md"],
+      "notes": "Alerts, investigations, response actions; formal RSOP external."
+    },
+    {
+      "id": "RC.RP-01",
+      "framework": "NIST CSF 2.0",
+      "name": "Recovery planning",
+      "status": "partial",
+      "evidence": ["docs/ha-dr-runbook.md"],
+      "notes": "Runbook exists; RTO/RPO are organizational."
+    },
+    {
+      "id": "AUDIT-ADMIN",
+      "framework": "internal",
+      "name": "Administrative action audit trail",
+      "status": "implemented",
+      "evidence": ["server-node/src/middleware/adminAuditTrail.js", "server-node/src/services/AuditLogService.js"],
+      "notes": "Best-effort insert; optional immutable archive via env."
+    }
+  ]
+}

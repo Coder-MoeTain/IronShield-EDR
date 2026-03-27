@@ -13,9 +13,11 @@ import {
   Legend,
   Filler,
 } from 'chart.js';
-import { Line, Doughnut } from 'react-chartjs-2';
+import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import { useAuth } from '../context/AuthContext';
 import ReportSearch from '../components/ReportSearch';
+import CyberNewsTicker from '../components/CyberNewsTicker';
+import DashboardHttpMap from '../components/DashboardHttpMap';
 import PageShell from '../components/PageShell';
 import { falconSeverityClass } from '../utils/falconUi';
 import styles from './Dashboard.module.css';
@@ -238,6 +240,144 @@ export default function Dashboard() {
     };
   }, [summary?.alertSummary]);
 
+  /** Hourly events + alerts merged for grouped bar (24h) */
+  const combinedEventsAlertsBarData = useMemo(() => {
+    const ev = summary?.eventsOverTime || [];
+    const al = summary?.alertsOverTime || [];
+    const eventsByHour = {};
+    const alertsByHour = {};
+    ev.forEach((r) => {
+      eventsByHour[r.hour] = Number(r.count) || 0;
+    });
+    al.forEach((r) => {
+      alertsByHour[r.hour] = Number(r.count) || 0;
+    });
+    const hours = [...new Set([...Object.keys(eventsByHour), ...Object.keys(alertsByHour)])].sort();
+    if (hours.length === 0) return null;
+    return {
+      labels: hours.map((h) => formatHour(h)),
+      datasets: [
+        {
+          label: 'Events',
+          data: hours.map((h) => eventsByHour[h] || 0),
+          backgroundColor: CHART_COLORS.blue,
+          borderRadius: 4,
+        },
+        {
+          label: 'Alerts',
+          data: hours.map((h) => alertsByHour[h] || 0),
+          backgroundColor: CHART_COLORS.red,
+          borderRadius: 4,
+        },
+      ],
+    };
+  }, [summary?.eventsOverTime, summary?.alertsOverTime]);
+
+  /** DB alert workflow status (new / in_progress / resolved / …) */
+  const alertsByStatusBarData = useMemo(() => {
+    const rows = summary?.alertsByStatus || [];
+    if (!rows.length) return null;
+    const sorted = [...rows].sort((a, b) => (b.count || 0) - (a.count || 0));
+    const palette = [CHART_COLORS.blue, CHART_COLORS.cyan, CHART_COLORS.amber, CHART_COLORS.green, CHART_COLORS.red, CHART_COLORS.slate];
+    return {
+      labels: sorted.map((r) => String(r.status || 'unknown').replace(/_/g, ' ')),
+      datasets: [
+        {
+          label: 'Alerts',
+          data: sorted.map((r) => r.count || 0),
+          backgroundColor: sorted.map((_, i) => palette[i % palette.length]),
+          borderRadius: 4,
+        },
+      ],
+    };
+  }, [summary?.alertsByStatus]);
+
+  /** Isolation / investigating / normal host counts */
+  const endpointsByPolicyChartData = useMemo(() => {
+    const rows = summary?.endpointsByPolicy || [];
+    if (!rows.length) return null;
+    const colors = {
+      normal: CHART_COLORS.green,
+      isolated: CHART_COLORS.red,
+      investigating: CHART_COLORS.amber,
+    };
+    return {
+      labels: rows.map((r) => String(r.policy || 'normal').replace(/_/g, ' ')),
+      datasets: [
+        {
+          data: rows.map((r) => r.count || 0),
+          backgroundColor: rows.map((r) => colors[String(r.policy).toLowerCase()] || CHART_COLORS.slate),
+          borderWidth: 0,
+        },
+      ],
+    };
+  }, [summary?.endpointsByPolicy]);
+
+  /** Top event types as horizontal bars */
+  const topEventTypesBarData = useMemo(() => {
+    const types = (summary?.eventTypes || []).slice(0, 8);
+    if (!types.length) return null;
+    return {
+      labels: types.map((t) => {
+        const name = String(t.type || 'unknown');
+        return name.length > 36 ? `${name.slice(0, 34)}…` : name;
+      }),
+      datasets: [
+        {
+          label: 'Count',
+          data: types.map((t) => Number(t.count) || 0),
+          backgroundColor: CHART_COLORS.cyan,
+          borderRadius: 4,
+        },
+      ],
+    };
+  }, [summary?.eventTypes]);
+
+  const barGroupedOptions = useMemo(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 12 } },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { maxRotation: 45, font: { size: 9 }, color: '#8b939e' },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(128, 128, 128, 0.18)' },
+          ticks: { font: { size: 10 }, color: '#8b939e' },
+        },
+      },
+    }),
+    []
+  );
+
+  const barHorizontalOptions = useMemo(
+    () => ({
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          grid: { color: 'rgba(128, 128, 128, 0.18)' },
+          ticks: { font: { size: 10 }, color: '#8b939e' },
+        },
+        y: {
+          grid: { display: false },
+          ticks: { font: { size: 10 }, color: '#8b939e' },
+        },
+      },
+    }),
+    []
+  );
+
   const filterAlerts = useMemo(() => {
     const list = summary?.recentAlerts || [];
     const q = searchAlerts.trim().toLowerCase();
@@ -295,7 +435,7 @@ export default function Dashboard() {
     <PageShell
       kicker="Overview"
       title="Activity"
-      description="Console overview — sensor volume, detections, and host posture (24h windows where applicable)."
+      description="Sensor volume, detections, SOC queue, host policy, and workflows — 24h charts refresh every 30s."
       actions={(
         <>
           {lastUpdate && (
@@ -328,6 +468,14 @@ export default function Dashboard() {
           <strong>{inv.open ?? 0}</strong> open investigations
         </span>
       </div>
+
+      <section className={styles.newsBand} aria-label="Cyber news stream">
+        <CyberNewsTicker />
+      </section>
+
+      <section className={styles.httpMapBand} aria-label="Agent HTTP request map">
+        <DashboardHttpMap />
+      </section>
 
       <section className={styles.kpiRow}>
         <div className={styles.kpiCard} onClick={() => navigate('/endpoints')}>
@@ -366,6 +514,18 @@ export default function Dashboard() {
           <span className={styles.kpiValue}>{summary?.triagePending ?? 0}</span>
           <span className={styles.kpiLabel}>Triage Pending</span>
         </div>
+        <div className={`${styles.kpiCard} ${styles.kpiPending}`} onClick={() => navigate('/respond/approvals')}>
+          <span className={styles.kpiValue}>{summary?.responseActionsPending ?? 0}</span>
+          <span className={styles.kpiLabel}>Approvals Queue</span>
+        </div>
+        <div className={styles.kpiCard} onClick={() => navigate('/incidents')}>
+          <span className={styles.kpiValue}>{summary?.openIncidents ?? 0}</span>
+          <span className={styles.kpiLabel}>Open Incidents</span>
+        </div>
+        <div className={styles.kpiCard} onClick={() => navigate('/audit-logs')}>
+          <span className={styles.kpiValue}>{(summary?.auditEvents24h ?? 0).toLocaleString()}</span>
+          <span className={styles.kpiLabel}>Audit (24h)</span>
+        </div>
         <div className={styles.kpiCard} onClick={() => navigate('/events')}>
           <span className={styles.kpiValue}>{(summary?.eventsTotal ?? 0).toLocaleString()}</span>
           <span className={styles.kpiLabel}>Total Events</span>
@@ -396,6 +556,25 @@ export default function Dashboard() {
               <Line data={alertsChartData} options={chartOptions} />
             ) : (
               <div className={styles.chartEmpty}>No alerts in last 24h</div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.chartsRowWide}>
+        <div className={styles.chartCard}>
+          <div className={styles.chartHeader}>
+            <h3>Events vs alerts by hour (24h)</h3>
+            <div className={styles.chartHeaderRight}>
+              <Link to="/events" className={styles.chartLink}>Events</Link>
+              <Link to="/alerts" className={styles.chartLink}>Alerts</Link>
+            </div>
+          </div>
+          <div className={styles.chartBodyTall}>
+            {combinedEventsAlertsBarData ? (
+              <Bar data={combinedEventsAlertsBarData} options={barGroupedOptions} />
+            ) : (
+              <div className={styles.chartEmpty}>No hourly data in last 24h</div>
             )}
           </div>
         </div>
@@ -462,6 +641,55 @@ export default function Dashboard() {
               />
             ) : (
               <div className={styles.chartEmpty}>No alerts</div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.chartsRow3}>
+        <div className={styles.chartCard}>
+          <div className={styles.chartHeader}>
+            <h3>Alerts by workflow status</h3>
+            <Link to="/alerts" className={styles.chartLink}>View</Link>
+          </div>
+          <div className={styles.chartBodyHoriz}>
+            {alertsByStatusBarData ? (
+              <Bar data={alertsByStatusBarData} options={barHorizontalOptions} />
+            ) : (
+              <div className={styles.chartEmpty}>No status breakdown</div>
+            )}
+          </div>
+        </div>
+        <div className={styles.chartCard}>
+          <div className={styles.chartHeader}>
+            <h3>Hosts by policy</h3>
+            <Link to="/endpoints" className={styles.chartLink}>Endpoints</Link>
+          </div>
+          <div className={styles.chartBodySmall}>
+            {endpointsByPolicyChartData ? (
+              <Doughnut
+                data={endpointsByPolicyChartData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } },
+                }}
+              />
+            ) : (
+              <div className={styles.chartEmpty}>No policy data</div>
+            )}
+          </div>
+        </div>
+        <div className={styles.chartCard}>
+          <div className={styles.chartHeader}>
+            <h3>Top event types (volume)</h3>
+            <Link to="/events" className={styles.chartLink}>Explore</Link>
+          </div>
+          <div className={styles.chartBodyHoriz}>
+            {topEventTypesBarData ? (
+              <Bar data={topEventTypesBarData} options={barHorizontalOptions} />
+            ) : (
+              <div className={styles.chartEmpty}>No types</div>
             )}
           </div>
         </div>
@@ -584,13 +812,25 @@ export default function Dashboard() {
             <span className={styles.actionIcon}>NW</span>
             <span>Network</span>
           </Link>
+          <Link to="/sensor-health" className={styles.actionCard}>
+            <span className={styles.actionIcon}>SH</span>
+            <span>Sensor Health</span>
+          </Link>
           <Link to="/alerts" className={styles.actionCard}>
             <span className={styles.actionIcon}>AL</span>
             <span>Detections</span>
           </Link>
+          <Link to="/analytics-detections" className={styles.actionCard}>
+            <span className={styles.actionIcon}>AX</span>
+            <span>Analytics</span>
+          </Link>
           <Link to="/events" className={styles.actionCard}>
             <span className={styles.actionIcon}>EV</span>
             <span>Events</span>
+          </Link>
+          <Link to="/hunting" className={styles.actionCard}>
+            <span className={styles.actionIcon}>HT</span>
+            <span>Hunting</span>
           </Link>
           <Link to="/investigations" className={styles.actionCard}>
             <span className={styles.actionIcon}>IN</span>
@@ -599,6 +839,18 @@ export default function Dashboard() {
           <Link to="/incidents" className={styles.actionCard}>
             <span className={styles.actionIcon}>IC</span>
             <span>Incidents</span>
+          </Link>
+          <Link to="/respond/approvals" className={styles.actionCard}>
+            <span className={styles.actionIcon}>AP</span>
+            <span>SOC Approvals</span>
+          </Link>
+          <Link to="/rtr" className={styles.actionCard}>
+            <span className={styles.actionIcon}>RTR</span>
+            <span>Live Shell</span>
+          </Link>
+          <Link to="/threat-graph" className={styles.actionCard}>
+            <span className={styles.actionIcon}>TG</span>
+            <span>Threat Graph</span>
           </Link>
           <Link to="/risk" className={styles.actionCard}>
             <span className={styles.actionIcon}>RK</span>
@@ -616,6 +868,10 @@ export default function Dashboard() {
             <span className={styles.actionIcon}>TR</span>
             <span>Triage</span>
           </Link>
+          <Link to="/av" className={styles.actionCard}>
+            <span className={styles.actionIcon}>AV</span>
+            <span>Antivirus</span>
+          </Link>
           <Link to="/detection-rules" className={styles.actionCard}>
             <span className={styles.actionIcon}>DR</span>
             <span>Detection Rules</span>
@@ -623,6 +879,10 @@ export default function Dashboard() {
           <Link to="/policies" className={styles.actionCard}>
             <span className={styles.actionIcon}>PL</span>
             <span>Policies</span>
+          </Link>
+          <Link to="/audit-logs" className={styles.actionCard}>
+            <span className={styles.actionIcon}>AU</span>
+            <span>Audit Log</span>
           </Link>
         </div>
       </section>

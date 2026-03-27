@@ -40,7 +40,8 @@
   <a href="docs/crowdstrike-detection-rules.md">Detection rules (Custom IOA)</a> •
   <a href="docs/detection-upgrade-plan.md">Detection upgrade plan</a> •
   <a href="docs/crowdstrike-network-activity.md">Network activity (Falcon-style)</a> •
-  <a href="docs/enterprise-hardening.md">Enterprise hardening</a>
+  <a href="docs/enterprise-hardening.md">Enterprise hardening</a> •
+  <a href="docs/security/README.md">Security assurance (threat model, controls)</a>
 </p>
 
 ---

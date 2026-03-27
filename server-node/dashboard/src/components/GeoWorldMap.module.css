@@ -1,0 +1,188 @@
+.wrap {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(34, 211, 238, 0.25);
+  background: #000;
+}
+
+.wrap :global(.leaflet-container) {
+  background: #000;
+  font-family: inherit;
+}
+
+.compact .legend {
+  font-size: 0.62rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.compact .legend span:last-child {
+  display: none;
+}
+
+.map {
+  width: 100%;
+  z-index: 1;
+}
+
+/* Fullscreen: map fills the fullscreen viewport */
+.fullscreen {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.fullscreen .map {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.fullscreen :global(.leaflet-container) {
+  height: 100% !important;
+  min-height: 240px;
+}
+
+/* Traffic: glow layer (slower, opposite flow) */
+.wrap :global(path.geoTrafficGlow) {
+  stroke-dasharray: 8 20;
+  stroke-linecap: round;
+  animation: geoTrafficGlow 3.2s linear infinite;
+  filter: drop-shadow(0 0 3px rgba(34, 211, 238, 0.45));
+}
+
+@keyframes geoTrafficGlow {
+  to {
+    stroke-dashoffset: 56;
+  }
+}
+
+/* Staggered delays so flows don’t pulse in sync */
+.wrap :global(.geoTrafficGlow--0) { animation-delay: 0s; }
+.wrap :global(.geoTrafficGlow--1) { animation-delay: 0.15s; }
+.wrap :global(.geoTrafficGlow--2) { animation-delay: 0.3s; }
+.wrap :global(.geoTrafficGlow--3) { animation-delay: 0.45s; }
+.wrap :global(.geoTrafficGlow--4) { animation-delay: 0.6s; }
+.wrap :global(.geoTrafficGlow--5) { animation-delay: 0.75s; }
+.wrap :global(.geoTrafficGlow--6) { animation-delay: 0.9s; }
+.wrap :global(.geoTrafficGlow--7) { animation-delay: 1.05s; }
+
+/* Animated traffic — main arc toward destination */
+.wrap :global(path.geoTrafficArc) {
+  stroke-dasharray: 10 14;
+  animation: geoFlow 2.4s linear infinite;
+}
+.wrap :global(.geoTrafficArc--0) { animation-delay: 0s; }
+.wrap :global(.geoTrafficArc--1) { animation-delay: 0.12s; }
+.wrap :global(.geoTrafficArc--2) { animation-delay: 0.24s; }
+.wrap :global(.geoTrafficArc--3) { animation-delay: 0.36s; }
+.wrap :global(.geoTrafficArc--4) { animation-delay: 0.48s; }
+.wrap :global(.geoTrafficArc--5) { animation-delay: 0.6s; }
+.wrap :global(.geoTrafficArc--6) { animation-delay: 0.72s; }
+.wrap :global(.geoTrafficArc--7) { animation-delay: 0.84s; }
+
+@keyframes geoFlow {
+  to {
+    stroke-dashoffset: -48;
+  }
+}
+
+/* Pulse remote destination nodes (not polylines) */
+.wrap :global(path.geoRemoteNode) {
+  animation: remotePulse 2.5s ease-in-out infinite;
+}
+
+.noGeo {
+  position: absolute;
+  bottom: 3.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 450;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.72rem;
+  color: rgba(251, 191, 36, 0.95);
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 8px;
+  pointer-events: none;
+  max-width: 90%;
+  text-align: center;
+}
+
+.bannerErr {
+  position: absolute;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 500;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  background: rgba(127, 29, 29, 0.92);
+  color: #fecaca;
+  border-radius: 6px;
+  max-width: 90%;
+  text-align: center;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.68rem;
+  color: rgba(224, 242, 254, 0.75);
+  background: rgba(0, 0, 0, 0.55);
+  border-top: 1px solid rgba(34, 211, 238, 0.12);
+}
+
+.dotHost {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fbbf24;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.dotRemote {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22d3ee;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+.dim {
+  opacity: 0.65;
+}
+
+.mono {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.72rem;
+}
+
+@keyframes remotePulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wrap :global(path.geoTrafficArc),
+  .wrap :global(path.geoTrafficGlow) {
+    animation: none;
+    stroke-dasharray: none;
+  }
+  .wrap :global(path.geoRemoteNode) {
+    animation: none;
+  }
+}

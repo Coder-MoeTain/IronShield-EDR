@@ -78,7 +78,7 @@ async function getSummary(tenantId = null) {
   const recentInvestigations = invData.recent || [];
 
   // Time-series data for charts (last 24 hours, hourly buckets)
-  const [eventsOverTime, alertsOverTime] = await Promise.all([
+  const [eventsOverTime, alertsOverTime, extras] = await Promise.all([
     db.query(
       `SELECT DATE_FORMAT(timestamp, '%Y-%m-%d %H:00') as hour, COUNT(*) as count
        FROM normalized_events
@@ -93,6 +93,7 @@ async function getSummary(tenantId = null) {
        GROUP BY hour
        ORDER BY hour ASC`
     ),
+    fetchDashboardExtras(tenantId),
   ]);
 
   return {
@@ -116,7 +117,88 @@ async function getSummary(tenantId = null) {
     suspectCount24h: suspectSummary?.suspect_count_24h || 0,
     eventsOverTime: eventsOverTime || [],
     alertsOverTime: alertsOverTime || [],
+    ...extras,
   };
+}
+
+/** SOC counts, alert disposition, incidents, host policy mix — best-effort if tables/columns differ */
+async function fetchDashboardExtras(tenantId = null) {
+  const empty = {
+    responseActionsPending: 0,
+    alertsByStatus: [],
+    openIncidents: 0,
+    endpointsByPolicy: [],
+    auditEvents24h: 0,
+  };
+
+  const tenantEp = tenantId != null ? ' AND e.tenant_id = ? ' : '';
+  const tenantParams = tenantId != null ? [tenantId] : [];
+
+  try {
+    const [pendingRow, alertStatusRows, policyRows, auditRow, incRow] = await Promise.all([
+      db
+        .queryOne(
+          `SELECT COUNT(*) AS c FROM response_actions ra
+           INNER JOIN endpoints e ON e.id = ra.endpoint_id
+           WHERE ra.approval_status = 'pending' ${tenantEp}`,
+          tenantParams
+        )
+        .catch(() => ({ c: 0 })),
+      db
+        .query(
+          `SELECT a.status, COUNT(*) AS count FROM alerts a
+           INNER JOIN endpoints e ON e.id = a.endpoint_id
+           WHERE 1=1 ${tenantEp}
+           GROUP BY a.status`,
+          tenantParams
+        )
+        .catch(() => []),
+      db
+        .query(
+          `SELECT COALESCE(e.policy_status, 'normal') AS policy_status, COUNT(*) AS count
+           FROM endpoints e WHERE 1=1 ${tenantId != null ? 'AND e.tenant_id = ?' : ''}
+           GROUP BY COALESCE(e.policy_status, 'normal')`,
+          tenantId != null ? [tenantId] : []
+        )
+        .catch(() => []),
+      db
+        .queryOne(
+          `SELECT COUNT(*) AS c FROM audit_logs WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)`
+        )
+        .catch(() => ({ c: 0 })),
+      tenantId != null
+        ? db
+            .queryOne(
+              `SELECT COUNT(*) AS c FROM incidents i
+               INNER JOIN endpoints e ON e.id = i.endpoint_id
+               WHERE i.status IN ('open','investigating') AND e.tenant_id = ?`,
+              [tenantId]
+            )
+            .catch(() => ({ c: 0 }))
+        : db
+            .queryOne(
+              `SELECT COUNT(*) AS c FROM incidents WHERE status IN ('open','investigating')`
+            )
+            .catch(() => ({ c: 0 })),
+    ]);
+
+    return {
+      responseActionsPending: Number(pendingRow?.c) || 0,
+      alertsByStatus: (alertStatusRows || []).map((r) => ({
+        status: r.status || 'unknown',
+        count: Number(r.count) || 0,
+      })),
+      openIncidents: Number(incRow?.c) || 0,
+      endpointsByPolicy: (policyRows || []).map((r) => ({
+        policy: r.policy_status || 'normal',
+        count: Number(r.count) || 0,
+      })),
+      auditEvents24h: Number(auditRow?.c) || 0,
+    };
+  } catch (err) {
+    if (isSchemaCompatError(err)) return empty;
+    throw err;
+  }
 }
 
 module.exports = { getSummary };

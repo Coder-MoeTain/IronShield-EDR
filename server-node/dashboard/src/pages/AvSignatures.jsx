@@ -50,7 +50,7 @@ export default function AvSignatures() {
                   <td>{s.signature_type || '-'}</td>
                   <td className={styles.mono} title={s.hash_value}>{s.hash_value ? `${s.hash_value.slice(0, 16)}…` : '-'}</td>
                   <td>{s.family || '-'}</td>
-                  <td><span className={`${styles.badge} ${severityClass(s.severity)}`}>{s.severity || '-'}</span></td>
+                  <td><span className={`${styles.badge} ${falconSeverityClass(s.severity)}`}>{s.severity || '-'}</span></td>
                   <td>{s.enabled ? 'Yes' : 'No'}</td>
                 </tr>
               ))

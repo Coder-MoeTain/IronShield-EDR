@@ -46,6 +46,7 @@ import SensorHealth from './pages/SensorHealth';
 import Hunting from './pages/Hunting';
 import RtrConsole from './pages/RtrConsole';
 import ThreatGraph from './pages/ThreatGraph';
+import AgentNetworkMap from './pages/AgentNetworkMap';
 import AnalyticsDetections from './pages/AnalyticsDetections';
 import FalconRoadmapPage from './pages/FalconRoadmapPage';
 import XdrEvents from './pages/XdrEvents';
@@ -80,6 +81,7 @@ export default function App() {
           <Route path="hunting" element={<Hunting />} />
           <Route path="rtr" element={<RtrConsole />} />
           <Route path="threat-graph" element={<ThreatGraph />} />
+          <Route path="agent-network-map" element={<AgentNetworkMap />} />
           <Route path="analytics-detections" element={<AnalyticsDetections />} />
           <Route path="falcon/:area" element={<FalconRoadmapPage />} />
           <Route path="xdr/events" element={<XdrEvents />} />

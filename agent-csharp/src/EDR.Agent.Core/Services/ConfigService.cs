@@ -61,6 +61,14 @@ public class ConfigService
 
         // Normalize and validate
         Config.ServerUrl = (Config.ServerUrl ?? "").Trim().TrimEnd('/');
+        // Plain HTTP base URLs cannot satisfy RequireHttps (HttpTransport rejects http:// when true).
+        if (!string.IsNullOrWhiteSpace(Config.ServerUrl) &&
+            Config.ServerUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+            Config.RequireHttps)
+        {
+            Console.WriteLine("[Config] ServerUrl uses http:// so RequireHttps is set to false.");
+            Config.RequireHttps = false;
+        }
         if (string.IsNullOrWhiteSpace(Config.ServerUrl))
         {
             Console.WriteLine("[Config] Missing ServerUrl. Set EDR_SERVER_URL or create config.json (see config.example.json).");

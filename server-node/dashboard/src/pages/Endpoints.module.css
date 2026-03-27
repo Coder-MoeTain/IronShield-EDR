@@ -20,7 +20,9 @@
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  /* Wide table: allow horizontal scroll so the actions column is not clipped */
+  overflow-x: auto;
+  overflow-y: hidden;
   box-shadow: var(--shadow-md);
   position: relative;
 }
@@ -39,6 +41,7 @@
 
 .table {
   width: 100%;
+  min-width: 1200px;
   border-collapse: collapse;
 }
 
@@ -115,6 +118,17 @@
 .statusUnknown {
   background: rgba(100, 116, 139, 0.15);
   color: var(--text-muted);
+}
+
+.actionsHead {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.actionsCell {
+  white-space: nowrap;
+  vertical-align: middle;
+  min-width: 9rem;
 }
 
 .viewLink {

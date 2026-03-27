@@ -47,6 +47,8 @@ router.get('/av/malware-alerts/:id', avController.getMalwareAlert);
 router.get('/av/updates/status', avController.listUpdateStatus);
 
 router.get('/dashboard/summary', adminController.dashboardSummary);
+router.get('/dashboard/cyber-news', adminController.cyberNews);
+router.get('/dashboard/http-map', adminController.dashboardHttpMap);
 router.get('/mssp/overview', adminController.msspOverview);
 router.get('/endpoints', adminController.listEndpoints);
 router.get('/host-groups', adminController.listHostGroups);
@@ -135,8 +137,18 @@ router.get('/endpoints/:id/actions', adminController.listResponseActions);
 // SOC approvals (two-person control)
 const approvals = require('../controllers/responseActionApprovalController');
 router.get('/response-actions/approvals/pending', requireAnyPermission('actions:write', '*'), approvals.listPending);
-router.post('/response-actions/:id/approve', requireAnyPermission('actions:write', '*'), requireSoD({ allowedRoles: ['analyst', 'super_admin'], disallowRequesterOnResponseAction: true }), approvals.approve);
-router.post('/response-actions/:id/reject', requireAnyPermission('actions:write', '*'), requireSoD({ allowedRoles: ['analyst', 'super_admin'], disallowRequesterOnResponseAction: true }), approvals.reject);
+router.post(
+  '/response-actions/:id/approve',
+  requireAnyPermission('actions:write', '*'),
+  requireSoD({ allowedRoles: ['admin', 'analyst', 'super_admin'], disallowRequesterOnResponseAction: true }),
+  approvals.approve
+);
+router.post(
+  '/response-actions/:id/reject',
+  requireAnyPermission('actions:write', '*'),
+  requireSoD({ allowedRoles: ['admin', 'analyst', 'super_admin'], disallowRequesterOnResponseAction: true }),
+  approvals.reject
+);
 router.get('/detection-rules', adminController.listDetectionRules);
 router.get('/detection-rules/:id', adminController.getDetectionRule);
 
@@ -179,6 +191,7 @@ router.get('/network/outgoing-ips', networkController.getOutgoingIps);
 router.get('/network/traffic', networkController.getTrafficSummary);
 router.get('/network/summary', networkController.getNetworkSummary);
 router.get('/network/logs', networkController.getNetworkLogs);
+router.post('/network/geo-lookup', networkController.geoLookup);
 router.get('/process-monitor', phase3.processMonitor);
 router.get('/search/global', phase3.globalSearch);
 

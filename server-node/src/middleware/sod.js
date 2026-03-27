@@ -1,8 +1,8 @@
 const db = require('../utils/db');
 
 const DEFAULT_SOD_MATRIX = {
-  response_action_approve: { allowedRoles: ['analyst', 'super_admin'], disallowRequesterOnResponseAction: true },
-  response_action_reject: { allowedRoles: ['analyst', 'super_admin'], disallowRequesterOnResponseAction: true },
+  response_action_approve: { allowedRoles: ['admin', 'analyst', 'super_admin'], disallowRequesterOnResponseAction: true },
+  response_action_reject: { allowedRoles: ['admin', 'analyst', 'super_admin'], disallowRequesterOnResponseAction: true },
   agent_key_rotate: { allowedRoles: ['super_admin'] },
   agent_key_revoke: { allowedRoles: ['super_admin'] },
   rbac_set_user_roles: { allowedRoles: ['super_admin'] },
@@ -12,7 +12,8 @@ const DEFAULT_SOD_MATRIX = {
 
 function roleAllowed(role, allowed) {
   if (!Array.isArray(allowed) || allowed.length === 0) return true;
-  return allowed.includes(role);
+  const rl = String(role || 'viewer').toLowerCase();
+  return allowed.some((a) => String(a).toLowerCase() === rl);
 }
 
 function requireSoD(options = {}) {
@@ -25,7 +26,9 @@ function requireSoD(options = {}) {
       }
 
       if (options.disallowRequesterOnResponseAction && req.params?.id) {
-        const row = await db.queryOne('SELECT requested_by FROM response_actions WHERE id = ? LIMIT 1', [req.params.id]);
+        const row = await db.queryOne('SELECT requested_by FROM response_actions WHERE id = ? LIMIT 1', [
+          req.params.id,
+        ]);
         if (row?.requested_by && String(row.requested_by).toLowerCase() === String(user.username || '').toLowerCase()) {
           return res.status(403).json({ error: 'SoD policy: requester cannot approve/reject their own action' });
         }

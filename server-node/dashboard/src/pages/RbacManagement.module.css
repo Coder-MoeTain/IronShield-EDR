@@ -1,6 +1,8 @@
 .container {
   display: grid;
   gap: 12px;
+  /* +2 pt vs app base for this page only */
+  font-size: calc(1em + 2pt);
 }
 
 .actions {
@@ -37,7 +39,7 @@
 .label {
   display: grid;
   gap: 6px;
-  font-size: 12px;
+  font-size: calc(12px + 2pt);
   opacity: 0.9;
 }
 
@@ -51,7 +53,7 @@
 }
 
 .hint {
-  font-size: 12px;
+  font-size: calc(12px + 2pt);
   opacity: 0.75;
   padding-bottom: 8px;
 }
@@ -83,7 +85,7 @@
 
 .roleName {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  font-size: 12px;
+  font-size: calc(12px + 2pt);
 }
 
 .usersPanel {

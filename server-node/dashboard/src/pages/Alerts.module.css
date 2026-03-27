@@ -221,6 +221,52 @@
   background: rgba(37, 99, 235, 0.08);
 }
 
+/* Dark mode: Saved views / Save filters / Export NDJSON (Detections) */
+:global([data-theme='dark']) .savedViewsBar {
+  background: rgba(6, 20, 40, 0.82);
+  border-color: rgba(34, 211, 238, 0.18);
+}
+
+:global([data-theme='dark']) .savedViewChip {
+  background: rgba(2, 12, 28, 0.95);
+  border-color: rgba(34, 211, 238, 0.22);
+}
+
+:global([data-theme='dark']) .savedViewApply:hover {
+  background: rgba(34, 211, 238, 0.06);
+}
+
+:global([data-theme='dark']) .savedViewDelete {
+  background: rgba(0, 0, 0, 0.28);
+  border-left-color: rgba(34, 211, 238, 0.15);
+}
+
+:global([data-theme='dark']) .savedViewDelete:hover {
+  background: rgba(220, 38, 38, 0.18);
+}
+
+:global([data-theme='dark']) .saveViewBtn {
+  background: rgba(2, 12, 28, 0.95);
+  border-color: rgba(34, 211, 238, 0.22);
+  color: var(--text-primary, #e0f2fe);
+}
+
+:global([data-theme='dark']) .saveViewBtn:hover {
+  background: rgba(6, 32, 52, 0.98);
+  border-color: rgba(34, 211, 238, 0.45);
+}
+
+:global([data-theme='dark']) .siemLink {
+  background: rgba(2, 12, 28, 0.95);
+  border-color: rgba(34, 211, 238, 0.22);
+  color: var(--accent-blue, #38bdf8);
+}
+
+:global([data-theme='dark']) .siemLink:hover {
+  background: rgba(6, 32, 52, 0.98);
+  border-color: rgba(34, 211, 238, 0.4);
+}
+
 .bulkBar {
   display: flex;
   gap: 0.5rem;

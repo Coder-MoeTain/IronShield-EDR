@@ -54,11 +54,14 @@ export default function Network() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('connections');
   const [endpointId, setEndpointId] = useState(searchParams.get('endpointId') || '');
-  const [hours, setHours] = useState(24);
+  const [hours, setHours] = useState(() => {
+    const h = parseInt(searchParams.get('hours') || '24', 10);
+    return [1, 6, 24, 168].includes(h) ? h : 24;
+  });
   const [autoRefresh, setAutoRefresh] = useState(true);
   /** Hide loopback remotes (::1, 127.0.0.1, ::ffff:127.0.0.1) from API results */
   const [excludeLocalhost, setExcludeLocalhost] = useState(true);
-  const [remoteAddress, setRemoteAddress] = useState('');
+  const [remoteAddress, setRemoteAddress] = useState(() => searchParams.get('remoteAddress') || '');
   const [processFilter, setProcessFilter] = useState('');
   const remoteRef = useRef(remoteAddress);
   const processRef = useRef(processFilter);

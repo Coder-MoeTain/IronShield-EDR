@@ -41,6 +41,7 @@ coverage/
 *.lcov
 
 # C# / .NET
+agent-csharp/queue/
 *.user
 *.suo
 packages/

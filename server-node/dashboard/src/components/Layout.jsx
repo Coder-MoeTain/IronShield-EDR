@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import GlobalSearch from './GlobalSearch';
 import TenantSwitcher from './TenantSwitcher';
 import ThemeToggle from './ThemeToggle';
+import ProfessionalViewToggle, { useProfessionalView } from './ProfessionalViewToggle';
 import {
   IconActivity,
   IconDetections,
@@ -69,6 +70,7 @@ const MENU_ITEMS = [
     Icon: IconGraph,
     children: [
       { to: '/threat-graph', Icon: IconGraph, label: 'Threat graph' },
+      { to: '/agent-network-map', Icon: IconNetwork, label: 'Agent network map' },
       { to: '/analytics-detections', Icon: IconExplore, label: 'Detection analytics' },
       { to: '/falcon/identity', Icon: IconIntel, label: 'Identity / Zero Trust' },
       { to: '/falcon/exposure', Icon: IconNetwork, label: 'Exposure / attack surface' },
@@ -180,6 +182,7 @@ function NavMenuItem({ item }) {
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [professionalView, setProfessionalView] = useProfessionalView();
 
   const handleLogout = () => {
     logout();
@@ -187,10 +190,11 @@ export default function Layout() {
   };
 
   return (
-    <div className={styles.layout}>
+    <div className={`${styles.layout} ${professionalView ? styles.layoutProfessional : ''}`}>
       <a href="#main-content" className="falcon-skip-link">
         Skip to main content
       </a>
+      {!professionalView && (
       <aside className={styles.sidebar}>
         <div className={styles.logo}>
           <span className={styles.logoMark} aria-hidden>
@@ -216,10 +220,41 @@ export default function Layout() {
           </button>
         </div>
       </aside>
+      )}
       <main id="main-content" className={styles.main} tabIndex={-1}>
         <div className={styles.mainHeader}>
           <TenantSwitcher />
+          {professionalView && (
+            <nav className={styles.proQuickNav} aria-label="Quick navigation">
+              <NavLink
+                to="/"
+                end
+                className={({ isActive }) => `${styles.proQuickLink} ${isActive ? styles.proQuickLinkActive : ''}`}
+              >
+                Activity
+              </NavLink>
+              <NavLink
+                to="/alerts"
+                className={({ isActive }) => `${styles.proQuickLink} ${isActive ? styles.proQuickLinkActive : ''}`}
+              >
+                Detections
+              </NavLink>
+              <NavLink
+                to="/endpoints"
+                className={({ isActive }) => `${styles.proQuickLink} ${isActive ? styles.proQuickLinkActive : ''}`}
+              >
+                Hosts
+              </NavLink>
+              <NavLink
+                to="/events"
+                className={({ isActive }) => `${styles.proQuickLink} ${isActive ? styles.proQuickLinkActive : ''}`}
+              >
+                Events
+              </NavLink>
+            </nav>
+          )}
           <GlobalSearch />
+          <ProfessionalViewToggle professionalView={professionalView} onToggle={setProfessionalView} />
           <ThemeToggle />
         </div>
         <div className={styles.content}>
