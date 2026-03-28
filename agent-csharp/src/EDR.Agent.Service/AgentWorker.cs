@@ -118,8 +118,32 @@ public class AgentWorker
         var triageTask = TriageTaskPollLoopAsync(_cts.Token);
         var updateTask = UpdateCheckLoopAsync(_cts.Token);
         var avTask = AvTaskPollLoopAsync(_cts.Token);
+        var connectivityTask = ServerConnectivityWatchLoopAsync(_cts.Token);
 
-        await Task.WhenAll(_heartbeatTask, _uploadTask, _collectTask, commandTask, triageTask, updateTask, avTask);
+        await Task.WhenAll(_heartbeatTask, _uploadTask, _collectTask, commandTask, triageTask, updateTask, avTask, connectivityTask);
+    }
+
+    /// <summary>Periodic GET /api/agent/ping — surfaces API outages even when heartbeats are infrequent.</summary>
+    private async Task ServerConnectivityWatchLoopAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromMinutes(15), ct);
+                var ok = await _transport.PingAsync(ct);
+                if (!ok)
+                    Console.WriteLine("[Agent] Warning: management API ping failed — check ServerUrl, TLS, and that the backend is running.");
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                break;
+            }
+            catch
+            {
+                /* non-fatal */
+            }
+        }
     }
 
     private async Task RegisterAsync(CancellationToken ct)
@@ -130,6 +154,18 @@ public class AgentWorker
         {
             Console.WriteLine("[Agent] No registration token. Set in config or EDR_REGISTRATION_TOKEN.");
             return;
+        }
+
+        try
+        {
+            if (await _transport.PingAsync(ct))
+                Console.WriteLine("[Agent] Server API reachable (GET /api/agent/ping).");
+            else
+                Console.WriteLine("[Agent] Server ping did not return success — check ServerUrl and that the backend is running.");
+        }
+        catch
+        {
+            /* non-fatal before registration */
         }
 
         try
@@ -970,6 +1006,8 @@ public class AgentWorker
                 payload.EdrPolicyId = _lastEdrPolicyId;
                 payload.LastEdrPolicySyncUtc = _lastEdrPolicySyncUtc.Value.ToString("O");
             }
+
+            payload.TamperSignals = TamperDefenseService.Collect();
         }
         catch
         {

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
@@ -13,6 +14,11 @@ namespace EDR.Agent.Core.Services;
 public class SystemInfoService
 {
     private static (long Rx, long Tx, DateTime At)? _lastNetworkSample;
+
+    /// <summary>Throttle expensive C:\ hidden enumeration (heartbeat runs often).</summary>
+    private static DateTimeOffset _hiddenCScanUtc = DateTimeOffset.MinValue;
+    private static List<HiddenPathPayload>? _hiddenCCache;
+    private static readonly TimeSpan HiddenCScanCooldown = TimeSpan.FromHours(6);
 
     public string GetHostname() => Environment.MachineName;
 
@@ -87,6 +93,7 @@ public class SystemInfoService
             Connections = GetNetworkConnections(),
             ListeningPorts = GetListeningPorts(),
             SharedFolders = GetSharedFolders(),
+            HiddenCItems = GetHiddenPathsOnDriveC(),
             CpuPercent = cpu,
             RamPercent = ramPct,
             RamTotalMb = ramTotalMb,
@@ -301,6 +308,103 @@ public class SystemInfoService
         catch
         {
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Files and directories on C:\ with the Hidden attribute (Windows only).
+    /// Bounded depth/count; skips heavy subtrees. Re-scans at most every <see cref="HiddenCScanCooldown"/>.
+    /// </summary>
+    public List<HiddenPathPayload>? GetHiddenPathsOnDriveC()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return null;
+
+        var now = DateTimeOffset.UtcNow;
+        if (now - _hiddenCScanUtc < HiddenCScanCooldown && _hiddenCCache != null)
+            return _hiddenCCache.Count > 0 ? _hiddenCCache : null;
+
+        const int maxEntries = 400;
+        const int maxDepth = 4;
+        var root = Path.GetPathRoot(Environment.SystemDirectory);
+        if (string.IsNullOrEmpty(root) || !root.StartsWith("C:", StringComparison.OrdinalIgnoreCase))
+            root = @"C:\";
+
+        var list = new List<HiddenPathPayload>();
+        try
+        {
+            EnumerateHiddenUnder(root, 0, maxDepth, maxEntries, list);
+        }
+        catch
+        {
+            _hiddenCScanUtc = DateTimeOffset.UtcNow;
+            _hiddenCCache = null;
+            return null;
+        }
+
+        _hiddenCCache = list;
+        _hiddenCScanUtc = now;
+        return list.Count > 0 ? list : null;
+    }
+
+    private static readonly HashSet<string> HiddenCSkipDirNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "System Volume Information",
+    };
+
+    private static bool ShouldSkipHiddenSubtree(string dir)
+    {
+        var p = dir.Replace('/', '\\');
+        if (p.Contains(@"\Windows\WinSxS", StringComparison.OrdinalIgnoreCase)) return true;
+        if (p.Contains(@"\Windows\SoftwareDistribution\Download", StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+
+    private static void EnumerateHiddenUnder(string dir, int depth, int maxDepth, int maxEntries, List<HiddenPathPayload> list)
+    {
+        if (list.Count >= maxEntries || depth > maxDepth) return;
+        if (ShouldSkipHiddenSubtree(dir)) return;
+
+        string? leaf = null;
+        try
+        {
+            leaf = Path.GetFileName(dir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        }
+        catch
+        {
+            return;
+        }
+        if (!string.IsNullOrEmpty(leaf) && HiddenCSkipDirNames.Contains(leaf)) return;
+
+        IEnumerable<string> entries;
+        try
+        {
+            entries = Directory.EnumerateFileSystemEntries(dir);
+        }
+        catch
+        {
+            return;
+        }
+
+        foreach (var entry in entries)
+        {
+            if (list.Count >= maxEntries) break;
+            try
+            {
+                var attr = File.GetAttributes(entry);
+                var isDir = (attr & FileAttributes.Directory) != 0;
+                var hidden = (attr & FileAttributes.Hidden) != 0;
+                if (hidden)
+                {
+                    list.Add(new HiddenPathPayload { Path = entry, IsDirectory = isDir });
+                }
+                if (isDir && depth < maxDepth)
+                    EnumerateHiddenUnder(entry, depth + 1, maxDepth, maxEntries, list);
+            }
+            catch
+            {
+                /* access denied / reparse */
+            }
         }
     }
 

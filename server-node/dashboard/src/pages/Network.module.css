@@ -43,6 +43,20 @@
   font-size: 0.8rem;
 }
 
+.endpointInventoryHint {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.endpointInventoryHint a {
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+.endpointInventoryHint a:hover {
+  text-decoration: underline;
+}
+
 .header {
   display: flex;
   justify-content: space-between;
@@ -196,6 +210,25 @@
 .mono {
   font-family: ui-monospace, monospace;
   font-size: 0.85rem;
+}
+
+.bwCell {
+  font-family: ui-monospace, monospace;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.bwRx {
+  color: var(--accent-blue);
+}
+
+.bwTx {
+  color: #059669;
+}
+
+.bwSep {
+  color: var(--text-muted);
+  font-weight: 400;
 }
 
 .link {

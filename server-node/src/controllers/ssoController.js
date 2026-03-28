@@ -14,6 +14,8 @@ function htmlBridge(result) {
   (function(){
     var data=${safe};
     localStorage.setItem('edr_token', data.token);
+    if (data.refresh_token) localStorage.setItem('edr_refresh_token', data.refresh_token);
+    else localStorage.removeItem('edr_refresh_token');
     localStorage.setItem('edr_user', JSON.stringify(data.user));
     window.location.replace('/');
   })();
@@ -24,12 +26,12 @@ async function lookupUserFromClaims(claims) {
   const username = (claims.preferred_username || claims.email || claims.sub || '').toString().trim();
   if (!username) return null;
   let user = await db.queryOne(
-    'SELECT id, username, role, tenant_id, is_active FROM admin_users WHERE username = ? LIMIT 1',
+    'SELECT id, username, role, tenant_id, is_active, session_version FROM admin_users WHERE username = ? LIMIT 1',
     [username]
   );
   if (!user && claims.email) {
     user = await db.queryOne(
-      'SELECT id, username, role, tenant_id, is_active FROM admin_users WHERE email = ? LIMIT 1',
+      'SELECT id, username, role, tenant_id, is_active, session_version FROM admin_users WHERE email = ? LIMIT 1',
       [String(claims.email)]
     );
   }

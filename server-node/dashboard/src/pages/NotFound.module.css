@@ -1,0 +1,20 @@
+.hint {
+  padding: 1rem 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.line {
+  margin: 0;
+}
+
+.kbd {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.75rem;
+  font-family: var(--font-mono, monospace);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}

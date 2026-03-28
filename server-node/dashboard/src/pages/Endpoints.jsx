@@ -1,13 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
+import { useToast } from '../context/ToastContext';
 import PageShell from '../components/PageShell';
 import FalconEmptyState from '../components/FalconEmptyState';
+import PermissionGate from '../components/PermissionGate';
 import { asJsonList } from '../utils/apiJson';
 import styles from './Endpoints.module.css';
 
 export default function Endpoints() {
   const { api } = useAuth();
+  const { confirm } = useConfirm();
+  const { addToast } = useToast();
+  const [searchParams] = useSearchParams();
+  const statusFilter = searchParams.get('status') || '';
   const [endpoints, setEndpoints] = useState([]);
   const [hostGroups, setHostGroups] = useState([]);
   const [hostGroupFilter, setHostGroupFilter] = useState('');
@@ -22,7 +29,10 @@ export default function Endpoints() {
   }, [api]);
 
   const fetchEndpoints = () => {
-    const q = hostGroupFilter ? `?hostGroupId=${encodeURIComponent(hostGroupFilter)}` : '';
+    const params = new URLSearchParams();
+    if (hostGroupFilter) params.set('hostGroupId', hostGroupFilter);
+    if (statusFilter) params.set('status', statusFilter);
+    const q = params.toString() ? `?${params.toString()}` : '';
     api(`/api/admin/endpoints${q}`)
       .then((r) => asJsonList(r))
       .then(setEndpoints)
@@ -33,10 +43,18 @@ export default function Endpoints() {
   useEffect(() => {
     setLoading(true);
     fetchEndpoints();
-  }, [api, hostGroupFilter]);
+  }, [api, hostGroupFilter, statusFilter]);
 
   const handleDelete = async (ep) => {
-    if (!confirm(`Delete endpoint "${ep.hostname}"? This will remove all associated data.`)) return;
+    if (
+      !(await confirm({
+        title: 'Delete endpoint',
+        message: `Delete "${ep.hostname}"? This removes associated data for this host.`,
+        danger: true,
+        confirmLabel: 'Delete',
+      }))
+    )
+      return;
     setDeleting(ep.id);
     try {
       const res = await api(`/api/admin/endpoints/${ep.id}`, { method: 'DELETE' });
@@ -46,7 +64,7 @@ export default function Endpoints() {
       }
       fetchEndpoints();
     } catch (e) {
-      alert(e.message || 'Failed to delete endpoint');
+      addToast({ variant: 'error', message: e.message || 'Failed to delete endpoint' });
     } finally {
       setDeleting(null);
     }
@@ -68,6 +86,14 @@ export default function Endpoints() {
       title="All hosts"
       description="Managed endpoints — last seen, health, and containment state."
     >
+      {statusFilter ? (
+        <div className={styles.filterBanner} role="status">
+          Showing hosts with status <strong>{statusFilter}</strong>
+          <Link to="/endpoints" className={styles.filterBannerClear}>
+            Clear filter
+          </Link>
+        </div>
+      ) : null}
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead>
@@ -193,15 +219,17 @@ export default function Endpoints() {
                 <td className={styles.actionsCell}>
                   <Link to={`/endpoints/${ep.id}`} className={styles.viewLink}>View</Link>
                   {' '}
-                  <button
-                    type="button"
-                    className={styles.deleteBtn}
-                    onClick={() => handleDelete(ep)}
-                    disabled={deleting === ep.id}
-                    title="Delete endpoint"
-                  >
-                    {deleting === ep.id ? '…' : 'Delete'}
-                  </button>
+                  <PermissionGate permission="actions:write">
+                    <button
+                      type="button"
+                      className={styles.deleteBtn}
+                      onClick={() => handleDelete(ep)}
+                      disabled={deleting === ep.id}
+                      title="Delete endpoint"
+                    >
+                      {deleting === ep.id ? '…' : 'Delete'}
+                    </button>
+                  </PermissionGate>
                 </td>
               </tr>
             ))}

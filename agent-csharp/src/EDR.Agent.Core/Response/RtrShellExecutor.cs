@@ -12,6 +12,8 @@ public sealed class RtrShellExecutor
     private static readonly HashSet<string> AllowFirstToken = new(StringComparer.OrdinalIgnoreCase)
     {
         "whoami", "hostname", "ipconfig", "ver", "systeminfo", "netstat", "route", "arp", "getmac", "echo",
+        // Read-only / inventory (still org policy gated on server)
+        "tasklist", "schtasks", "query", "driverquery", "fltmc", "mountvol", "vol",
     };
 
     private const int MaxOutputBytes = 96 * 1024;

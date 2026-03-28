@@ -7,6 +7,7 @@ This folder provides **structured substitutes** for three activities that are no
 | Threat model (STRIDE + DFD) | [threat-model.md](threat-model.md) | Identify assets, trust boundaries, and misuse cases for *your* deployment. |
 | Control mapping | [control-mapping.json](control-mapping.json) | Map frameworks (NIST CSF–style) to implementation evidence in this repo. |
 | Pentest substitute | [assurance-program.md](assurance-program.md) | Automated checks + manual review cadence + scope limits. |
+| SOC gap matrix | [soc-gap-matrix.md](soc-gap-matrix.md) | Maps EDR/SOC expectations to repo features vs operational work. |
 
 ## Quick commands
 

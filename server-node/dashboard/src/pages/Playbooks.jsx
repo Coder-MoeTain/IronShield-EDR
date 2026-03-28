@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
+import { useToast } from '../context/ToastContext';
 import PageShell from '../components/PageShell';
+import PermissionGate from '../components/PermissionGate';
 import styles from './Endpoints.module.css';
 
 const EXAMPLE_STEPS = `[
@@ -11,6 +14,8 @@ const EXAMPLE_STEPS = `[
 /** @param {{ embedded?: boolean }} props — When true, hide standalone page chrome (use inside Triage). */
 export default function Playbooks({ embedded = false }) {
   const { api } = useAuth();
+  const { confirm } = useConfirm();
+  const { addToast } = useToast();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
@@ -38,11 +43,11 @@ export default function Playbooks({ embedded = false }) {
     try {
       steps = JSON.parse(stepsJson);
     } catch {
-      window.alert('Steps must be valid JSON array');
+      addToast({ variant: 'error', message: 'Steps must be valid JSON array' });
       return;
     }
     if (!Array.isArray(steps)) {
-      window.alert('Steps must be a JSON array');
+      addToast({ variant: 'error', message: 'Steps must be a JSON array' });
       return;
     }
     await api('/api/admin/playbooks', {
@@ -56,14 +61,22 @@ export default function Playbooks({ embedded = false }) {
   };
 
   const remove = async (id) => {
-    if (!window.confirm('Delete playbook?')) return;
+    if (
+      !(await confirm({
+        title: 'Delete playbook',
+        message: 'Remove this playbook definition?',
+        danger: true,
+        confirmLabel: 'Delete',
+      }))
+    )
+      return;
     await api(`/api/admin/playbooks/${id}`, { method: 'DELETE' });
     load();
   };
 
   const run = async () => {
     if (!runPb || !runEp) {
-      window.alert('Select playbook and enter endpoint ID');
+      addToast({ variant: 'error', message: 'Select a playbook and enter endpoint ID' });
       return;
     }
     const r = await api(`/api/admin/playbooks/${runPb}/run`, {
@@ -71,8 +84,8 @@ export default function Playbooks({ embedded = false }) {
       body: JSON.stringify({ endpoint_id: parseInt(runEp, 10) }),
     });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) window.alert(j.error || 'Failed');
-    else window.alert(`Queued ${(j.action_ids || []).length} actions`);
+    if (!r.ok) addToast({ variant: 'error', message: j.error || 'Run failed' });
+    else addToast({ variant: 'success', message: `Queued ${(j.action_ids || []).length} action(s)` });
   };
 
   if (loading && rows.length === 0) {
@@ -82,6 +95,7 @@ export default function Playbooks({ embedded = false }) {
 
   const body = (
     <>
+      <PermissionGate permission="actions:write">
       <form onSubmit={create} className={styles.tableWrap} style={{ padding: '1rem', marginBottom: '1rem' }}>
         <h2 className={styles.title} style={{ fontSize: '0.95rem', marginBottom: '0.5rem' }}>
           New playbook
@@ -103,7 +117,9 @@ export default function Playbooks({ embedded = false }) {
           Create playbook
         </button>
       </form>
+      </PermissionGate>
 
+      <PermissionGate permission="actions:write">
       <div className={styles.tableWrap} style={{ padding: '1rem', marginBottom: '1rem' }}>
         <h2 className={styles.title} style={{ fontSize: '0.95rem', marginBottom: '0.5rem' }}>
           Run on endpoint (test)
@@ -123,6 +139,7 @@ export default function Playbooks({ embedded = false }) {
           </button>
         </div>
       </div>
+      </PermissionGate>
 
       <div className={styles.tableWrap}>
         <table className={styles.table}>
@@ -141,9 +158,11 @@ export default function Playbooks({ embedded = false }) {
                   {typeof p.steps_json === 'string' ? p.steps_json.slice(0, 120) : JSON.stringify(p.steps_json || {}).slice(0, 120)}…
                 </td>
                 <td>
-                  <button type="button" className={styles.deleteBtn} onClick={() => remove(p.id)}>
-                    Delete
-                  </button>
+                  <PermissionGate permission="actions:write">
+                    <button type="button" className={styles.deleteBtn} onClick={() => remove(p.id)}>
+                      Delete
+                    </button>
+                  </PermissionGate>
                 </td>
               </tr>
             ))}

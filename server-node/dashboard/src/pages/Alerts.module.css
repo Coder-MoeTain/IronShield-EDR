@@ -322,6 +322,84 @@
   pointer-events: none;
 }
 
+.colToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.5rem 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.colToolbarLabel {
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-right: 0.25rem;
+}
+
+.colToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.colToggle input {
+  margin: 0;
+}
+
+.alertsGridHead {
+  display: grid;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  background: var(--panel-header-bg, rgba(255, 255, 255, 0.6));
+  border-bottom: 1px solid var(--border);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.alertsGridTh {
+  min-width: 0;
+}
+
+.alertsVirtualScroll {
+  overflow-x: auto;
+}
+
+.alertsGridRow {
+  display: grid;
+  align-items: start;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.alertsGridTd {
+  min-width: 0;
+}
+
+.actionsInline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+[data-theme='dark'] .alertsGridHead {
+  background: rgba(18, 22, 28, 0.95);
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;

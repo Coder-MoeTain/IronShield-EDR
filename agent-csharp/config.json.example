@@ -7,5 +7,7 @@
   "CommandPollIntervalSeconds": 15,
   "MaxEventsPerBatch": 100,
   "MaxRetries": 5,
-  "LocalQueuePath": "queue"
+  "LocalQueuePath": "queue",
+  "MaxWindowsEventLogEventsPerPoll": 500,
+  "MaxSysmonEventsPerPoll": 500
 }

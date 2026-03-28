@@ -24,8 +24,8 @@
       "framework": "NIST CSF 2.0",
       "name": "Identities and credentials for users",
       "status": "implemented",
-      "evidence": ["server-node/src/middleware/auth.js", "server-node/src/routes/authRoutes.js"],
-      "notes": "JWT + admin_users session_version invalidation."
+      "evidence": ["server-node/src/middleware/auth.js", "server-node/src/utils/jwtVerify.js", "server-node/src/routes/authRoutes.js"],
+      "notes": "JWT + admin_users session_version invalidation; optional JWT_SECRET_PREVIOUS for rotation."
     },
     {
       "id": "PR.AA-05",
@@ -96,8 +96,8 @@
       "framework": "internal",
       "name": "Administrative action audit trail",
       "status": "implemented",
-      "evidence": ["server-node/src/middleware/adminAuditTrail.js", "server-node/src/services/AuditLogService.js"],
-      "notes": "Best-effort insert; optional immutable archive via env."
+      "evidence": ["server-node/src/middleware/adminAuditTrail.js", "server-node/src/services/AuditLogService.js", "server-node/src/middleware/requestId.js"],
+      "notes": "Best-effort insert; optional immutable archive and AUDIT_FAILURE_LOG_PATH spill; requestId on admin audit details."
     }
   ]
 }

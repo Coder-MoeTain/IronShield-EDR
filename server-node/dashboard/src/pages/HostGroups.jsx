@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import PageShell from '../components/PageShell';
+import PermissionGate from '../components/PermissionGate';
 import { asJsonList } from '../utils/apiJson';
 import styles from './Endpoints.module.css';
 
 export default function HostGroups() {
   const { api } = useAuth();
+  const { confirm } = useConfirm();
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
@@ -37,7 +40,15 @@ export default function HostGroups() {
   };
 
   const remove = async (id) => {
-    if (!window.confirm('Delete this host group? Endpoints will be unassigned.')) return;
+    if (
+      !(await confirm({
+        title: 'Delete host group',
+        message: 'Delete this group? Endpoints will be unassigned.',
+        danger: true,
+        confirmLabel: 'Delete',
+      }))
+    )
+      return;
     await api(`/api/admin/host-groups/${id}`, { method: 'DELETE' });
     load();
   };
@@ -52,23 +63,25 @@ export default function HostGroups() {
       title="Host groups"
       description="Organize sensors into Falcon-style groups for filtering, reporting, and future policy scoping."
     >
-      <form onSubmit={create} className={styles.pageHead} style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
-        <input
-          placeholder="Group name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          style={{ padding: '0.5rem 0.75rem', minWidth: 200 }}
-        />
-        <input
-          placeholder="Description (optional)"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          style={{ padding: '0.5rem 0.75rem', flex: 1, minWidth: 200 }}
-        />
-        <button type="submit" className="falcon-btn falcon-btn-primary">
-          Add group
-        </button>
-      </form>
+      <PermissionGate permission="actions:write">
+        <form onSubmit={create} className={styles.pageHead} style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+          <input
+            placeholder="Group name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            style={{ padding: '0.5rem 0.75rem', minWidth: 200 }}
+          />
+          <input
+            placeholder="Description (optional)"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            style={{ padding: '0.5rem 0.75rem', flex: 1, minWidth: 200 }}
+          />
+          <button type="submit" className="falcon-btn falcon-btn-primary">
+            Add group
+          </button>
+        </form>
+      </PermissionGate>
 
       <div className={styles.tableWrap}>
         <table className={styles.table}>
@@ -87,9 +100,11 @@ export default function HostGroups() {
                 <td>{g.description || '—'}</td>
                 <td className="mono">{g.created_at ? new Date(g.created_at).toLocaleString() : '—'}</td>
                 <td>
-                  <button type="button" className={styles.deleteBtn} onClick={() => remove(g.id)}>
-                    Delete
-                  </button>
+                  <PermissionGate permission="actions:write">
+                    <button type="button" className={styles.deleteBtn} onClick={() => remove(g.id)}>
+                      Delete
+                    </button>
+                  </PermissionGate>
                 </td>
               </tr>
             ))}

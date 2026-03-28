@@ -6,6 +6,9 @@ const db = require('../utils/db');
 const logger = require('../utils/logger');
 const DetectionSuppressionService = require('./DetectionSuppressionService');
 
+/** Log each unknown condition key once per process (avoids log spam from noisy rules). */
+const unknownConditionKeysLogged = new Set();
+
 async function getEnabledRules() {
   return db.query('SELECT * FROM detection_rules WHERE enabled = 1');
 }
@@ -93,8 +96,18 @@ function evalCondition(key, value, norm) {
       if (Number.isNaN(conf) || Number.isNaN(max)) return false;
       return conf < max;
     }
-    default:
-      return true;
+    default: {
+      if (!unknownConditionKeysLogged.has(key)) {
+        unknownConditionKeysLogged.add(key);
+        if (unknownConditionKeysLogged.size <= 200) {
+          logger.warn(
+            { condition_key: key },
+            'Unknown detection condition key — treating as non-match (fix rule or extend engine)'
+          );
+        }
+      }
+      return false;
+    }
   }
 }
 

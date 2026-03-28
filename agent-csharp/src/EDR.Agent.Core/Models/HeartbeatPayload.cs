@@ -111,9 +111,17 @@ public class HeartbeatPayload
     [JsonPropertyName("listening_ports")]
     public List<ListeningPortPayload>? ListeningPorts { get; set; }
 
+    /// <summary>Hidden files/folders under C:\ (bounded scan; Windows).</summary>
+    [JsonPropertyName("hidden_c_items")]
+    public List<HiddenPathPayload>? HiddenCItems { get; set; }
+
     /// <summary>SMB / Win32 shares exposed by the host (Windows WMI).</summary>
     [JsonPropertyName("shared_folders")]
     public List<SharedFolderPayload>? SharedFolders { get; set; }
+
+    /// <summary>User-mode tamper / service integrity snapshot (not kernel-level protection).</summary>
+    [JsonPropertyName("tamper_signals")]
+    public TamperSignalsSnapshot? TamperSignals { get; set; }
 }
 
 public class ListeningPortPayload
@@ -126,6 +134,15 @@ public class ListeningPortPayload
 
     [JsonPropertyName("protocol")]
     public string Protocol { get; set; } = "TCP";
+}
+
+public class HiddenPathPayload
+{
+    [JsonPropertyName("path")]
+    public string? Path { get; set; }
+
+    [JsonPropertyName("is_directory")]
+    public bool IsDirectory { get; set; }
 }
 
 public class SharedFolderPayload

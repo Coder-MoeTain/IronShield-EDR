@@ -101,13 +101,22 @@ export default function Dashboard() {
   const [searchInvestigations, setSearchInvestigations] = useState('');
   const [searchEventTypes, setSearchEventTypes] = useState('');
   const [searchEventSources, setSearchEventSources] = useState('');
+  const [socReadiness, setSocReadiness] = useState(null);
 
   const fetchData = useCallback(() => {
     setError(null);
-    api('/api/admin/dashboard/summary')
-      .then((r) => r.json())
-      .then((data) => {
+    Promise.all([
+      api('/api/admin/dashboard/summary').then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      }),
+      api('/api/admin/soc/readiness')
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+    ])
+      .then(([data, soc]) => {
         setSummary(data);
+        setSocReadiness(soc);
         setLastUpdate(new Date());
         setError(null);
       })
@@ -468,6 +477,50 @@ export default function Dashboard() {
           <strong>{inv.open ?? 0}</strong> open investigations
         </span>
       </div>
+
+      {socReadiness ? (
+        <section className={styles.socStrip} aria-label="SOC posture">
+          <span className={styles.socStripLabel}>SOC posture</span>
+          <span className={styles.socChip} title="Hosts seen in last 15 minutes">
+            Online 15m: {socReadiness.endpoints_online_15m ?? 0}/{socReadiness.endpoints_total ?? 0}
+          </span>
+          <span
+            className={styles.socChip}
+            title="Alerts in new or investigating"
+            onClick={() => navigate('/alerts')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && navigate('/alerts')}
+          >
+            Alert queue: {socReadiness.alerts_open ?? 0}
+          </span>
+          <span className={styles.socChip}>IOA rules on: {socReadiness.detection_rules_enabled ?? 0}</span>
+          <span
+            className={`${styles.socChip} ${socReadiness.ingest_async_queue ? styles.socChipOk : styles.socChipWarn}`}
+            title={socReadiness.ingest_async_queue ? 'BullMQ + worker' : 'Set REDIS_URL + npm run worker for scale'}
+          >
+            Ingest: {socReadiness.ingest_async_queue ? 'async' : 'sync'}
+          </span>
+          {socReadiness.kafka_ingest ? <span className={styles.socChipOk}>Kafka</span> : null}
+          {socReadiness.tamper_high_hosts != null ? (
+            <span
+              className={socReadiness.tamper_high_hosts > 0 ? styles.socChipAlert : styles.socChip}
+              title="Endpoints reporting tamper_risk=high"
+              onClick={() => navigate('/endpoints')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && navigate('/endpoints')}
+            >
+              Tamper high: {socReadiness.tamper_high_hosts}
+            </span>
+          ) : null}
+          {Array.isArray(socReadiness.notes) && socReadiness.notes.length > 0 ? (
+            <span className={styles.socNotes} title={socReadiness.notes.join(' — ')} aria-label="Notes">
+              ⓘ
+            </span>
+          ) : null}
+        </section>
+      ) : null}
 
       <section className={styles.newsBand} aria-label="Cyber news stream">
         <CyberNewsTicker />

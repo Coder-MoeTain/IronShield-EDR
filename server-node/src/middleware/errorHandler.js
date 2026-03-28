@@ -11,6 +11,7 @@ function errorHandler(err, req, res, _next) {
 
   res.status(status).json({
     error: message,
+    ...(req.requestId && { requestId: req.requestId }),
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 }

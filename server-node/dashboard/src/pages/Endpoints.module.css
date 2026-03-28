@@ -228,6 +228,34 @@
   white-space: nowrap;
 }
 
+.filterBanner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.filterBannerClear {
+  font-weight: 600;
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+.filterBannerClear:hover {
+  text-decoration: underline;
+}
+
+[data-theme='dark'] .filterBannerClear {
+  color: var(--accent-cyan);
+}
+
 .policyMismatchMark {
   display: inline-flex;
   align-items: center;

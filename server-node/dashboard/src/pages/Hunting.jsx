@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import PageShell from '../components/PageShell';
 import { asJsonList } from '../utils/apiJson';
 import styles from './Endpoints.module.css';
@@ -18,6 +19,7 @@ const DEFAULT_FILTERS = {
 
 export default function Hunting() {
   const { api } = useAuth();
+  const { confirm } = useConfirm();
   const [hunts, setHunts] = useState([]);
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [huntName, setHuntName] = useState('');
@@ -90,7 +92,15 @@ export default function Hunting() {
   };
 
   const deleteHunt = async (id) => {
-    if (!window.confirm('Delete this saved hunt?')) return;
+    if (
+      !(await confirm({
+        title: 'Delete saved hunt',
+        message: 'Remove this saved hunt definition?',
+        danger: true,
+        confirmLabel: 'Delete',
+      }))
+    )
+      return;
     await api(`/api/admin/hunt-queries/${id}`, { method: 'DELETE' });
     loadHunts();
   };

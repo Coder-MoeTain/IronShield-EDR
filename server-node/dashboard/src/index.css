@@ -89,6 +89,26 @@ html {
   padding: 0;
 }
 
+/* Screen-reader only (route announcer, a11y helpers) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+}
+
 body {
   font-family: var(--font-sans);
   background: var(--main-bg);
@@ -222,9 +242,11 @@ textarea {
 }
 
 /* —— Shared page chrome (use across dashboard pages) —— */
+/* Full width within the main column; shell is two columns (sidebar + main) in Layout. */
 .ui-page {
-  max-width: 1440px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   animation: uiPageIn 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -237,6 +259,20 @@ textarea {
     opacity: 1;
     transform: none;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-page {
+    animation: none !important;
+  }
+}
+
+.ui-route-fallback {
+  min-height: 40vh;
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ui-page-header {

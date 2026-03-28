@@ -123,6 +123,69 @@
   font-weight: 300;
 }
 
+.socStrip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-sm);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.socStripLabel {
+  font-weight: 700;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-right: 0.25rem;
+}
+
+.socChip {
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  cursor: default;
+}
+
+.socChip[role='button'] {
+  cursor: pointer;
+}
+
+.socChip[role='button']:hover {
+  border-color: rgba(37, 99, 235, 0.45);
+}
+
+.socChipOk {
+  composes: socChip;
+  border-color: rgba(52, 211, 153, 0.35);
+  color: rgba(167, 243, 208, 0.95);
+}
+
+.socChipWarn {
+  composes: socChip;
+  border-color: rgba(251, 191, 36, 0.45);
+  color: rgba(254, 243, 199, 0.95);
+}
+
+.socChipAlert {
+  composes: socChip;
+  border-color: rgba(248, 113, 113, 0.5);
+  color: rgba(254, 202, 202, 0.98);
+}
+
+.socNotes {
+  cursor: help;
+  opacity: 0.85;
+  font-size: 0.9rem;
+}
+
 /* KPI Cards */
 .kpiRow {
   display: grid;

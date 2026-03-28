@@ -60,6 +60,7 @@ module.exports = {
         av_signature_count: z.number().int().min(0).max(2147483647).nullish(),
         edr_policy_id: z.number().int().nullish(),
         last_edr_policy_sync_utc: z.string().max(48).nullish(),
+        tamper_signals: z.record(z.any()).nullish(),
       })
       .optional()
       .default({}),

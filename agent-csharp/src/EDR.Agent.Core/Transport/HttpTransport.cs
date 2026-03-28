@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -82,10 +83,79 @@ public class HttpTransport
         return new string(s.Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
     }
 
+    /// <summary>Transient network failures and HTTP 408 / 429 / 5xx — recreates request each attempt.</summary>
+    private async Task<HttpResponseMessage> SendWithRetryAsync(
+        Func<HttpRequestMessage> requestFactory,
+        CancellationToken ct)
+    {
+        Exception? last = null;
+        for (var attempt = 1; attempt <= 3; attempt++)
+        {
+            using var req = requestFactory();
+            HttpResponseMessage res;
+            try
+            {
+                res = await _client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+            }
+            catch (HttpRequestException ex) when (attempt < 3)
+            {
+                last = ex;
+                await Task.Delay(BackoffMs(attempt), ct);
+                continue;
+            }
+            catch (TaskCanceledException ex)
+            {
+                if (ct.IsCancellationRequested) throw;
+                if (attempt < 3)
+                {
+                    last = ex;
+                    await Task.Delay(BackoffMs(attempt), ct);
+                    continue;
+                }
+                throw;
+            }
+
+            if (res.IsSuccessStatusCode)
+                return res;
+
+            var code = (int)res.StatusCode;
+            var retryable = code == 408 || code == 429 || code is >= 500 and <= 504;
+            var errBody = await res.Content.ReadAsStringAsync(ct);
+            res.Dispose();
+            var snippet = errBody.Length <= 512 ? errBody : errBody[..512];
+
+            if (retryable && attempt < 3)
+            {
+                await Task.Delay(BackoffMs(attempt), ct);
+                continue;
+            }
+
+            throw new HttpRequestException($"HTTP {(HttpStatusCode)code} - {snippet}");
+        }
+
+        throw last ?? new HttpRequestException("Request failed after retries");
+    }
+
+    private static int BackoffMs(int attempt) => attempt switch { 1 => 400, 2 => 1200, _ => 0 };
+
     public void SetAgentKey(string agentKey)
     {
         _client.DefaultRequestHeaders.Remove("X-Agent-Key");
         _client.DefaultRequestHeaders.Add("X-Agent-Key", agentKey);
+    }
+
+    /// <summary>Lightweight connectivity check (same base URL as other agent APIs).</summary>
+    public async Task<bool> PingAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            using var res = await _client.GetAsync($"{_baseUrl}/api/agent/ping", ct);
+            return res.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>
@@ -93,15 +163,17 @@ public class HttpTransport
     /// </summary>
     public async Task<RegistrationResult> RegisterAsync(object payload, string registrationToken, CancellationToken ct = default)
     {
-        var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/api/agent/register");
-        req.Headers.Add("X-Registration-Token", registrationToken);
-        req.Content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
-
-        var res = await _client.SendAsync(req, ct);
+        var json = JsonSerializer.Serialize(payload, JsonOptions);
+        using var res = await SendWithRetryAsync(
+            () =>
+            {
+                var r = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/api/agent/register");
+                r.Headers.Add("X-Registration-Token", registrationToken);
+                r.Content = new StringContent(json, Encoding.UTF8, "application/json");
+                return r;
+            },
+            ct);
         var body = await res.Content.ReadAsStringAsync(ct);
-
-        if (!res.IsSuccessStatusCode)
-            throw new HttpRequestException($"Registration failed: {res.StatusCode} - {body}");
 
         var result = JsonSerializer.Deserialize<RegistrationResult>(body, JsonOptions);
         return result ?? throw new InvalidOperationException("Invalid registration response");
@@ -112,14 +184,16 @@ public class HttpTransport
     /// </summary>
     public async Task<HeartbeatResult> HeartbeatAsync(HeartbeatPayload payload, CancellationToken ct = default)
     {
-        var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/api/agent/heartbeat");
-        req.Content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
-
-        var res = await _client.SendAsync(req, ct);
+        var json = JsonSerializer.Serialize(payload, JsonOptions);
+        using var res = await SendWithRetryAsync(
+            () =>
+            {
+                var r = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/api/agent/heartbeat");
+                r.Content = new StringContent(json, Encoding.UTF8, "application/json");
+                return r;
+            },
+            ct);
         var body = await res.Content.ReadAsStringAsync(ct);
-
-        if (!res.IsSuccessStatusCode)
-            throw new HttpRequestException($"Heartbeat failed: {res.StatusCode} - {body}");
 
         return JsonSerializer.Deserialize<HeartbeatResult>(body, JsonOptions) ?? new HeartbeatResult();
     }
@@ -130,15 +204,16 @@ public class HttpTransport
     public async Task<EventsBatchResult> SendEventsBatchAsync(IEnumerable<object> events, string? batchId = null, CancellationToken ct = default)
     {
         var list = events.ToList();
-        var payload = new { batch_id = batchId, events = list };
-        var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/api/agent/events/batch");
-        req.Content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
-
-        var res = await _client.SendAsync(req, ct);
+        var payloadJson = JsonSerializer.Serialize(new { batch_id = batchId, events = list }, JsonOptions);
+        using var res = await SendWithRetryAsync(
+            () =>
+            {
+                var r = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/api/agent/events/batch");
+                r.Content = new StringContent(payloadJson, Encoding.UTF8, "application/json");
+                return r;
+            },
+            ct);
         var body = await res.Content.ReadAsStringAsync(ct);
-
-        if (!res.IsSuccessStatusCode)
-            throw new HttpRequestException($"Events upload failed: {res.StatusCode} - {body}");
 
         return JsonSerializer.Deserialize<EventsBatchResult>(body, JsonOptions) ?? new EventsBatchResult { Inserted = list.Count };
     }

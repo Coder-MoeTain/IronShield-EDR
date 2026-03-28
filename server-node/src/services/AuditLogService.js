@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const SiemPushService = require('./SiemPushService');
 const config = require('../config');
+const logger = require('../utils/logger');
 
 function sha256Hex(s) {
   return crypto.createHash('sha256').update(String(s)).digest('hex');
@@ -25,7 +26,27 @@ function appendImmutableArchive(entry) {
   fs.appendFileSync(p, line, { encoding: 'utf8' });
 }
 
-async function log(payload) {
+/** When DB insert fails, append NDJSON for later replay / evidence (SOC). */
+function appendAuditFailureSpill(payload, err) {
+  const custom = config.audit?.failureLogPath;
+  const p = custom || path.join(process.cwd(), 'artifacts', 'audit-failures.ndjson');
+  try {
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    const line =
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        error: String(err?.message || err),
+        action: payload?.action,
+        userId: payload?.userId,
+        username: payload?.username,
+      }) + '\n';
+    fs.appendFileSync(p, line, 'utf8');
+  } catch {
+    /* ignore */
+  }
+}
+
+async function logPersist(payload) {
   const {
     userId,
     username,
@@ -48,7 +69,6 @@ async function log(payload) {
     user_agent: userAgent ? String(userAgent).substring(0, 512) : null,
   };
 
-  // Best-effort hash chaining. If columns don't exist yet, insert without hashes.
   let prevHash = null;
   try {
     const last = await db.queryOne('SELECT entry_hash FROM audit_logs ORDER BY id DESC LIMIT 1');
@@ -95,7 +115,7 @@ async function log(payload) {
     }
     return;
   } catch {
-    // fall back below (e.g. before migration)
+    /* fall back below */
   }
 
   await db.query(
@@ -133,6 +153,15 @@ async function log(payload) {
     });
   } catch {
     /* ignore */
+  }
+}
+
+async function log(payload) {
+  try {
+    await logPersist(payload);
+  } catch (err) {
+    logger.warn({ err: err.message }, 'Audit log DB persistence failed');
+    appendAuditFailureSpill(payload, err);
   }
 }
 

@@ -48,6 +48,7 @@ function adminAuditTrail(req, res, next) {
         resourceType: 'admin_api',
         resourceId: null,
         details: {
+          requestId: req.requestId ?? null,
           tenantId: req.tenantId ?? null,
           status: res.statusCode,
           ms: Date.now() - startedAt,

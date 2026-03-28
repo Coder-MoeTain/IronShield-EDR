@@ -1,11 +1,44 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import PageShell from '../components/PageShell';
 import FalconEmptyState from '../components/FalconEmptyState';
 import FalconPagination from '../components/FalconPagination';
+import VirtualizedScrollList from '../components/VirtualizedScrollList';
+import { useTableColumnPreferences } from '../hooks/useTableColumnPreferences';
 import { falconSeverityClass } from '../utils/falconUi';
 import styles from './Alerts.module.css';
+
+const ALERT_DATA_COLS = [
+  { key: 'time', label: 'Time' },
+  { key: 'title', label: 'Alert' },
+  { key: 'endpoint', label: 'Endpoint' },
+  { key: 'severity', label: 'Severity' },
+  { key: 'status', label: 'Status' },
+  { key: 'mitre', label: 'MITRE' },
+  { key: 'conf', label: 'Conf.' },
+  {
+    key: 'risk',
+    label: 'Risk',
+    title: 'Heuristic risk (severity × confidence) — not cloud ML',
+  },
+  { key: 'actions', label: 'Actions' },
+];
+
+const ALERT_COL_DEFAULTS = Object.fromEntries(ALERT_DATA_COLS.map((c) => [c.key, true]));
+
+const ALERT_W = {
+  time: 'minmax(100px, 1fr)',
+  title: 'minmax(160px, 2fr)',
+  endpoint: 'minmax(88px, 1fr)',
+  severity: 'minmax(72px, 0.7fr)',
+  status: 'minmax(88px, 0.9fr)',
+  mitre: 'minmax(72px, 0.8fr)',
+  conf: 'minmax(44px, 0.5fr)',
+  risk: 'minmax(44px, 0.5fr)',
+  actions: 'minmax(120px, 1.2fr)',
+};
 
 function timeAgo(date) {
   const d = new Date(date);
@@ -22,6 +55,7 @@ function timeAgo(date) {
 export default function Alerts() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { api } = useAuth();
+  const { confirm } = useConfirm();
   const navigate = useNavigate();
   const [alerts, setAlerts] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -30,6 +64,16 @@ export default function Alerts() {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkStatus, setBulkStatus] = useState('');
   const [assignTo, setAssignTo] = useState('');
+
+  const { visible: colVisible, toggle: colToggle, reset: colReset } = useTableColumnPreferences(
+    'detections-list',
+    ALERT_COL_DEFAULTS
+  );
+  const activeDataCols = useMemo(() => ALERT_DATA_COLS.filter((c) => colVisible[c.key]), [colVisible]);
+  const alertsGridTpl = useMemo(
+    () => ['36px', ...activeDataCols.map((c) => ALERT_W[c.key])].join(' '),
+    [activeDataCols]
+  );
 
   const filters = useMemo(
     () => ({
@@ -165,6 +209,82 @@ export default function Alerts() {
     fetchData();
   };
 
+  const renderAlertCell = (a, key) => {
+    switch (key) {
+      case 'time':
+        return (
+          <>
+            <span className={styles.timeAgo}>{timeAgo(a.first_seen)}</span>
+            <span className={styles.timeFull}>
+              {a.first_seen && !Number.isNaN(new Date(a.first_seen).getTime())
+                ? new Date(a.first_seen).toLocaleString()
+                : '—'}
+            </span>
+          </>
+        );
+      case 'title':
+        return (
+          <>
+            <Link to={`/alerts/${a.id}`} onClick={(e) => e.stopPropagation()} className={styles.alertTitle}>
+              {a.title}
+            </Link>
+            {a.description && (
+              <div className={styles.alertDesc} title={a.description}>
+                {a.description.length > 80 ? a.description.slice(0, 80) + '…' : a.description}
+              </div>
+            )}
+          </>
+        );
+      case 'endpoint':
+        return (
+          <Link to={`/endpoints/${a.endpoint_id}`} onClick={(e) => e.stopPropagation()}>
+            {a.hostname}
+          </Link>
+        );
+      case 'severity':
+        return <span className={falconSeverityClass(a.severity)}>{a.severity}</span>;
+      case 'status':
+        return <span className={`${styles.statusBadge} ${statusClass(a.status)}`}>{a.status}</span>;
+      case 'mitre':
+        return a.mitre_technique ? (
+          <span className={styles.mitreBadge} title={a.mitre_tactic}>
+            {a.mitre_technique}
+          </span>
+        ) : (
+          '-'
+        );
+      case 'conf':
+        return a.confidence != null ? `${Math.round(a.confidence * 100)}%` : '-';
+      case 'risk':
+        return (
+          <span className="mono" title="Heuristic risk score">
+            {a.risk_score != null && a.risk_score !== '' ? Math.round(Number(a.risk_score)) : '—'}
+          </span>
+        );
+      case 'actions':
+        return (
+          <span className={styles.actionsInline} onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className={styles.quickBtn}
+              onClick={() => quickAssign(a.id, 'investigating')}
+              title="Mark Investigating"
+            >
+              Investigate
+            </button>
+            <Link to={`/endpoints/${a.endpoint_id}`} className={styles.quickBtn}>
+              Endpoint
+            </Link>
+            <Link to={`/investigations`} className={styles.quickBtn}>
+              Cases
+            </Link>
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
   const saveCurrentView = async () => {
     const name = window.prompt('Name for this filter view');
     if (!name?.trim()) return;
@@ -218,7 +338,15 @@ export default function Alerts() {
 
   const deleteSavedView = async (viewId, e) => {
     e.stopPropagation();
-    if (!window.confirm('Delete this saved view?')) return;
+    if (
+      !(await confirm({
+        title: 'Delete saved view',
+        message: 'Remove this saved filter set from your account?',
+        danger: true,
+        confirmLabel: 'Delete',
+      }))
+    )
+      return;
     try {
       await api(`/api/admin/saved-views/${viewId}`, { method: 'DELETE' });
       setSavedViews((prev) => prev.filter((v) => v.id !== viewId));
@@ -414,103 +542,85 @@ export default function Alerts() {
         </div>
       )}
 
+      <div className={styles.colToolbar} role="group" aria-label="Column visibility">
+        <span className={styles.colToolbarLabel}>Columns</span>
+        {ALERT_DATA_COLS.map((c) => (
+          <label key={c.key} className={styles.colToggle}>
+            <input type="checkbox" checked={colVisible[c.key]} onChange={() => colToggle(c.key)} />
+            {c.label}
+          </label>
+        ))}
+        <button type="button" className="falcon-btn falcon-btn-ghost" onClick={colReset}>
+          Reset layout
+        </button>
+      </div>
+
       <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th className={styles.colCheck}>
+        {alerts.length > 0 && (
+          <>
+            <div className={styles.alertsGridHead} style={{ gridTemplateColumns: alertsGridTpl }}>
+              <div className={`${styles.alertsGridTh} ${styles.colCheck}`}>
                 <input
                   type="checkbox"
                   checked={alerts.length > 0 && selectedIds.size === alerts.length}
                   onChange={toggleSelectAll}
                 />
-              </th>
-              <th>Time</th>
-              <th>Alert</th>
-              <th>Endpoint</th>
-              <th>Severity</th>
-              <th>Status</th>
-              <th>MITRE</th>
-              <th>Conf.</th>
-              <th title="Heuristic risk (severity × confidence) — not cloud ML">Risk</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {alerts.map((a) => (
-              <tr
-                key={a.id}
-                className={`${styles.alertRow} ${a.severity === 'critical' ? styles.rowCritical : ''}`}
-                onClick={() => navigate(`/alerts/${a.id}`)}
-              >
-                <td className={styles.colCheck} onClick={(e) => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(a.id)}
-                    onChange={() => toggleSelect(a.id)}
-                  />
-                </td>
-                <td className={styles.timeCell}>
-                  <span className={styles.timeAgo}>{timeAgo(a.first_seen)}</span>
-                  <span className={styles.timeFull}>
-                    {a.first_seen && !Number.isNaN(new Date(a.first_seen).getTime())
-                      ? new Date(a.first_seen).toLocaleString()
-                      : '—'}
-                  </span>
-                </td>
-                <td className={styles.titleCell}>
-                  <Link to={`/alerts/${a.id}`} onClick={(e) => e.stopPropagation()} className={styles.alertTitle}>
-                    {a.title}
-                  </Link>
-                  {a.description && (
-                    <div className={styles.alertDesc} title={a.description}>
-                      {a.description.length > 80 ? a.description.slice(0, 80) + '…' : a.description}
-                    </div>
-                  )}
-                </td>
-                <td>
-                  <Link to={`/endpoints/${a.endpoint_id}`} onClick={(e) => e.stopPropagation()}>
-                    {a.hostname}
-                  </Link>
-                </td>
-                <td>
-                  <span className={falconSeverityClass(a.severity)}>{a.severity}</span>
-                </td>
-                <td>
-                  <span className={`${styles.statusBadge} ${statusClass(a.status)}`}>{a.status}</span>
-                </td>
-                <td className={styles.mitreCell}>
-                  {a.mitre_technique ? (
-                    <span className={styles.mitreBadge} title={a.mitre_tactic}>
-                      {a.mitre_technique}
-                    </span>
-                  ) : (
-                    '-'
-                  )}
-                </td>
-                <td className={styles.confCell}>{a.confidence != null ? `${Math.round(a.confidence * 100)}%` : '-'}</td>
-                <td className="mono" title="Heuristic risk score">
-                  {a.risk_score != null && a.risk_score !== '' ? Math.round(Number(a.risk_score)) : '—'}
-                </td>
-                <td className={styles.actionsCell} onClick={(e) => e.stopPropagation()}>
-                  <button
-                    className={styles.quickBtn}
-                    onClick={() => quickAssign(a.id, 'investigating')}
-                    title="Mark Investigating"
+              </div>
+              {activeDataCols.map((c) => (
+                <div key={c.key} className={styles.alertsGridTh} title={c.title}>
+                  {c.label}
+                </div>
+              ))}
+            </div>
+            <VirtualizedScrollList
+              count={alerts.length}
+              estimateSize={96}
+              className={styles.alertsVirtualScroll}
+              rowRender={(i) => {
+                const a = alerts[i];
+                return (
+                  <div
+                    key={a.id}
+                    className={`${styles.alertsGridRow} ${styles.alertRow} ${a.severity === 'critical' ? styles.rowCritical : ''}`}
+                    style={{ gridTemplateColumns: alertsGridTpl }}
+                    onClick={() => navigate(`/alerts/${a.id}`)}
                   >
-                    Investigate
-                  </button>
-                  <Link to={`/endpoints/${a.endpoint_id}`} className={styles.quickBtn}>
-                    Endpoint
-                  </Link>
-                  <Link to={`/investigations`} className={styles.quickBtn}>
-                    Cases
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    <div className={styles.colCheck} onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(a.id)}
+                        onChange={() => toggleSelect(a.id)}
+                      />
+                    </div>
+                    {activeDataCols.map((c) => {
+                      const tdClass =
+                        c.key === 'time'
+                          ? styles.timeCell
+                          : c.key === 'title'
+                            ? styles.titleCell
+                            : c.key === 'mitre'
+                              ? styles.mitreCell
+                              : c.key === 'conf'
+                                ? styles.confCell
+                                : c.key === 'actions'
+                                  ? styles.actionsCell
+                                  : '';
+                      return (
+                        <div
+                          key={c.key}
+                          className={`${styles.alertsGridTd} ${tdClass}`.trim()}
+                          onClick={c.key === 'actions' ? (e) => e.stopPropagation() : undefined}
+                        >
+                          {renderAlertCell(a, c.key)}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              }}
+            />
+          </>
+        )}
         {alerts.length === 0 && (
           <FalconEmptyState
             title="No detections match your filters"

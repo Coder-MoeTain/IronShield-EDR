@@ -4,6 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import PageShell from '../components/PageShell';
 import styles from './Network.module.css';
 
+function fmtMbps(v) {
+  if (v == null || v === '') return '—';
+  const n = Number(v);
+  return Number.isFinite(n) ? n.toFixed(2) : '—';
+}
+
 function timeAgo(date) {
   if (!date) return '-';
   const d = new Date(date);
@@ -283,6 +289,17 @@ export default function Network() {
         </button>
       </div>
 
+      {endpointId ? (
+        <p className={styles.endpointInventoryHint}>
+          <span className={styles.muted}>
+            Listening ports and hidden items on C:\ for this host:{' '}
+            <Link to={`/endpoints/${endpointId}#open-ports`}>open ports</Link>
+            {' · '}
+            <Link to={`/endpoints/${endpointId}#hidden-c`}>hidden on C:</Link>
+          </span>
+        </p>
+      ) : null}
+
       <div className={styles.statsBar}>
         <div className={styles.statCard}>
           <span className={styles.statValue}>{totalConnections.toLocaleString()}</span>
@@ -303,10 +320,10 @@ export default function Network() {
         {endpointId ? (
           <div className={styles.statCard}>
             <span className={styles.statValue}>
-              {bandwidth.rx != null ? `${bandwidth.rx}` : '—'} / {bandwidth.tx != null ? `${bandwidth.tx}` : '—'}
+              {fmtMbps(bandwidth.rx)}↓ {fmtMbps(bandwidth.tx)}↑
             </span>
             <span className={styles.statLabel}>
-              Bandwidth RX/TX Mbps {bandwidth.at ? `· ${timeAgo(bandwidth.at)}` : ''}
+              Selected host RX/TX Mbps {bandwidth.at ? `· ${timeAgo(bandwidth.at)}` : ''}
             </span>
           </div>
         ) : null}
@@ -335,6 +352,7 @@ export default function Network() {
             <thead>
               <tr>
                 <th>Endpoint</th>
+                <th>Bandwidth</th>
                 <th>Local</th>
                 <th>Remote</th>
                 <th>Scope</th>
@@ -344,12 +362,20 @@ export default function Network() {
               </tr>
             </thead>
             <tbody>
-              {connectionRows.length === 0 && <tr><td colSpan={7} className={styles.empty}>No connections</td></tr>}
+              {connectionRows.length === 0 && <tr><td colSpan={8} className={styles.empty}>No connections</td></tr>}
               {connectionRows.map((c) => {
                 const scope = ipScopeLabel(c.remote_address);
                 return (
                   <tr key={c.id}>
                     <td><Link to={`/endpoints/${c.endpoint_id}`} className={styles.link}>{c.hostname || c.endpoint_id}</Link></td>
+                    <td
+                      className={styles.bwCell}
+                      title={c.metrics_collected_at ? `Heartbeat metrics · ${new Date(c.metrics_collected_at).toLocaleString()}` : 'No metrics yet'}
+                    >
+                      <span className={styles.bwRx}>{fmtMbps(c.network_rx_mbps)}</span>
+                      <span className={styles.bwSep}> / </span>
+                      <span className={styles.bwTx}>{fmtMbps(c.network_tx_mbps)}</span>
+                    </td>
                     <td className={styles.mono}>{c.local_address || '-'}:{c.local_port ?? '-'}</td>
                     <td className={styles.mono}>{c.remote_address}:{c.remote_port}</td>
                     <td>
@@ -381,13 +407,14 @@ export default function Network() {
                 <th>Port</th>
                 <th>Protocol</th>
                 <th>Endpoint</th>
+                <th>Bandwidth</th>
                 <th>Process</th>
                 <th>Connections</th>
                 <th>Last seen</th>
               </tr>
             </thead>
             <tbody>
-              {outgoingRows.length === 0 && <tr><td colSpan={8} className={styles.empty}>No outgoing IPs</td></tr>}
+              {outgoingRows.length === 0 && <tr><td colSpan={9} className={styles.empty}>No outgoing IPs</td></tr>}
               {outgoingRows.map((r, i) => {
                 const scope = ipScopeLabel(r.remote_address);
                 return (
@@ -404,6 +431,14 @@ export default function Network() {
                     <td>{r.remote_port}</td>
                     <td>{r.protocol || 'TCP'}</td>
                     <td><Link to={`/endpoints/${r.endpoint_id}`} className={styles.link}>{r.hostname}</Link></td>
+                    <td
+                      className={styles.bwCell}
+                      title={r.metrics_collected_at ? `Heartbeat metrics · ${new Date(r.metrics_collected_at).toLocaleString()}` : 'No metrics yet'}
+                    >
+                      <span className={styles.bwRx}>{fmtMbps(r.network_rx_mbps)}</span>
+                      <span className={styles.bwSep}> / </span>
+                      <span className={styles.bwTx}>{fmtMbps(r.network_tx_mbps)}</span>
+                    </td>
                     <td>{r.process_name || '-'}</td>
                     <td>{r.conn_count}</td>
                     <td className={styles.timeCell}>{timeAgo(r.last_seen)}</td>
@@ -421,19 +456,27 @@ export default function Network() {
             <thead>
               <tr>
                 <th>Endpoint</th>
+                <th>RX Mbps</th>
+                <th>TX Mbps</th>
                 <th>Unique IPs</th>
                 <th>Total connections</th>
                 <th>Last activity</th>
+                <th>Metrics</th>
               </tr>
             </thead>
             <tbody>
-              {trafficRows.length === 0 && <tr><td colSpan={4} className={styles.empty}>No traffic data</td></tr>}
+              {trafficRows.length === 0 && <tr><td colSpan={7} className={styles.empty}>No traffic data</td></tr>}
               {trafficRows.map((t) => (
                 <tr key={t.endpoint_id}>
                   <td><Link to={`/endpoints/${t.endpoint_id}`} className={styles.link}>{t.hostname}</Link></td>
+                  <td className={styles.mono}>{fmtMbps(t.network_rx_mbps)}</td>
+                  <td className={styles.mono}>{fmtMbps(t.network_tx_mbps)}</td>
                   <td>{t.unique_ips}</td>
                   <td>{t.total_connections}</td>
                   <td className={styles.timeCell}>{timeAgo(t.last_activity)}</td>
+                  <td className={styles.timeCell} title={t.metrics_collected_at ? new Date(t.metrics_collected_at).toLocaleString() : ''}>
+                    {t.metrics_collected_at ? timeAgo(t.metrics_collected_at) : '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -451,6 +494,7 @@ export default function Network() {
                 <tr>
                   <th>Time</th>
                   <th>Endpoint</th>
+                  <th>Bandwidth</th>
                   <th>Source</th>
                   <th>Destination</th>
                   <th>Scope</th>
@@ -458,13 +502,18 @@ export default function Network() {
                 </tr>
               </thead>
               <tbody>
-                {logConnRows.length === 0 && eventRows.length === 0 && <tr><td colSpan={6} className={styles.empty}>No network logs</td></tr>}
+                {logConnRows.length === 0 && eventRows.length === 0 && <tr><td colSpan={7} className={styles.empty}>No network logs</td></tr>}
                 {logConnRows.slice(0, 50).map((c) => {
                   const scope = ipScopeLabel(c.remote_address);
                   return (
                     <tr key={c.id}>
                       <td>{c.last_seen ? new Date(c.last_seen).toLocaleString() : '-'}</td>
                       <td><Link to={`/endpoints/${c.endpoint_id}`} className={styles.link}>{c.hostname}</Link></td>
+                      <td className={styles.bwCell} title={c.metrics_collected_at ? `Heartbeat metrics · ${new Date(c.metrics_collected_at).toLocaleString()}` : ''}>
+                        <span className={styles.bwRx}>{fmtMbps(c.network_rx_mbps)}</span>
+                        <span className={styles.bwSep}> / </span>
+                        <span className={styles.bwTx}>{fmtMbps(c.network_tx_mbps)}</span>
+                      </td>
                       <td className={styles.mono}>{c.local_address}:{c.local_port ?? '-'}</td>
                       <td className={styles.mono}>{c.remote_address}:{c.remote_port}</td>
                       <td>
@@ -485,6 +534,11 @@ export default function Network() {
                     <tr key={e.id}>
                       <td>{e.timestamp ? new Date(e.timestamp).toLocaleString() : '-'}</td>
                       <td><Link to={`/endpoints/${e.endpoint_id}`} className={styles.link}>{e.endpoint_hostname || e.hostname}</Link></td>
+                      <td className={styles.bwCell} title={e.metrics_collected_at ? `Heartbeat metrics · ${new Date(e.metrics_collected_at).toLocaleString()}` : ''}>
+                        <span className={styles.bwRx}>{fmtMbps(e.network_rx_mbps)}</span>
+                        <span className={styles.bwSep}> / </span>
+                        <span className={styles.bwTx}>{fmtMbps(e.network_tx_mbps)}</span>
+                      </td>
                       <td className={styles.mono}>{e.source_ip || '-'}</td>
                       <td className={styles.mono}>{e.destination_ip || '-'}:{e.destination_port ?? '-'}</td>
                       <td>

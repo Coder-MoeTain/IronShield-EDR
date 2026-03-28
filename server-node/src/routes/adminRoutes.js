@@ -86,6 +86,7 @@ router.get('/normalized-events/:id', adminController.getNormalizedEvent);
 router.get('/audit-logs', adminController.listAuditLogs);
 router.get('/audit-logs/verify', requireAnyPermission('*', 'audit:read'), require('../controllers/auditVerifyController').verify);
 router.get('/compliance/summary', requireAnyPermission('*', 'audit:read', 'manage_tenants'), adminController.getComplianceSummary);
+router.get('/soc/readiness', requireAnyPermission('alerts:read', '*'), adminController.getSocReadiness);
 router.get('/alerts', adminController.listAlerts);
 router.get('/alerts/summary', adminController.getAlertsSummary);
 router.get('/export/siem-alerts', requireAnyPermission('audit:read', '*'), adminController.exportSiemAlerts);

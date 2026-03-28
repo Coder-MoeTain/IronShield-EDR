@@ -116,6 +116,86 @@
   width: 120px;
 }
 
+.colToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.5rem 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.colToolbarLabel {
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-right: 0.25rem;
+}
+
+.colToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.colToggle input {
+  margin: 0;
+}
+
+.eventGridHead {
+  display: grid;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  background: rgba(255, 255, 255, 0.6);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--text-muted);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.eventGridTh {
+  min-width: 0;
+}
+
+.eventVirtualScroll {
+  border-top: none;
+}
+
+.eventGridRow {
+  display: grid;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.eventGridTd {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.cmdInline {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.82rem;
+}
+
+.actionsInline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}
+
 .tableWrap {
   background: var(--bg-glass);
   backdrop-filter: blur(10px);
@@ -304,6 +384,11 @@
   background: rgba(6, 32, 52, 0.98);
   border-color: rgba(34, 211, 238, 0.5);
   color: #f0f9ff;
+}
+
+:global([data-theme="dark"]) .eventGridHead {
+  background: rgba(3, 12, 28, 0.98);
+  border-bottom-color: rgba(34, 211, 238, 0.1);
 }
 
 :global([data-theme="dark"]) .tableWrap {

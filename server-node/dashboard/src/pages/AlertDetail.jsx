@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import PageShell from '../components/PageShell';
+import RunbookWorkflowPanel from '../components/RunbookWorkflowPanel';
 import { falconSeverityClass } from '../utils/falconUi';
 import styles from './AlertDetail.module.css';
 
@@ -16,7 +17,7 @@ function toDatetimeLocal(v) {
 export default function AlertDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { api } = useAuth();
+  const { api, hasPermission } = useAuth();
   const [alert, setAlert] = useState(null);
   const [notes, setNotes] = useState([]);
   const [note, setNote] = useState('');
@@ -235,6 +236,10 @@ export default function AlertDetail() {
         </Link>
         {actionMsg && <span className={styles.actionMsg}>{actionMsg}</span>}
       </div>
+
+      {hasPermission('actions:write') && alert.endpoint_id != null && (
+        <RunbookWorkflowPanel endpointId={alert.endpoint_id} hostname={alert.hostname} />
+      )}
 
       <div className={styles.grid}>
         <div className={styles.card}>

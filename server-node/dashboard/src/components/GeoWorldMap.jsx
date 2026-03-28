@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { MapContainer, TileLayer, Polyline, CircleMarker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, CircleMarker, Popup, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { greatCircleArc, trafficNorm, lerp } from '../utils/geoArc';
 import styles from './GeoWorldMap.module.css';
@@ -12,6 +12,26 @@ const MAX_EDGES = 90;
 function normIp(ip) {
   if (!ip) return '';
   return String(ip).replace(/^::ffff:/i, '').trim();
+}
+
+/** ISO 3166-1 alpha-2 → regional-indicator flag emoji (offline, no CDN). */
+function flagEmoji(iso2) {
+  if (!iso2 || typeof iso2 !== 'string') return '';
+  const u = iso2.trim().toUpperCase();
+  if (u.length !== 2 || !/^[A-Z]{2}$/.test(u)) return '';
+  const A = 0x1f1e6;
+  return String.fromCodePoint(A + u.charCodeAt(0) - 65, A + u.charCodeAt(1) - 65);
+}
+
+function countryDisplayName(iso2) {
+  if (!iso2 || typeof iso2 !== 'string') return '';
+  const u = iso2.trim().toUpperCase();
+  if (u.length !== 2) return iso2;
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'region' }).of(u) || iso2;
+  } catch {
+    return iso2;
+  }
 }
 
 function FitBounds({ boundsKey, points }) {
@@ -128,6 +148,8 @@ export default function GeoWorldMap({
       const fromLng = from?.lng ?? DEFAULT_ORIGIN.lng;
       const toLat = to.lat;
       const toLng = to.lng;
+      const toCc = (to.countryCode || to.country || '').trim() || null;
+      const fromCc = from ? (from.countryCode || from.country || '').trim() || null : null;
       list.push({
         key: k,
         w,
@@ -137,6 +159,8 @@ export default function GeoWorldMap({
         toLng,
         remoteIp,
         country: to.country || to.countryCode || '—',
+        countryCode: toCc,
+        hostCountryCode: fromCc,
         hostname: ep?.hostname || epId,
         fromResolved: !!from,
       });
@@ -169,6 +193,7 @@ export default function GeoWorldMap({
           lng: e.toLng,
           ip: e.remoteIp,
           country: e.country,
+          countryCode: e.countryCode,
           weight: e.w,
         });
       } else {
@@ -255,45 +280,85 @@ export default function GeoWorldMap({
           const ip = ep.ip_address ? normIp(ep.ip_address) : null;
           const g = ip ? geoByIp.get(ip) : null;
           if (!g) return null;
+          const hostCc = (g.countryCode || g.country || '').trim() || null;
+          const hostFlag = flagEmoji(hostCc);
+          const hostCountryLabel = hostCc ? countryDisplayName(hostCc) : '';
           return (
             <CircleMarker key={`ep-${ep.id}`} center={[g.lat, g.lng]} radius={compact ? 5 : 7} pathOptions={{ color: '#fbbf24', fillColor: '#fbbf24', fillOpacity: 0.85, weight: 2 }}>
+              <Tooltip
+                permanent={!compact}
+                direction="top"
+                offset={[0, compact ? -6 : -8]}
+                className={styles.markerTooltip}
+              >
+                <span className={styles.tooltipFlag}>{hostFlag ? `${hostFlag} ` : ''}</span>
+                <span className={styles.tooltipTitle}>{ep.hostname || 'Host'}</span>
+                <br />
+                <span className={styles.mono}>{ip}</span>
+                {hostCountryLabel ? (
+                  <>
+                    <br />
+                    <span className={styles.tooltipMuted}>{hostCountryLabel}</span>
+                  </>
+                ) : null}
+              </Tooltip>
               <Popup>
-                <strong>Agent</strong>
+                <strong>{hostFlag ? `${hostFlag} ` : ''}Agent</strong>
                 <br />
                 {ep.hostname || ep.id}
                 <br />
                 <span className={styles.mono}>{ip}</span>
                 <br />
-                {g.country || g.countryCode || ''}
+                {hostCountryLabel || g.country || g.countryCode || ''}
               </Popup>
             </CircleMarker>
           );
         })}
 
-        {remoteMarkers.map((r) => (
-          <CircleMarker
-            key={r.ip}
-            center={[r.lat, r.lng]}
-            radius={compact ? 4 : 6}
-            className="geoRemoteNode"
-            pathOptions={{
-              color: '#a78bfa',
-              fillColor: '#22d3ee',
-              fillOpacity: 0.75,
-              weight: 1,
-            }}
-          >
-            <Popup>
-              <strong>Remote</strong>
-              <br />
-              <span className={styles.mono}>{r.ip}</span>
-              <br />
-              {r.country}
-              <br />
-              <span className={styles.dim}>Weight ~{Math.round(r.weight)}</span>
-            </Popup>
-          </CircleMarker>
-        ))}
+        {remoteMarkers.map((r) => {
+          const rmCc = (r.countryCode || (typeof r.country === 'string' && r.country.length === 2 ? r.country : '') || '').trim() || null;
+          const rmFlag = flagEmoji(rmCc);
+          const rmCountryLabel = rmCc ? countryDisplayName(rmCc) : (r.country && r.country !== '—' ? r.country : '');
+          return (
+            <CircleMarker
+              key={`${r.lat},${r.lng},${r.ip}`}
+              center={[r.lat, r.lng]}
+              radius={compact ? 4 : 6}
+              className="geoRemoteNode"
+              pathOptions={{
+                color: '#a78bfa',
+                fillColor: '#22d3ee',
+                fillOpacity: 0.75,
+                weight: 1,
+              }}
+            >
+              <Tooltip
+                permanent={!compact}
+                direction="top"
+                offset={[0, compact ? -6 : -8]}
+                className={styles.markerTooltip}
+              >
+                <span className={styles.tooltipFlag}>{rmFlag ? `${rmFlag} ` : ''}</span>
+                <span className={styles.mono}>{r.ip}</span>
+                {rmCountryLabel ? (
+                  <>
+                    <br />
+                    <span className={styles.tooltipMuted}>{rmCountryLabel}</span>
+                  </>
+                ) : null}
+              </Tooltip>
+              <Popup>
+                <strong>{rmFlag ? `${rmFlag} ` : ''}Remote</strong>
+                <br />
+                <span className={styles.mono}>{r.ip}</span>
+                <br />
+                {rmCountryLabel || r.country}
+                <br />
+                <span className={styles.dim}>Weight ~{Math.round(r.weight)}</span>
+              </Popup>
+            </CircleMarker>
+          );
+        })}
       </MapContainer>
 
       {(connections || []).length > 0 && edges.length === 0 && !geoErr ? (

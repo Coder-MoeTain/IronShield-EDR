@@ -23,6 +23,8 @@ jobs:
         run: node -c src/index.js
       - name: Tests
         run: node --test test/*.test.js
+      - name: Security assurance (control mapping + audit + tests)
+        run: npm run security-assurance
       - name: Detection replay regression
         run: npm run run-detection-replay
       - name: Export compliance evidence artifact
@@ -68,4 +70,10 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
+      - name: Install Playwright Chromium
+        run: npm run test:e2e:install
+      - name: E2E smoke (Playwright)
+        run: npm run test:e2e
+        env:
+          CI: true
 

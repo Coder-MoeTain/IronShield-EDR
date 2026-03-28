@@ -7,6 +7,7 @@ const { authenticator } = require('otplib');
 const db = require('../utils/db');
 const config = require('../config');
 const logger = require('../utils/logger');
+const { verifyWithRotation } = require('../utils/jwtVerify');
 
 function isLocked(lockedUntil) {
   if (!lockedUntil) return false;
@@ -83,10 +84,69 @@ async function login(username, password, mfaCode = null) {
     config.jwt.secret,
     { expiresIn: config.jwt.expiresIn }
   );
+  const refresh_token = signRefreshToken(user);
 
   logger.info({ userId: user.id, username }, 'Admin login');
   return {
     token,
+    refresh_token,
+    user: {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      tenantId: user.tenant_id,
+      mfaEnabled: hasMfa,
+      mfaCompliant,
+      authMethod: 'local',
+      sessionVersion: user.session_version || 1,
+    },
+  };
+}
+
+function signRefreshToken(user) {
+  return jwt.sign(
+    { type: 'refresh', userId: user.id, sv: Number(user.session_version || 1) },
+    config.jwt.secret,
+    { expiresIn: config.jwt.refreshExpiresIn || '7d' }
+  );
+}
+
+async function refreshAccessToken(refreshTokenString) {
+  let decoded;
+  try {
+    decoded = verifyWithRotation(refreshTokenString);
+  } catch {
+    throw new Error('Invalid refresh token');
+  }
+  if (decoded.type !== 'refresh' || !decoded.userId) {
+    throw new Error('Invalid refresh token');
+  }
+  const user = await db.queryOne(
+    `SELECT id, username, role, tenant_id, session_version, is_active, mfa_enabled, mfa_secret FROM admin_users WHERE id = ?`,
+    [decoded.userId]
+  );
+  if (!user || !user.is_active) throw new Error('Invalid refresh token');
+  if (Number(decoded.sv) !== Number(user.session_version || 1)) throw new Error('Session revoked');
+  const hasMfa = !!(user.mfa_enabled && user.mfa_secret);
+  const mfaCompliant = hasMfa;
+  const token = jwt.sign(
+    {
+      userId: user.id,
+      username: user.username,
+      role: user.role,
+      tenantId: user.tenant_id,
+      mfaEnabled: hasMfa,
+      mfaCompliant,
+      authMethod: 'local',
+      sv: user.session_version || 1,
+    },
+    config.jwt.secret,
+    { expiresIn: config.jwt.expiresIn }
+  );
+  const refresh_token = signRefreshToken(user);
+  return {
+    token,
+    refresh_token,
     user: {
       id: user.id,
       username: user.username,
@@ -119,8 +179,10 @@ function buildJwtForUser(user, opts = {}) {
     config.jwt.secret,
     { expiresIn: config.jwt.expiresIn }
   );
+  const refresh_token = signRefreshToken(user);
   return {
     token,
+    refresh_token,
     user: {
       id: user.id,
       username: user.username,
@@ -185,4 +247,14 @@ async function getSecurityPolicy() {
   };
 }
 
-module.exports = { login, mfaStatus, beginMfaSetup, enableMfa, disableMfa, buildJwtForUser, revokeSessions, getSecurityPolicy };
+module.exports = {
+  login,
+  mfaStatus,
+  beginMfaSetup,
+  enableMfa,
+  disableMfa,
+  buildJwtForUser,
+  revokeSessions,
+  getSecurityPolicy,
+  refreshAccessToken,
+};

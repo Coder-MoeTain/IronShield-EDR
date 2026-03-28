@@ -178,6 +178,15 @@ async function submitActionResult(req, res, next) {
   }
 }
 
+/** Unauthenticated connectivity check for agents / load balancers (no API key). */
+function ping(req, res) {
+  res.json({
+    ok: true,
+    service: 'ironshield-edr-agent-api',
+    time: new Date().toISOString(),
+  });
+}
+
 async function checkUpdate(req, res, next) {
   try {
     const currentVersion = req.query.version || req.headers['x-agent-version'] || '1.0.0';
@@ -194,6 +203,7 @@ async function checkUpdate(req, res, next) {
 }
 
 module.exports = {
+  ping,
   register,
   heartbeat,
   eventsBatch,

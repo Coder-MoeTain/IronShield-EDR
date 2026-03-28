@@ -2,6 +2,7 @@
  * Alert management service
  */
 const db = require('../utils/db');
+const metrics = require('../utils/metrics');
 const DetectionEngineService = require('./DetectionEngineService');
 const EventNormalizationService = require('./EventNormalizationService');
 const RiskService = require('../modules/risk/riskService');
@@ -109,6 +110,10 @@ async function createFromDetection(alerts) {
     endpointIds.add(a.endpoint_id);
     const alertId = result?.insertId;
     if (alertId) {
+      const sev = String(a.severity || 'medium').toLowerCase();
+      metrics.alertsCreatedFromDetectionTotal.inc({
+        severity: ['low', 'medium', 'high', 'critical'].includes(sev) ? sev : 'medium',
+      });
       try {
         const ep = await db.queryOne('SELECT * FROM endpoints WHERE id = ?', [a.endpoint_id]);
         await NotificationService.notifyAlertCreated(

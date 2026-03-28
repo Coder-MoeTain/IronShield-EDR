@@ -53,6 +53,10 @@ packages/
 # Vite
 server-node/dashboard/dist/
 
+# Playwright (dashboard e2e)
+server-node/dashboard/playwright-report/
+server-node/dashboard/test-results/
+
 # Misc
 *.tgz
 .cache/

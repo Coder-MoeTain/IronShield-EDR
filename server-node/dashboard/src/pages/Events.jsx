@@ -1,10 +1,38 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import PageShell from '../components/PageShell';
 import FalconEmptyState from '../components/FalconEmptyState';
 import FalconPagination from '../components/FalconPagination';
+import VirtualizedScrollList from '../components/VirtualizedScrollList';
+import { useTableColumnPreferences } from '../hooks/useTableColumnPreferences';
 import styles from './Events.module.css';
+
+const EVENT_COLS = [
+  { key: 'time', label: 'Time' },
+  { key: 'host', label: 'Host' },
+  { key: 'type', label: 'Type' },
+  { key: 'source', label: 'Source' },
+  { key: 'process', label: 'Process' },
+  { key: 'user', label: 'User' },
+  { key: 'parent', label: 'Parent' },
+  { key: 'command', label: 'Command' },
+  { key: 'actions', label: 'Actions' },
+];
+
+const EVENT_DEFAULTS = Object.fromEntries(EVENT_COLS.map((c) => [c.key, true]));
+
+const COL_W = {
+  time: 'minmax(110px, 1.1fr)',
+  host: 'minmax(88px, 1fr)',
+  type: 'minmax(72px, 0.9fr)',
+  source: 'minmax(72px, 0.9fr)',
+  process: 'minmax(100px, 1fr)',
+  user: 'minmax(72px, 0.8fr)',
+  parent: 'minmax(72px, 0.8fr)',
+  command: 'minmax(140px, 1.4fr)',
+  actions: 'minmax(120px, 1fr)',
+};
 
 function timeAgo(date) {
   const d = new Date(date);
@@ -37,6 +65,9 @@ export default function Events() {
   const { api } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { visible, toggle, reset } = useTableColumnPreferences('events-list', EVENT_DEFAULTS);
+  const activeCols = useMemo(() => EVENT_COLS.filter((c) => visible[c.key]), [visible]);
+  const gridTpl = useMemo(() => activeCols.map((c) => COL_W[c.key]).join(' '), [activeCols]);
   const [events, setEvents] = useState([]);
   const [total, setTotal] = useState(0);
   const [summary, setSummary] = useState(null);
@@ -84,6 +115,61 @@ export default function Events() {
   }, []);
 
   const s = summary || {};
+
+  const renderEventCell = useCallback(
+    (evt, key) => {
+      switch (key) {
+        case 'time':
+          return (
+            <>
+              <span className={styles.timeAgo}>{timeAgo(evt.timestamp)}</span>
+              <span className={styles.timeFull}>{new Date(evt.timestamp).toLocaleString()}</span>
+            </>
+          );
+        case 'host':
+          return (
+            <Link to={`/endpoints/${evt.endpoint_id}`} onClick={(e) => e.stopPropagation()}>
+              {evt.hostname || evt.endpoint_hostname || '-'}
+            </Link>
+          );
+        case 'type':
+          return (
+            <span className={`${styles.typeBadge} ${eventTypeClass(evt.event_type)}`}>{evt.event_type || '-'}</span>
+          );
+        case 'source':
+          return evt.event_source || '-';
+        case 'process':
+          return <span className={styles.processName}>{evt.process_name || '-'}</span>;
+        case 'user':
+          return evt.username || '-';
+        case 'parent':
+          return evt.parent_process_name || '-';
+        case 'command':
+          return (
+            <span className={`mono ${styles.cmdInline}`} title={evt.command_line}>
+              {truncate(evt.command_line, 35)}
+            </span>
+          );
+        case 'actions':
+          return (
+            <span className={styles.actionsInline} onClick={(e) => e.stopPropagation()}>
+              <button type="button" className={styles.quickBtn} onClick={() => navigate(`/normalized-events/${evt.id}`)}>
+                Details
+              </button>
+              <Link to={`/endpoints/${evt.endpoint_id}/process-tree`} className={styles.quickBtn}>
+                Tree
+              </Link>
+              <Link to={`/endpoints/${evt.endpoint_id}`} className={styles.quickBtn}>
+                Endpoint
+              </Link>
+            </span>
+          );
+        default:
+          return null;
+      }
+    },
+    [navigate]
+  );
 
   if (loading && events.length === 0) {
     return <PageShell loading loadingLabel="Loading events…" />;
@@ -185,72 +271,59 @@ export default function Events() {
         />
       </div>
 
+      <div className={styles.colToolbar} role="group" aria-label="Column visibility">
+        <span className={styles.colToolbarLabel}>Columns</span>
+        {EVENT_COLS.map((c) => (
+          <label key={c.key} className={styles.colToggle}>
+            <input type="checkbox" checked={visible[c.key]} onChange={() => toggle(c.key)} />
+            {c.label}
+          </label>
+        ))}
+        <button type="button" className="falcon-btn falcon-btn-ghost" onClick={reset}>
+          Reset layout
+        </button>
+      </div>
+
       <div className={styles.tableWrap}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Host</th>
-              <th>Type</th>
-              <th>Source</th>
-              <th>Process</th>
-              <th>User</th>
-              <th>Parent</th>
-              <th>Command</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {events.map((evt) => (
-              <tr
-                key={evt.id}
-                className={styles.eventRow}
-                onClick={() => navigate(`/normalized-events/${evt.id}`)}
-              >
-                <td className={styles.timeCell}>
-                  <span className={styles.timeAgo}>{timeAgo(evt.timestamp)}</span>
-                  <span className={styles.timeFull}>{new Date(evt.timestamp).toLocaleString()}</span>
-                </td>
-                <td>
-                  <Link to={`/endpoints/${evt.endpoint_id}`} onClick={(e) => e.stopPropagation()}>
-                    {evt.hostname || evt.endpoint_hostname || '-'}
-                  </Link>
-                </td>
-                <td>
-                  <span className={`${styles.typeBadge} ${eventTypeClass(evt.event_type)}`}>
-                    {evt.event_type || '-'}
-                  </span>
-                </td>
-                <td className={styles.sourceCell}>{evt.event_source || '-'}</td>
-                <td className={styles.processCell}>
-                  <span className={styles.processName}>{evt.process_name || '-'}</span>
-                </td>
-                <td>{evt.username || '-'}</td>
-                <td className={styles.parentCell}>{evt.parent_process_name || '-'}</td>
-                <td className={`${styles.cmdCell} mono`} title={evt.command_line}>
-                  {truncate(evt.command_line, 35)}
-                </td>
-                <td className={styles.actionsCell} onClick={(e) => e.stopPropagation()}>
-                  <button
-                    className={styles.quickBtn}
+        {events.length > 0 && (
+          <>
+            <div className={styles.eventGridHead} style={{ gridTemplateColumns: gridTpl }}>
+              {activeCols.map((c) => (
+                <div key={c.key} className={styles.eventGridTh}>
+                  {c.label}
+                </div>
+              ))}
+            </div>
+            <VirtualizedScrollList
+              count={events.length}
+              estimateSize={58}
+              className={styles.eventVirtualScroll}
+              rowRender={(i) => {
+                const evt = events[i];
+                return (
+                  <div
+                    key={evt.id}
+                    className={`${styles.eventGridRow} ${styles.eventRow}`}
+                    style={{ gridTemplateColumns: gridTpl }}
                     onClick={() => navigate(`/normalized-events/${evt.id}`)}
                   >
-                    Details
-                  </button>
-                  <Link
-                    to={`/endpoints/${evt.endpoint_id}/process-tree`}
-                    className={styles.quickBtn}
-                  >
-                    Tree
-                  </Link>
-                  <Link to={`/endpoints/${evt.endpoint_id}`} className={styles.quickBtn}>
-                    Endpoint
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    {activeCols.map((c) => (
+                      <div
+                        key={c.key}
+                        className={`${styles.eventGridTd} ${c.key === 'source' ? styles.sourceCell : ''} ${
+                          c.key === 'process' ? styles.processCell : ''
+                        } ${c.key === 'parent' ? styles.parentCell : ''}`}
+                        onClick={c.key === 'actions' ? (e) => e.stopPropagation() : undefined}
+                      >
+                        {renderEventCell(evt, c.key)}
+                      </div>
+                    ))}
+                  </div>
+                );
+              }}
+            />
+          </>
+        )}
         {events.length === 0 && (
           <FalconEmptyState
             title="No events match your filters"

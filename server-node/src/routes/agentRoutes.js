@@ -8,6 +8,9 @@ const { authAgentValidated } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const schemas = require('../schemas/agentSchemas');
 
+// Connectivity (no auth) — use before TLS/cloud LB health checks
+router.get('/ping', agentController.ping);
+
 // Registration - no auth, uses registration token
 router.post('/register', validate(schemas.registerSchema), agentController.register);
 

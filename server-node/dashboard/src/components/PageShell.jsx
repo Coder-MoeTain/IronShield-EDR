@@ -1,7 +1,7 @@
 import React from 'react';
 
 /**
- * CrowdStrike Falcon–style page chrome: max-width rail, kicker, title, optional actions.
+ * CrowdStrike Falcon–style page chrome: full-width main column, kicker, title, optional actions.
  * Use across dashboard routes for consistent EDR console layout.
  */
 export default function PageShell({

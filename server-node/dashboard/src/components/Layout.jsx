@@ -2,6 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import GlobalSearch from './GlobalSearch';
+import Breadcrumbs from './Breadcrumbs';
+import RouteDocumentTitle from './RouteDocumentTitle';
+import RouteAnnouncer from './RouteAnnouncer';
+import SessionExpiryBanner from './SessionExpiryBanner';
+import { RouteErrorBoundary } from './RouteErrorBoundary';
+import KeyboardShortcutsHelp from './KeyboardShortcutsHelp';
 import TenantSwitcher from './TenantSwitcher';
 import ThemeToggle from './ThemeToggle';
 import ProfessionalViewToggle, { useProfessionalView } from './ProfessionalViewToggle';
@@ -21,6 +27,7 @@ import {
   IconGraph,
 } from './NavIcons';
 import styles from './Layout.module.css';
+import { filterEnterpriseNavChildren } from '../utils/socRoles';
 
 /** Falcon-style IA: activity-first, detections, hosts, explore, respond, intel. */
 const MENU_ITEMS = [
@@ -41,6 +48,7 @@ const MENU_ITEMS = [
     Icon: IconExplore,
     children: [
       { to: '/events', Icon: IconExplore, label: 'Events' },
+      { to: '/normalized-events', Icon: IconExplore, label: 'Normalized events' },
       { to: '/raw-events', Icon: IconExplore, label: 'Raw events' },
       { to: '/process-monitor', Icon: IconExplore, label: 'Process monitor' },
       { to: '/hunting', Icon: IconExplore, label: 'Hunting' },
@@ -121,9 +129,14 @@ const MENU_ITEMS = [
   },
 ];
 
-function NavMenuItem({ item }) {
+function NavMenuItem({ item, user }) {
   const location = useLocation();
-  const paths = item.children?.map((c) => c.to) ?? [];
+  const children =
+    item.label === 'Enterprise' && item.children ? filterEnterpriseNavChildren(item.children, user) : item.children;
+  if (item.label === 'Enterprise' && (!children || children.length === 0)) {
+    return null;
+  }
+  const paths = children?.map((c) => c.to) ?? [];
   const isActive = paths.some((p) => location.pathname === p || location.pathname.startsWith(`${p}/`));
   const [expanded, setExpanded] = useState(isActive);
   const GroupIcon = item.Icon;
@@ -135,18 +148,21 @@ function NavMenuItem({ item }) {
   if (item.to) {
     const ItemIcon = item.Icon;
     return (
-      <NavLink
-        to={item.to}
-        end={item.end}
-        className={({ isActive: active }) => (active ? styles.navActive : '')}
-      >
-        <span className={styles.navIcon}>{ItemIcon ? <ItemIcon /> : null}</span>
-        {item.label}
-      </NavLink>
+      <div className={styles.navItem}>
+        <NavLink
+          to={item.to}
+          end={item.end}
+          className={({ isActive: active }) => (active ? styles.navActive : '')}
+        >
+          <span className={styles.navIcon}>{ItemIcon ? <ItemIcon /> : null}</span>
+          {item.label}
+        </NavLink>
+      </div>
     );
   }
 
   return (
+    <div className={styles.navItem}>
     <div className={`${styles.navGroup} ${expanded ? styles.navGroupExpanded : ''}`}>
       <button
         type="button"
@@ -158,7 +174,7 @@ function NavMenuItem({ item }) {
         <span className={styles.navChevron}>{expanded ? '▾' : '▸'}</span>
       </button>
       <div className={styles.navSubmenu}>
-        {item.children.map((child) => {
+        {children.map((child) => {
           const ChildIcon = child.Icon;
           return (
             <NavLink
@@ -176,12 +192,14 @@ function NavMenuItem({ item }) {
         })}
       </div>
     </div>
+    </div>
   );
 }
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [professionalView, setProfessionalView] = useProfessionalView();
 
   const handleLogout = () => {
@@ -191,6 +209,7 @@ export default function Layout() {
 
   return (
     <div className={`${styles.layout} ${professionalView ? styles.layoutProfessional : ''}`}>
+      <RouteDocumentTitle />
       <a href="#main-content" className="falcon-skip-link">
         Skip to main content
       </a>
@@ -205,11 +224,9 @@ export default function Layout() {
             <span className={styles.logoSub}>Endpoint Detection &amp; Response</span>
           </div>
         </div>
-        <nav className={styles.nav}>
+        <nav className={styles.nav} aria-label="Primary">
           {MENU_ITEMS.map((item) => (
-            <div key={item.label || item.to} className={styles.navItem}>
-              <NavMenuItem item={item} />
-            </div>
+            <NavMenuItem key={item.label || item.to} item={item} user={user} />
           ))}
         </nav>
         <div className={styles.user}>
@@ -221,7 +238,8 @@ export default function Layout() {
         </div>
       </aside>
       )}
-      <main id="main-content" className={styles.main} tabIndex={-1}>
+      <main id="main-content" className={styles.main} tabIndex={-1} aria-label="Workspace">
+        <RouteAnnouncer />
         <div className={styles.mainHeader}>
           <TenantSwitcher />
           {professionalView && (
@@ -254,11 +272,16 @@ export default function Layout() {
             </nav>
           )}
           <GlobalSearch />
+          <KeyboardShortcutsHelp />
           <ProfessionalViewToggle professionalView={professionalView} onToggle={setProfessionalView} />
           <ThemeToggle />
         </div>
+        <SessionExpiryBanner />
         <div className={styles.content}>
-          <Outlet />
+          <Breadcrumbs />
+          <RouteErrorBoundary key={location.pathname}>
+            <Outlet />
+          </RouteErrorBoundary>
         </div>
       </main>
     </div>

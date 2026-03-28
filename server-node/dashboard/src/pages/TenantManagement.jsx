@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import PageShell from '../components/PageShell';
 import styles from './TenantManagement.module.css';
 
@@ -57,7 +58,15 @@ export default function TenantManagement() {
   };
 
   const deleteTenant = async (id) => {
-    if (!window.confirm('Delete this tenant? Endpoints and data may be affected.')) return;
+    if (
+      !(await confirm({
+        title: 'Delete tenant',
+        message: 'Delete this tenant? Endpoints and data may be affected.',
+        danger: true,
+        confirmLabel: 'Delete',
+      }))
+    )
+      return;
     setMsg({ text: '', isError: false });
     try {
       const r = await api(`/api/admin/tenants/${id}`, { method: 'DELETE' });

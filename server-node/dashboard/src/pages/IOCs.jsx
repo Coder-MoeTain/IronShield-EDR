@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import PageShell from '../components/PageShell';
+import PermissionGate from '../components/PermissionGate';
 import FalconEmptyState from '../components/FalconEmptyState';
 import { falconSeverityClass } from '../utils/falconUi';
 import { asJsonList } from '../utils/apiJson';
@@ -9,6 +11,7 @@ import styles from './IOCs.module.css';
 
 export default function IOCs() {
   const { api } = useAuth();
+  const { confirm } = useConfirm();
   const [iocs, setIocs] = useState([]);
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +56,15 @@ export default function IOCs() {
   };
 
   const deleteIoc = async (id) => {
-    if (!confirm('Delete this IOC?')) return;
+    if (
+      !(await confirm({
+        title: 'Delete IOC',
+        message: 'Remove this indicator from the library?',
+        danger: true,
+        confirmLabel: 'Delete',
+      }))
+    )
+      return;
     await api(`/api/admin/iocs/${id}`, { method: 'DELETE' });
     fetchData();
   };
@@ -84,9 +95,11 @@ export default function IOCs() {
       title="IOC watchlist"
       description="Hash, IP, domain, and path indicators — matched during event ingestion."
       actions={
-        <button type="button" onClick={() => setShowAdd(!showAdd)} className="falcon-btn falcon-btn-primary">
-          + Add IOC
-        </button>
+        <PermissionGate permission="rules:write">
+          <button type="button" onClick={() => setShowAdd(!showAdd)} className="falcon-btn falcon-btn-primary">
+            + Add IOC
+          </button>
+        </PermissionGate>
       }
     >
     <div className={styles.container}>
@@ -127,6 +140,7 @@ export default function IOCs() {
       </div>
 
       {showAdd && (
+        <PermissionGate permission="rules:write">
         <div className={styles.addCard}>
           <h3>Add Indicator</h3>
           <select value={newType} onChange={(e) => setNewType(e.target.value)}>
@@ -150,6 +164,7 @@ export default function IOCs() {
           </select>
           <button onClick={addIoc}>Add</button>
         </div>
+        </PermissionGate>
       )}
 
       <div className={styles.grid}>
@@ -172,7 +187,9 @@ export default function IOCs() {
                     <td className={styles.valueCell} title={i.ioc_value}>{i.ioc_value?.slice(0, 40)}{(i.ioc_value?.length || 0) > 40 ? '…' : ''}</td>
                     <td><span className={falconSeverityClass(i.severity)}>{i.severity}</span></td>
                     <td>
-                      <button onClick={() => deleteIoc(i.id)} className={styles.delBtn}>Delete</button>
+                      <PermissionGate permission="rules:write">
+                        <button type="button" onClick={() => deleteIoc(i.id)} className={styles.delBtn}>Delete</button>
+                      </PermissionGate>
                     </td>
                   </tr>
                 ))}

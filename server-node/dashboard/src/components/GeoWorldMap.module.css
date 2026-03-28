@@ -166,6 +166,42 @@
   font-size: 0.72rem;
 }
 
+/* Permanent / hover labels on map pins — host IP + country flag */
+.markerTooltip {
+  background: rgba(12, 18, 28, 0.94) !important;
+  color: #e0f2fe !important;
+  border: 1px solid rgba(34, 211, 238, 0.38) !important;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  padding: 5px 9px !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+  max-width: min(240px, 42vw);
+  white-space: normal;
+}
+
+.markerTooltip:global(.leaflet-tooltip-top)::before {
+  border-top-color: rgba(12, 18, 28, 0.94) !important;
+}
+
+.markerTooltip:global(.leaflet-tooltip-bottom)::before {
+  border-bottom-color: rgba(12, 18, 28, 0.94) !important;
+}
+
+.tooltipFlag {
+  font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+}
+
+.tooltipTitle {
+  font-weight: 600;
+  color: #fef3c7;
+}
+
+.tooltipMuted {
+  opacity: 0.78;
+  font-size: 0.68rem;
+}
+
 @keyframes remotePulse {
   0%,
   100% {

@@ -19,6 +19,7 @@ public class SysmonCollector : EventCollectorBase
     private static readonly int[] SysmonEventIds =
     [
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+        30, 31, 32, // Sysmon 15.x+ (e.g. FileExecutableDetected, WindowsErrorReporting, FileHashingCache)
     ];
 
     private readonly int _maxPerPoll;
@@ -118,6 +119,9 @@ public class SysmonCollector : EventCollectorBase
             27 => MapGeneric(rec, data, ts, recordId, "sysmon_file_block_executable", baseRaw, imageField: "Image"),
             28 => MapGeneric(rec, data, ts, recordId, "sysmon_file_block_shredding", baseRaw, imageField: "Image"),
             29 => MapGeneric(rec, data, ts, recordId, "sysmon_file_executable_detected", baseRaw, imageField: "Image"),
+            30 => MapGeneric(rec, data, ts, recordId, "sysmon_event_30", baseRaw, imageField: "Image"),
+            31 => MapGeneric(rec, data, ts, recordId, "sysmon_event_31", baseRaw),
+            32 => MapGeneric(rec, data, ts, recordId, "sysmon_event_32", baseRaw, imageField: "Image"),
             _ => MapGeneric(rec, data, ts, recordId, $"sysmon_event_{id}", baseRaw),
         };
     }

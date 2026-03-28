@@ -37,6 +37,36 @@ async function safeQuery(sql, params = []) {
   }
 }
 
+/** Merge latest endpoint_metrics (RX/TX Mbps from heartbeats) onto rows with endpoint_id. */
+async function attachNetworkBandwidth(rows) {
+  if (!rows || !rows.length) return rows;
+  const ids = [...new Set(rows.map((r) => r.endpoint_id).filter((id) => id != null))];
+  if (!ids.length) return rows;
+  const placeholders = ids.map(() => '?').join(',');
+  const sql = `
+    SELECT em.endpoint_id, em.network_rx_mbps, em.network_tx_mbps, em.collected_at
+    FROM endpoint_metrics em
+    INNER JOIN (
+      SELECT endpoint_id, MAX(id) AS max_id
+      FROM endpoint_metrics
+      WHERE endpoint_id IN (${placeholders})
+      GROUP BY endpoint_id
+    ) latest ON latest.endpoint_id = em.endpoint_id AND latest.max_id = em.id
+  `;
+  const m = await safeQuery(sql, ids);
+  const map = new Map(m.map((x) => [x.endpoint_id, x]));
+  return rows.map((r) => {
+    const b = map.get(r.endpoint_id);
+    if (!b) return { ...r };
+    return {
+      ...r,
+      network_rx_mbps: b.network_rx_mbps,
+      network_tx_mbps: b.network_tx_mbps,
+      metrics_collected_at: b.collected_at,
+    };
+  });
+}
+
 async function listConnections(filters = {}) {
   try {
   let sql = `
@@ -91,6 +121,7 @@ async function listConnections(filters = {}) {
   params.push(limit, offset);
 
   let rows = await safeQuery(sql, params);
+  rows = await attachNetworkBandwidth(rows);
 
   // Fallback: when network_connections is empty, derive from normalized_events
   if (rows.length === 0 && filters.endpointId) {
@@ -117,6 +148,7 @@ async function listConnections(filters = {}) {
     }));
     if (offset > 0) rows = rows.slice(offset);
     rows = rows.slice(0, limit);
+    rows = await attachNetworkBandwidth(rows);
   }
 
   return rows;
@@ -156,7 +188,8 @@ async function getOutgoingIps(filters = {}) {
   }
 
   sql += ' GROUP BY nc.remote_address, nc.remote_port, nc.protocol, nc.endpoint_id, e.hostname, nc.process_name ORDER BY last_seen DESC LIMIT 200';
-  return safeQuery(sql, params);
+  const out = await safeQuery(sql, params);
+  return attachNetworkBandwidth(out);
   } catch (err) {
     logger.warn({ err: err.message }, 'NetworkService.getOutgoingIps');
     return [];
@@ -194,7 +227,8 @@ async function getTrafficSummary(filters = {}) {
   }
 
   sql += ' GROUP BY e.id, e.hostname ORDER BY total_connections DESC';
-  return safeQuery(sql, params);
+  const out = await safeQuery(sql, params);
+  return attachNetworkBandwidth(out);
   } catch (err) {
     logger.warn({ err: err.message }, 'NetworkService.getTrafficSummary');
     return [];
@@ -326,7 +360,8 @@ async function getNetworkEventsFromNormalized(filters = {}) {
   sql += ' ORDER BY ne.timestamp DESC LIMIT ?';
   params.push(Math.min(parseInt(filters.limit) || 50, 200));
 
-  return safeQuery(sql, params);
+  const ev = await safeQuery(sql, params);
+  return attachNetworkBandwidth(ev);
 }
 
 function toNull(v) {

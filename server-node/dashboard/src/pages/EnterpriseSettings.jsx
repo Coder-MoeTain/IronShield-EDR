@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import PageShell from '../components/PageShell';
 import styles from './EnterpriseSettings.module.css';
 
@@ -20,6 +21,7 @@ const RETENTION_TABLES = [
 
 export default function EnterpriseSettings() {
   const { api } = useAuth();
+  const { confirm } = useConfirm();
   const [activeTab, setActiveTab] = useState('notifications');
   const [channels, setChannels] = useState([]);
   const [retentionPolicies, setRetentionPolicies] = useState([]);
@@ -155,7 +157,15 @@ export default function EnterpriseSettings() {
   };
 
   const deleteIpFeed = async (id) => {
-    if (!confirm('Delete this IP feed?')) return;
+    if (
+      !(await confirm({
+        title: 'Delete IP feed',
+        message: 'Remove this threat intel feed?',
+        danger: true,
+        confirmLabel: 'Delete',
+      }))
+    )
+      return;
     setMsg({ text: '', isError: false });
     const r = await api(`/api/admin/xdr/ip-feeds/${id}`, { method: 'DELETE' });
     const d = await r.json().catch(() => ({}));

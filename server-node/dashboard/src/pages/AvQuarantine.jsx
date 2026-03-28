@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
+import { useToast } from '../context/ToastContext';
 import PageShell from '../components/PageShell';
+import PermissionGate from '../components/PermissionGate';
 import styles from './AvOverview.module.css';
 
 export default function AvQuarantine() {
   const { api } = useAuth();
+  const { confirm } = useConfirm();
+  const { addToast } = useToast();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,22 +25,37 @@ export default function AvQuarantine() {
   useEffect(() => fetchData(), [api]);
 
   const handleRestore = async (id) => {
-    if (!confirm('Restore this file from quarantine?')) return;
+    if (
+      !(await confirm({
+        title: 'Restore from quarantine',
+        message: 'Restore this file to its original location on the endpoint?',
+        confirmLabel: 'Restore',
+      }))
+    )
+      return;
     try {
       await api(`/api/admin/av/quarantine/${id}/restore`, { method: 'POST' });
       fetchData();
     } catch (e) {
-      alert(e.message || 'Restore failed');
+      addToast({ variant: 'error', message: e.message || 'Restore failed' });
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Permanently delete this quarantined file?')) return;
+    if (
+      !(await confirm({
+        title: 'Delete quarantined file',
+        message: 'Permanently delete this quarantined file? This cannot be undone.',
+        danger: true,
+        confirmLabel: 'Delete',
+      }))
+    )
+      return;
     try {
       await api(`/api/admin/av/quarantine/${id}/delete`, { method: 'POST' });
       fetchData();
     } catch (e) {
-      alert(e.message || 'Delete failed');
+      addToast({ variant: 'error', message: e.message || 'Delete failed' });
     }
   };
 
@@ -75,10 +95,12 @@ export default function AvQuarantine() {
                     <td><span className={styles.badge}>{q.status || 'quarantined'}</span></td>
                     <td>
                       {q.status === 'quarantined' && (
-                        <>
-                          <button type="button" className={styles.quickLink} style={{ marginRight: 8 }} onClick={() => handleRestore(q.id)}>Restore</button>
-                          <button type="button" className={styles.quickLink} onClick={() => handleDelete(q.id)}>Delete</button>
-                        </>
+                        <PermissionGate permission="actions:write">
+                          <>
+                            <button type="button" className={styles.quickLink} style={{ marginRight: 8 }} onClick={() => handleRestore(q.id)}>Restore</button>
+                            <button type="button" className={styles.quickLink} onClick={() => handleDelete(q.id)}>Delete</button>
+                          </>
+                        </PermissionGate>
                       )}
                     </td>
                   </tr>

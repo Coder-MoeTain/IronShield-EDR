@@ -52,6 +52,21 @@ function fmtTs(v) {
   }
 }
 
+function parseInventoryArray(v) {
+  const j = safeJson(v);
+  return Array.isArray(j) ? j : [];
+}
+
+function shareTypeLabel(t) {
+  if (t == null || t === '') return '—';
+  const n = Number(t);
+  if (n === 0) return 'Disk';
+  if (n === 1) return 'Print';
+  if (n === 3) return 'IPC';
+  if (n === 2147483648) return 'Admin disk';
+  return String(t);
+}
+
 export default function EndpointDetail() {
   const { id } = useParams();
   const { api } = useAuth();
@@ -197,6 +212,8 @@ export default function EndpointDetail() {
     );
   }
 
+  const tamper = safeJson(endpoint.tamper_signals_json);
+
   return (
     <PageShell
       kicker="Hosts"
@@ -290,6 +307,73 @@ export default function EndpointDetail() {
         </div>
         <p className={styles.metricsHint} style={{ marginTop: '0.75rem', marginBottom: 0 }}>
           Values refresh from agent heartbeats (this page polls every ~45s). Falcon-style backlog highlights when the sensor is under load.
+        </p>
+      </section>
+
+      <section className={styles.sensorStrip} aria-label="Tamper and integrity">
+        <div className={styles.sensorStripTitle}>Tamper &amp; integrity</div>
+        <div className={styles.sensorStripInner}>
+          <div className={styles.sensorItem}>
+            <span className={styles.sensorLabel}>Sensor mode</span>
+            <span className={styles.sensorValue}>{tamper?.sensor_mode || '—'}</span>
+          </div>
+          <div className={styles.sensorItem}>
+            <span className={styles.sensorLabel}>Kernel driver</span>
+            <span className={styles.sensorValue}>
+              {tamper?.kernel_driver_present === true
+                ? 'Reported yes'
+                : tamper?.kernel_driver_present === false
+                  ? 'No (user-mode)'
+                  : '—'}
+            </span>
+          </div>
+          <div className={styles.sensorItem}>
+            <span className={styles.sensorLabel}>Tamper risk</span>
+            <span
+              className={`${styles.sensorValue} ${
+                String(tamper?.tamper_risk || '').toLowerCase() === 'high'
+                  ? styles.sensorDegraded
+                  : String(tamper?.tamper_risk || '').toLowerCase() === 'medium'
+                    ? styles.sensorUpdatePending
+                    : String(tamper?.tamper_risk || '').toLowerCase() === 'low'
+                      ? styles.sensorOk
+                      : styles.sensorMuted
+              }`}
+            >
+              {tamper?.tamper_risk ? String(tamper.tamper_risk).toUpperCase() : '—'}
+            </span>
+          </div>
+          <div className={styles.sensorItem}>
+            <span className={styles.sensorLabel}>Windows service</span>
+            <span className={`${styles.sensorValue} mono`} title={tamper?.windows_service_name || ''}>
+              {tamper?.windows_service_status || '—'}
+            </span>
+          </div>
+          <div className={styles.sensorItem}>
+            <span className={styles.sensorLabel}>SCM stop events (24h)</span>
+            <span className={styles.sensorValue}>
+              {tamper?.service_stop_events_24h != null ? String(tamper.service_stop_events_24h) : '—'}
+            </span>
+          </div>
+        </div>
+        {tamper?.agent_binary_path ? (
+          <p className={styles.metricsHint} style={{ marginTop: '0.75rem', marginBottom: 0 }}>
+            <span className={styles.sensorLabel} style={{ display: 'block', marginBottom: '0.25rem' }}>
+              Agent binary
+            </span>
+            <code style={{ fontSize: '0.72rem', wordBreak: 'break-all', display: 'block' }}>
+              {tamper.agent_binary_path}
+            </code>
+            {tamper.agent_binary_sha256 ? (
+              <span className="mono" style={{ fontSize: '0.68rem', display: 'block', marginTop: '0.35rem', opacity: 0.9 }}>
+                SHA-256: {tamper.agent_binary_sha256}
+              </span>
+            ) : null}
+          </p>
+        ) : null}
+        <p className={styles.metricsHint} style={{ marginTop: '0.75rem', marginBottom: 0 }}>
+          Integrity snapshot from the agent heartbeat (SCM service state + recent stop events). Apply{' '}
+          <code className="mono">npm run migrate-tamper-signals</code> on the server if this section stays empty.
         </p>
       </section>
 
@@ -882,6 +966,106 @@ export default function EndpointDetail() {
                     <td style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.process_name || '—'}</td>
                     <td>{ev.process_id ?? '—'}</td>
                     <td>{ev.parent_process_name || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+      <div className={styles.section} id="open-ports">
+        <h3>Open ports (listening)</h3>
+        <p className={styles.containHint}>
+          TCP/UDP listeners from the agent heartbeat. Refreshes with endpoint poll (~45s).
+          {endpoint.host_inventory_at ? (
+            <span className={styles.mono}> Last inventory: {fmtTs(endpoint.host_inventory_at)}</span>
+          ) : null}
+        </p>
+        <div className={styles.networkTableWrap}>
+          {parseInventoryArray(endpoint.host_listening_ports_json).length === 0 ? (
+            <p className={styles.empty}>No listening-port data yet (Windows agent sends this each heartbeat).</p>
+          ) : (
+            <table className={styles.networkTable}>
+              <thead>
+                <tr>
+                  <th>Protocol</th>
+                  <th>Address</th>
+                  <th>Port</th>
+                </tr>
+              </thead>
+              <tbody>
+                {parseInventoryArray(endpoint.host_listening_ports_json).map((row, i) => (
+                  <tr key={`${row.protocol}-${row.local_address}-${row.local_port}-${i}`}>
+                    <td>{row.protocol || 'TCP'}</td>
+                    <td className={styles.mono}>{row.local_address ?? '—'}</td>
+                    <td className={styles.mono}>{row.local_port ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+      <div className={styles.section} id="hidden-c">
+        <h3>Hidden files &amp; folders (C:)</h3>
+        <p className={styles.containHint}>
+          Paths on the system drive with the Hidden attribute, collected by the Windows agent (bounded scan, up to 400 entries, depth 4; large subtrees like WinSxS are skipped). Refreshed at most every 6 hours and on each successful scan via heartbeat.
+          {endpoint.host_inventory_at ? (
+            <span className={styles.mono}> Last inventory: {fmtTs(endpoint.host_inventory_at)}</span>
+          ) : null}
+        </p>
+        <div className={styles.networkTableWrap}>
+          {parseInventoryArray(endpoint.host_hidden_c_json).length === 0 ? (
+            <p className={styles.empty}>
+              No hidden paths reported yet. The Windows agent sends this list after a disk scan (at most every 6 hours per host).
+            </p>
+          ) : (
+            <table className={styles.networkTable}>
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Path</th>
+                </tr>
+              </thead>
+              <tbody>
+                {parseInventoryArray(endpoint.host_hidden_c_json).map((row, i) => (
+                  <tr key={`${row.path}-${i}`}>
+                    <td>{row.is_directory ? 'Folder' : 'File'}</td>
+                    <td className={styles.mono} style={{ maxWidth: 480, wordBreak: 'break-all' }}>
+                      {row.path ?? '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+      <div className={styles.section}>
+        <h3>Shared folders (SMB)</h3>
+        <p className={styles.containHint}>Win32 shares reported by the agent (same heartbeat as open ports).</p>
+        <div className={styles.networkTableWrap}>
+          {parseInventoryArray(endpoint.host_shared_folders_json).length === 0 ? (
+            <p className={styles.empty}>No share data yet.</p>
+          ) : (
+            <table className={styles.networkTable}>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Path</th>
+                  <th>Type</th>
+                  <th>Caption</th>
+                </tr>
+              </thead>
+              <tbody>
+                {parseInventoryArray(endpoint.host_shared_folders_json).map((row, i) => (
+                  <tr key={`${row.name}-${i}`}>
+                    <td>{row.name ?? '—'}</td>
+                    <td className={styles.mono} style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {row.path ?? '—'}
+                    </td>
+                    <td>{shareTypeLabel(row.share_type)}</td>
+                    <td>{row.caption ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>

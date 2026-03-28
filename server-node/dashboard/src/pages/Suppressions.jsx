@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import PageShell from '../components/PageShell';
 import { asJsonList } from '../utils/apiJson';
 import styles from './Endpoints.module.css';
@@ -7,6 +8,7 @@ import styles from './Endpoints.module.css';
 /** @param {{ embedded?: boolean }} props — When true, hide standalone page chrome (use inside Detection Rules). */
 export default function Suppressions({ embedded = false }) {
   const { api } = useAuth();
+  const { confirm } = useConfirm();
   const [rows, setRows] = useState([]);
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,7 +73,15 @@ export default function Suppressions({ embedded = false }) {
   };
 
   const remove = async (id) => {
-    if (!window.confirm('Delete this suppression?')) return;
+    if (
+      !(await confirm({
+        title: 'Delete suppression',
+        message: 'Remove this suppression rule?',
+        danger: true,
+        confirmLabel: 'Delete',
+      }))
+    )
+      return;
     await api(`/api/admin/suppressions/${id}`, { method: 'DELETE' });
     load();
   };

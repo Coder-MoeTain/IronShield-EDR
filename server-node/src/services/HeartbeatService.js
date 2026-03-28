@@ -5,6 +5,7 @@ const db = require('../utils/db');
 const logger = require('../utils/logger');
 const NetworkService = require('./NetworkService');
 const AlertService = require('./AlertService');
+const RiskService = require('../modules/risk/riskService');
 
 const RESOURCE_THRESHOLDS = { cpu: 90, ram: 90, disk: 95 };
 
@@ -274,8 +275,93 @@ async function processHeartbeat(agentKey, payload) {
     }
   }
 
+  // Host inventory: listening ports + SMB shares + hidden C:\ paths (Windows agent; JSON columns)
+  try {
+    const lp = payload.listening_ports;
+    const sf = payload.shared_folders;
+    const hc = payload.hidden_c_items;
+    if (lp !== undefined || sf !== undefined || hc !== undefined) {
+      const setParts = [];
+      const vals = [];
+      if (lp !== undefined) {
+        setParts.push('host_listening_ports_json = ?');
+        vals.push(
+          lp == null
+            ? null
+            : Array.isArray(lp)
+              ? JSON.stringify(lp.slice(0, 300))
+              : null
+        );
+      }
+      if (sf !== undefined) {
+        setParts.push('host_shared_folders_json = ?');
+        vals.push(
+          sf == null
+            ? null
+            : Array.isArray(sf)
+              ? JSON.stringify(sf.slice(0, 150))
+              : null
+        );
+      }
+      if (hc !== undefined) {
+        setParts.push('host_hidden_c_json = ?');
+        vals.push(
+          hc == null
+            ? null
+            : Array.isArray(hc)
+              ? JSON.stringify(hc.slice(0, 500))
+              : null
+        );
+      }
+      if (setParts.length) {
+        setParts.push('host_inventory_at = NOW()');
+        await db.query(
+          `UPDATE endpoints SET ${setParts.join(', ')} WHERE id = ?`,
+          [...vals, endpoint.id]
+        );
+      }
+    }
+  } catch (e) {
+    if (e.code === 'ER_BAD_FIELD_ERROR') {
+      // migrate-endpoint-host-inventory / migrate-endpoint-hidden-c not applied
+    } else {
+      logger.warn({ err: e.message }, 'Heartbeat: host inventory columns');
+    }
+  }
+
+  // User-mode tamper / service integrity snapshot (agent TamperDefenseService)
+  try {
+    const ts = payload.tamper_signals;
+    if (ts != null && typeof ts === 'object') {
+      await db.query(`UPDATE endpoints SET tamper_signals_json = ? WHERE id = ?`, [
+        JSON.stringify(ts).substring(0, 16000),
+        endpoint.id,
+      ]);
+    }
+  } catch (e) {
+    if (e.code === 'ER_BAD_FIELD_ERROR') {
+      // migrate-tamper-signals not applied
+    } else {
+      logger.warn({ err: e.message }, 'Heartbeat: tamper_signals_json');
+    }
+  }
+
   // Resource alerts when thresholds exceeded
   await checkResourceAlerts(endpoint.id, { cpu_percent, ram_percent, disk_percent });
+
+  try {
+    await checkTamperRiskAlert(endpoint.id, payload.tamper_signals);
+  } catch (e) {
+    logger.warn({ err: e.message }, 'Tamper risk alert');
+  }
+
+  if (payload.tamper_signals != null && typeof payload.tamper_signals === 'object') {
+    try {
+      await RiskService.calculateEndpointRisk(endpoint.id);
+    } catch (_) {
+      /* endpoint_risk_scores optional */
+    }
+  }
 
   await upsertAvNgavFromHeartbeat(endpoint.id, payload);
 
@@ -320,6 +406,51 @@ async function upsertAvNgavFromHeartbeat(endpointId, payload) {
   } catch (e) {
     logger.warn({ err: e.message }, 'av_update_status NGAV upsert failed (schema-antivirus + migrate-phase7-ngav-telemetry?)');
   }
+}
+
+/** Deduped alerts for high (4h) / medium (12h) tamper risk. Risk score refresh runs after heartbeat when tamper_signals present. */
+async function checkTamperRiskAlert(endpointId, tamperSignals) {
+  if (tamperSignals == null || typeof tamperSignals !== 'object') return;
+  const risk = String(tamperSignals.tamper_risk || '').toLowerCase();
+  if (risk !== 'high' && risk !== 'medium') return;
+
+  const isHigh = risk === 'high';
+  const dedupeHours = isHigh ? 4 : 12;
+  const titleExact = isHigh
+    ? 'Sensor tamper risk: high (heartbeat)'
+    : 'Sensor tamper risk: medium (heartbeat)';
+  const recent = new Date(Date.now() - dedupeHours * 60 * 60 * 1000);
+  const existing = await db.query(
+    'SELECT 1 FROM alerts WHERE endpoint_id = ? AND title = ? AND created_at > ? LIMIT 1',
+    [endpointId, titleExact, recent]
+  );
+  if (existing?.length) return;
+
+  const ep = await db.queryOne('SELECT hostname FROM endpoints WHERE id = ?', [endpointId]);
+  const hostname = ep?.hostname || `Endpoint ${endpointId}`;
+  const stops = tamperSignals.service_stop_events_24h;
+  const desc = [
+    `Agent reported tamper_risk=${risk} for ${hostname}.`,
+    `Service stop events (24h, SCM 7036): ${stops != null ? stops : 'unknown'}.`,
+    `Windows service status: ${tamperSignals.windows_service_status || '—'}.`,
+    'User-mode telemetry only—investigate service account, GPO, and host timeline.',
+  ].join(' ');
+
+  await AlertService.createFromDetection([
+    {
+      endpoint_id: endpointId,
+      rule_id: null,
+      title: titleExact,
+      description: desc,
+      severity: isHigh ? 'high' : 'medium',
+      confidence: isHigh ? 85 : 72,
+      mitre_tactic: 'Defense Evasion',
+      mitre_technique: 'T1562',
+      source_event_ids: null,
+      first_seen: new Date(),
+      last_seen: new Date(),
+    },
+  ]);
 }
 
 async function checkResourceAlerts(endpointId, metrics) {

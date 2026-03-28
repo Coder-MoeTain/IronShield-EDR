@@ -12,8 +12,11 @@ const rateLimit = require('express-rate-limit');
 const config = require('./config');
 const logger = require('./utils/logger');
 const errorHandler = require('./middleware/errorHandler');
+const { requestIdMiddleware } = require('./middleware/requestId');
 const { attachRealtime } = require('./realtime/realtimeServer');
 const db = require('./utils/db');
+const healthChecks = require('./utils/healthChecks');
+const pkg = require('../package.json');
 const promClient = require('prom-client');
 
 const agentRoutes = require('./routes/agentRoutes');
@@ -22,6 +25,8 @@ const authRoutes = require('./routes/authRoutes');
 const ingestRoutes = require('./routes/ingestRoutes');
 
 const app = express();
+
+app.use(requestIdMiddleware);
 
 if (config.http?.trustProxy) {
   // Allows correct req.ip / X-Forwarded-For behind reverse proxies
@@ -88,16 +93,27 @@ app.use('/api/auth', authLimiter);
 app.use('/api/admin', adminLimiter);
 app.use('/api/ingest', ingestLimiter);
 
-// Health check
-app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+// Health check (liveness — no DB; use for K8s / LB)
+app.get('/health', (req, res) =>
+  res.json({
+    status: 'ok',
+    service: 'ironshield-edr',
+    version: pkg.version || '1.0.0',
+    timestamp: new Date().toISOString(),
+  })
+);
 app.get('/healthz', (req, res) => res.json({ status: 'ok' }));
 app.get('/favicon.ico', (req, res) => res.status(204).end());
+// Readiness — DB + Redis when async ingest is configured
 app.get('/readyz', async (req, res) => {
   try {
-    await db.query('SELECT 1');
-    res.json({ status: 'ready' });
+    const detail = await healthChecks.readiness();
+    res.json({ status: 'ready', ...detail });
   } catch (e) {
-    res.status(503).json({ status: 'not_ready', error: e.message || 'db_error' });
+    res.status(503).json({
+      status: 'not_ready',
+      error: e.code === 'REDIS_DOWN' ? 'redis_unavailable' : e.message || 'check_failed',
+    });
   }
 });
 
@@ -148,6 +164,8 @@ if (config.metrics?.enabled) {
       const provided = req.headers['x-metrics-token'] || req.query.token;
       if (String(provided || '') !== String(tok)) return res.status(401).json({ error: 'Unauthorized' });
     }
+    const metricsUtil = require('./utils/metrics');
+    await metricsUtil.refreshSocReadinessGauges();
     res.setHeader('Content-Type', promClient.register.contentType);
     res.end(await promClient.register.metrics());
   });

@@ -19,6 +19,7 @@ const DetectionSuppressionService = require('../services/DetectionSuppressionSer
 const PlaybookService = require('../services/PlaybookService');
 const ProcessTimelineService = require('../services/ProcessTimelineService');
 const ComplianceService = require('../services/ComplianceService');
+const SocReadinessService = require('../services/SocReadinessService');
 const db = require('../utils/db');
 const DetectionRuleService = require('../services/DetectionRuleService');
 const NetworkService = require('../services/NetworkService');
@@ -656,6 +657,16 @@ async function getComplianceSummary(req, res, next) {
   }
 }
 
+/** SOC operations snapshot: coverage, backlog, async ingest, tamper signals (tenant-scoped when applicable). */
+async function getSocReadiness(req, res, next) {
+  try {
+    const data = await SocReadinessService.getReadiness(req.tenantId ?? null);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   dashboardSummary,
   cyberNews,
@@ -687,6 +698,7 @@ module.exports = {
   runPlaybook,
   getProcessTimeline,
   getComplianceSummary,
+  getSocReadiness,
   listEvents,
   getEvent,
   listAuditLogs,

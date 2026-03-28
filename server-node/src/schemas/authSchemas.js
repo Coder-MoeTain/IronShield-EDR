@@ -17,4 +17,10 @@ const mfaCodeSchema = z.object({
   }),
 });
 
-module.exports = { loginSchema, mfaCodeSchema };
+const refreshSchema = z.object({
+  body: z.object({
+    refresh_token: z.string().min(20),
+  }),
+});
+
+module.exports = { loginSchema, mfaCodeSchema, refreshSchema };

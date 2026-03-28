@@ -31,12 +31,12 @@ Example:
 CORS_ORIGINS=https://edr.example.com,https://soc.example.com
 ```
 
-If `CORS_ORIGINS` is empty, the backend blocks browser origins (strict-by-default).
+If `CORS_ORIGINS` is empty, the backend allows **same-origin** browser requests only (other origins are blocked).
 
 ### Token rotation
 
-- Rotate `JWT_SECRET` periodically (requires re-login).
-- For zero-downtime rotation, implement dual-secret verification (not included yet).
+- Rotate `JWT_SECRET` periodically.
+- **Zero-downtime rotation**: set `JWT_SECRET` to the new key and set `JWT_SECRET_PREVIOUS` to the old key. New tokens are signed with the current secret; existing tokens signed with the previous key remain valid until they expire. Remove `JWT_SECRET_PREVIOUS` after the longest token TTL has passed.
 
 ### Least-privilege DB users
 
@@ -61,7 +61,14 @@ npm run migrate-audit-logs
 
 Notes:
 - Audit logging is **best-effort** (it will not break requests if DB insert fails).
+- If the database insert fails, a line is appended to an NDJSON spill file (default `server-node/artifacts/audit-failures.ndjson`, or `AUDIT_FAILURE_LOG_PATH`) for replay and evidence recovery.
+- Admin API audit entries include `requestId` (see **Request correlation** below).
 - Sensitive fields are redacted (passwords/tokens/secrets).
+
+### Request correlation
+
+- Every HTTP response includes `X-Request-ID` (or propagates an incoming `X-Request-ID` / `X-Correlation-ID`).
+- JSON error bodies include `requestId` when available for SOC/IR correlation with logs.
 
 ### Retention guarantees
 

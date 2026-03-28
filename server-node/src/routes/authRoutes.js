@@ -6,11 +6,13 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const { validate } = require('../middleware/validate');
 const { authAdmin } = require('../middleware/auth');
-const { loginSchema, mfaCodeSchema } = require('../schemas/authSchemas');
+const { loginSchema, mfaCodeSchema, refreshSchema } = require('../schemas/authSchemas');
 const ssoController = require('../controllers/ssoController');
 const { requireSoD } = require('../middleware/sod');
 
 router.post('/login', validate(loginSchema), authController.login);
+router.post('/refresh', validate(refreshSchema), authController.refresh);
+router.get('/me', authAdmin, authController.me);
 router.get('/sso/oidc/start', ssoController.oidcStart);
 router.get('/sso/oidc/callback', ssoController.oidcCallback);
 router.post('/sso/saml/acs', ssoController.samlAcs);

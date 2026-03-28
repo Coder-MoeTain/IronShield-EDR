@@ -57,7 +57,10 @@ module.exports = {
   },
   jwt: {
     secret: requiredEnv('JWT_SECRET'),
+    /** Optional: previous signing key while rotating JWT_SECRET (verify-only). */
+    secretPrevious: envOrNull('JWT_SECRET_PREVIOUS'),
     expiresIn: process.env.JWT_EXPIRES_IN || '24h',
+    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
   auth: {
     maxFailedLogins: parseInt(process.env.AUTH_MAX_FAILED_LOGINS || '5', 10),
@@ -88,6 +91,8 @@ module.exports = {
   audit: {
     archivePath: envOrNull('AUDIT_ARCHIVE_PATH'),
     archiveHmacKey: envOrNull('AUDIT_ARCHIVE_HMAC_KEY'),
+    /** NDJSON spill file when DB audit insert fails (SOC evidence recovery). */
+    failureLogPath: envOrNull('AUDIT_FAILURE_LOG_PATH'),
   },
   redis: {
     url: envOrNull('REDIS_URL'),

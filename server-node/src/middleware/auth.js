@@ -1,10 +1,10 @@
 /**
  * Authentication middleware
  */
-const jwt = require('jsonwebtoken');
 const config = require('../config');
 const logger = require('../utils/logger');
 const metrics = require('../utils/metrics');
+const { verifyWithRotation } = require('../utils/jwtVerify');
 
 /**
  * Verify JWT for admin routes
@@ -18,7 +18,7 @@ async function authAdmin(req, res, next) {
   }
 
   try {
-    const decoded = jwt.verify(token, config.jwt.secret);
+    const decoded = verifyWithRotation(token);
     const db = require('../utils/db');
     const row = await db.queryOne(
       'SELECT is_active, session_version FROM admin_users WHERE id = ? LIMIT 1',
@@ -117,7 +117,7 @@ function optionalAuth(req, res, next) {
 
   if (token) {
     try {
-      req.user = jwt.verify(token, config.jwt.secret);
+      req.user = verifyWithRotation(token);
     } catch (_) {
       req.user = null;
     }

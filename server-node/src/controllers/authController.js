@@ -3,6 +3,7 @@
  */
 const AuthService = require('../services/AuthService');
 const AuditLogService = require('../services/AuditLogService');
+const { getUserPermissions } = require('../middleware/rbac');
 
 async function login(req, res, next) {
   try {
@@ -153,4 +154,49 @@ async function securityPolicy(req, res, next) {
   }
 }
 
-module.exports = { login, mfaStatus, beginMfaSetup, enableMfa, disableMfa, revokeMySessions, revokeUserSessions, securityPolicy };
+async function refresh(req, res, next) {
+  try {
+    const refresh_token = req.validated?.body?.refresh_token || req.body?.refresh_token;
+    const result = await AuthService.refreshAccessToken(refresh_token);
+    res.json(result);
+  } catch (err) {
+    if (err.message === 'Invalid refresh token' || err.message === 'Session revoked') {
+      return res.status(401).json({ error: err.message });
+    }
+    next(err);
+  }
+}
+
+async function me(req, res, next) {
+  try {
+    const permissions = await getUserPermissions(
+      req.user.userId,
+      req.user.role,
+      req.user.tenantId ?? null
+    );
+    res.json({
+      user: {
+        id: req.user.userId,
+        username: req.user.username,
+        role: req.user.role,
+        tenantId: req.user.tenantId ?? null,
+      },
+      permissions,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = {
+  login,
+  mfaStatus,
+  beginMfaSetup,
+  enableMfa,
+  disableMfa,
+  revokeMySessions,
+  revokeUserSessions,
+  securityPolicy,
+  refresh,
+  me,
+};

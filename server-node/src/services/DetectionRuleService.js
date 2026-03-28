@@ -31,6 +31,9 @@ const ALLOWED_CONDITION_KEYS = new Set([
   'dns_query_length_gt',
   'registry_key_contains',
   'image_loaded_contains',
+  'command_line_entropy_gt',
+  'suspicious_indicator_count_gte',
+  'collector_confidence_lt',
 ]);
 
 const NAME_RE = /^[a-z][a-z0-9_]{1,120}$/;
