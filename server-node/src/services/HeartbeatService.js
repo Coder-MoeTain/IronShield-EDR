@@ -38,6 +38,7 @@ async function processHeartbeat(agentKey, payload) {
     disk_percent,
     disk_total_gb,
     disk_used_gb,
+    disk_usages,
     network_rx_mbps,
     network_tx_mbps,
     queue_depth,
@@ -281,7 +282,8 @@ async function processHeartbeat(agentKey, payload) {
     const lp = payload.listening_ports;
     const sf = payload.shared_folders;
     const hc = payload.hidden_c_items;
-    if (lp !== undefined || sf !== undefined || hc !== undefined) {
+      const du = payload.disk_usages;
+    if (lp !== undefined || sf !== undefined || hc !== undefined || du !== undefined) {
       const setParts = [];
       const vals = [];
       if (lp !== undefined) {
@@ -314,6 +316,16 @@ async function processHeartbeat(agentKey, payload) {
               : null
         );
       }
+      if (du !== undefined) {
+        setParts.push('host_disk_usage_json = ?');
+        vals.push(
+          du == null
+            ? null
+            : Array.isArray(du)
+              ? JSON.stringify(du.slice(0, 64))
+              : null
+        );
+      }
       if (setParts.length) {
         setParts.push('host_inventory_at = NOW()');
         await db.query(
@@ -324,7 +336,7 @@ async function processHeartbeat(agentKey, payload) {
     }
   } catch (e) {
     if (e.code === 'ER_BAD_FIELD_ERROR') {
-      // migrate-endpoint-host-inventory / migrate-endpoint-hidden-c not applied
+      // migrate-endpoint-host-inventory / migrate-endpoint-hidden-c / migrate-endpoint-disk-usage not applied
     } else {
       logger.warn({ err: e.message }, 'Heartbeat: host inventory columns');
     }

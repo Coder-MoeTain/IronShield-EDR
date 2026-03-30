@@ -2,4 +2,4 @@ agent-csharp > dotnet run --project src\EDR.Agent.Service\EDR.Agent.Service.cspr
 server-node > npm start
 
 admin
-ChnageMe123!
+ChangeMe123!

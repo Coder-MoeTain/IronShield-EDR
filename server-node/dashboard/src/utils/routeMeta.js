@@ -6,23 +6,23 @@ const APP = 'IronShield';
 
 const TOP = {
   endpoints: { label: 'Hosts', path: '/endpoints' },
-  alerts: { label: 'Detections', path: '/alerts' },
+  alerts: { label: 'Alerts', path: '/alerts' },
   events: { label: 'Events', path: '/events' },
   'raw-events': { label: 'Raw events', path: '/raw-events' },
-  'normalized-events': { label: 'Normalized events', path: '/normalized-events' },
+  'normalized-events': { label: 'Normalized', path: '/normalized-events' },
   'detection-rules': { label: 'Detection rules', path: '/detection-rules' },
-  'audit-logs': { label: 'Audit & activity', path: '/audit-logs' },
+  'audit-logs': { label: 'Audit logs', path: '/audit-logs' },
   investigations: { label: 'Investigations', path: '/investigations' },
   incidents: { label: 'Incidents', path: '/incidents' },
-  risk: { label: 'Endpoint risk', path: '/risk' },
-  iocs: { label: 'IOC watchlist', path: '/iocs' },
-  'web-url-protection': { label: 'Web & URL protection', path: '/web-url-protection' },
+  risk: { label: 'Risk', path: '/risk' },
+  iocs: { label: 'IOCs', path: '/iocs' },
+  'web-url-protection': { label: 'Web/URL', path: '/web-url-protection' },
   policies: { label: 'Policies', path: '/policies' },
   triage: { label: 'Triage', path: '/triage' },
-  network: { label: 'Network activity', path: '/network' },
-  'process-monitor': { label: 'Process monitor', path: '/process-monitor' },
+  network: { label: 'Network', path: '/network' },
+  'process-monitor': { label: 'Process', path: '/process-monitor' },
   hunting: { label: 'Hunting', path: '/hunting' },
-  rtr: { label: 'Real Time Response', path: '/rtr' },
+  rtr: { label: 'RTR', path: '/rtr' },
   'threat-graph': { label: 'Threat graph', path: '/threat-graph' },
   'agent-network-map': { label: 'Agent network map', path: '/agent-network-map' },
   'analytics-detections': { label: 'Detection analytics', path: '/analytics-detections' },
@@ -37,16 +37,16 @@ const TOP = {
 const XDR_SUB = {
   events: { label: 'XDR events', path: '/xdr/events' },
   detections: { label: 'XDR detections', path: '/xdr/detections' },
-  realtime: { label: 'XDR realtime', path: '/xdr/realtime' },
+  realtime: { label: 'XDR live', path: '/xdr/realtime' },
 };
 
 const AV_SUB = {
   detections: { label: 'Malware detections', path: '/av/detections' },
   quarantine: { label: 'Quarantine', path: '/av/quarantine' },
   'scan-tasks': { label: 'Scan tasks', path: '/av/scan-tasks' },
-  policies: { label: 'AV policies', path: '/av/policies' },
-  signatures: { label: 'Signatures', path: '/av/signatures' },
-  reputation: { label: 'File reputation', path: '/av/reputation' },
+  policies: { label: 'Policies', path: '/av/policies' },
+  signatures: { label: 'Defs', path: '/av/signatures' },
+  reputation: { label: 'Reputation', path: '/av/reputation' },
   'malware-alerts': { label: 'Malware alerts', path: '/av/malware-alerts' },
 };
 

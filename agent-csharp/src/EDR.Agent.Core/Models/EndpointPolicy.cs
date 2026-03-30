@@ -34,4 +34,18 @@ public class EndpointPolicy
 
     [JsonPropertyName("allowed_triage_modules")]
     public List<string> AllowedTriageModules { get; set; } = new();
+
+    /// <summary>
+    /// Optional RTR command first-token allowlist override.
+    /// When empty, agent keeps built-in safe allowlist.
+    /// </summary>
+    [JsonPropertyName("allowed_rtr_commands")]
+    public List<string> AllowedRtrCommands { get; set; } = new();
+
+    /// <summary>
+    /// Optional script hash denylist for hard prevention at execution time.
+    /// Values are lowercase hex SHA-256.
+    /// </summary>
+    [JsonPropertyName("blocked_script_sha256")]
+    public List<string> BlockedScriptSha256 { get; set; } = new();
 }

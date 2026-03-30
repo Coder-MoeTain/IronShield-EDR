@@ -18,6 +18,7 @@
     "migrate-sensor-telemetry": "node scripts/migrate-sensor-telemetry.js",
     "migrate-endpoint-host-inventory": "node scripts/migrate-endpoint-host-inventory.js",
     "migrate-endpoint-hidden-c": "node scripts/migrate-endpoint-hidden-c.js",
+    "migrate-endpoint-disk-usage": "node scripts/migrate-endpoint-disk-usage.js",
     "migrate-tamper-signals": "node scripts/migrate-tamper-signals.js",
     "migrate-av-realtime-debounce": "node scripts/migrate-av-realtime-debounce.js",
     "migrate-av-device-control": "node scripts/migrate-av-device-control.js",

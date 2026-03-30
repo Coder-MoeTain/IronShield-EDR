@@ -30,6 +30,9 @@ async function dashboardSummary(req, res, next) {
     const summary = await DashboardService.getSummary(req.tenantId);
     res.json(summary);
   } catch (err) {
+    if (String(err?.message || '').includes('justification is required')) {
+      return res.status(400).json({ error: err.message });
+    }
     next(err);
   }
 }
@@ -437,7 +440,12 @@ async function createResponseAction(req, res, next) {
       action_type,
       parameters,
       req.user?.username || 'unknown',
-      req.tenantId
+      req.tenantId,
+      {
+        requestedByUserId: req.user?.userId ?? null,
+        requestedByRole: req.user?.role ?? null,
+        justification: req.body?.justification || parameters?.justification || null,
+      }
     );
     res.status(201).json({ id: actionId });
   } catch (err) {

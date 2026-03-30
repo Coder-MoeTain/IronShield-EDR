@@ -49,6 +49,9 @@ public class HeartbeatPayload
     [JsonPropertyName("disk_used_gb")]
     public decimal? DiskUsedGb { get; set; }
 
+    [JsonPropertyName("disk_usages")]
+    public List<DiskUsagePayload>? DiskUsages { get; set; }
+
     [JsonPropertyName("network_rx_mbps")]
     public decimal? NetworkRxMbps { get; set; }
 
@@ -180,4 +183,25 @@ public class NetworkConnectionPayload
 
     [JsonPropertyName("state")]
     public string? State { get; set; }
+}
+
+public class DiskUsagePayload
+{
+    [JsonPropertyName("mount")]
+    public string? Mount { get; set; }
+
+    [JsonPropertyName("volume_label")]
+    public string? VolumeLabel { get; set; }
+
+    [JsonPropertyName("total_gb")]
+    public decimal? TotalGb { get; set; }
+
+    [JsonPropertyName("used_gb")]
+    public decimal? UsedGb { get; set; }
+
+    [JsonPropertyName("free_gb")]
+    public decimal? FreeGb { get; set; }
+
+    [JsonPropertyName("used_percent")]
+    public decimal? UsedPercent { get; set; }
 }

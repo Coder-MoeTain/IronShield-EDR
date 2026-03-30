@@ -57,7 +57,12 @@ app.use((req, res, next) => {
     credentials: false,
   })(req, res, next);
 });
-app.use(express.json({ limit: '2mb' }));
+app.use(express.json({
+  limit: '2mb',
+  verify: (req, _res, buf) => {
+    req.rawBody = buf ? buf.toString('utf8') : '';
+  },
+}));
 
 const agentLimiter = rateLimit({
   windowMs: 60 * 1000,

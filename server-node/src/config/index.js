@@ -84,6 +84,12 @@ module.exports = {
   },
   agent: {
     registrationToken: requiredEnv('AGENT_REGISTRATION_TOKEN'),
+    requestSigningRequired: process.env.AGENT_REQUEST_SIGNING_REQUIRED === 'true',
+    requestSigningMaxSkewSeconds: parseInt(process.env.AGENT_REQUEST_SIGNING_MAX_SKEW_SECONDS || '300', 10),
+  },
+  responseApprovals: {
+    requireJustificationForHighRisk: process.env.RESPONSE_APPROVAL_REQUIRE_JUSTIFICATION_FOR_HIGH_RISK !== 'false',
+    minJustificationLength: parseInt(process.env.RESPONSE_APPROVAL_MIN_JUSTIFICATION_LENGTH || '8', 10),
   },
   notifications: {
     inApp: process.env.NOTIFICATIONS_IN_APP !== 'false',

@@ -67,6 +67,13 @@ function shareTypeLabel(t) {
   return String(t);
 }
 
+function fmtGb(v) {
+  if (v == null || v === '') return '—';
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '—';
+  return `${n.toFixed(2)} GB`;
+}
+
 export default function EndpointDetail() {
   const { id } = useParams();
   const { api } = useAuth();
@@ -1039,6 +1046,45 @@ export default function EndpointDetail() {
                     <td className={styles.mono} style={{ maxWidth: 480, wordBreak: 'break-all' }}>
                       {row.path ?? '—'}
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+      <div className={styles.section} id="disk-usage">
+        <h3>Disk usage</h3>
+        <p className={styles.containHint}>
+          Per-disk space reported by the agent heartbeat.
+          {endpoint.host_inventory_at ? (
+            <span className={styles.mono}> Last inventory: {fmtTs(endpoint.host_inventory_at)}</span>
+          ) : null}
+        </p>
+        <div className={styles.networkTableWrap}>
+          {parseInventoryArray(endpoint.host_disk_usage_json).length === 0 ? (
+            <p className={styles.empty}>No disk inventory yet.</p>
+          ) : (
+            <table className={styles.networkTable}>
+              <thead>
+                <tr>
+                  <th>Mount</th>
+                  <th>Label</th>
+                  <th>Total</th>
+                  <th>Used</th>
+                  <th>Free</th>
+                  <th>Used %</th>
+                </tr>
+              </thead>
+              <tbody>
+                {parseInventoryArray(endpoint.host_disk_usage_json).map((row, i) => (
+                  <tr key={`${row.mount}-${i}`}>
+                    <td className={styles.mono}>{row.mount ?? '—'}</td>
+                    <td>{row.volume_label || '—'}</td>
+                    <td>{fmtGb(row.total_gb)}</td>
+                    <td>{fmtGb(row.used_gb)}</td>
+                    <td>{fmtGb(row.free_gb)}</td>
+                    <td>{row.used_percent != null ? `${row.used_percent}%` : '—'}</td>
                   </tr>
                 ))}
               </tbody>

@@ -5,6 +5,71 @@ const config = require('../config');
 const logger = require('../utils/logger');
 const metrics = require('../utils/metrics');
 const { verifyWithRotation } = require('../utils/jwtVerify');
+const crypto = require('crypto');
+
+const signedAgentRequestNonceCache = new Map();
+
+function timingSafeEqualHex(a, b) {
+  const aa = Buffer.from(String(a || ''), 'hex');
+  const bb = Buffer.from(String(b || ''), 'hex');
+  if (aa.length === 0 || bb.length === 0 || aa.length !== bb.length) return false;
+  return crypto.timingSafeEqual(aa, bb);
+}
+
+function sha256Hex(value) {
+  return crypto.createHash('sha256').update(String(value || ''), 'utf8').digest('hex');
+}
+
+function hmacSha256Hex(secret, payload) {
+  return crypto.createHmac('sha256', String(secret)).update(payload, 'utf8').digest('hex');
+}
+
+function pruneExpiredNonces(nowMs) {
+  for (const [key, expiresAt] of signedAgentRequestNonceCache.entries()) {
+    if (expiresAt <= nowMs) signedAgentRequestNonceCache.delete(key);
+  }
+}
+
+function verifySignedAgentRequest(req, agentKey, endpointId) {
+  const ts = req.headers['x-agent-timestamp'];
+  const nonce = req.headers['x-agent-nonce'];
+  const signature = req.headers['x-agent-signature'];
+  const bodySha = req.headers['x-agent-body-sha256'];
+  const required = config.agent?.requestSigningRequired === true;
+
+  if (!ts || !nonce || !signature || !bodySha) {
+    if (!required) return { ok: true, mode: 'legacy' };
+    return { ok: false, reason: 'missing' };
+  }
+
+  const tsNum = Number(ts);
+  if (!Number.isFinite(tsNum)) return { ok: false, reason: 'bad_timestamp' };
+
+  const maxSkew = Number(config.agent?.requestSigningMaxSkewSeconds || 300);
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (Math.abs(nowSec - tsNum) > maxSkew) return { ok: false, reason: 'clock_skew' };
+
+  const rawBody = req.rawBody ?? '';
+  const computedBodySha = sha256Hex(rawBody);
+  if (!timingSafeEqualHex(String(bodySha), computedBodySha)) {
+    return { ok: false, reason: 'body_hash_mismatch' };
+  }
+
+  const payload = `${req.method}\n${req.originalUrl}\n${tsNum}\n${nonce}\n${computedBodySha}`;
+  const expectedSig = hmacSha256Hex(agentKey, payload);
+  if (!timingSafeEqualHex(String(signature), expectedSig)) {
+    return { ok: false, reason: 'bad_signature' };
+  }
+
+  const nowMs = Date.now();
+  pruneExpiredNonces(nowMs);
+  const replayKey = `${endpointId}:${tsNum}:${nonce}`;
+  if (signedAgentRequestNonceCache.has(replayKey)) {
+    return { ok: false, reason: 'replay' };
+  }
+  signedAgentRequestNonceCache.set(replayKey, nowMs + (maxSkew * 1000));
+  return { ok: true, mode: 'signed' };
+}
 
 /**
  * Verify JWT for admin routes
@@ -101,6 +166,11 @@ async function authAgentValidated(req, res, next) {
     req.agentKey = String(agentKey);
     req.endpointId = row.id;
     req.tenantId = row.tenant_id ?? null;
+    const signatureCheck = verifySignedAgentRequest(req, req.agentKey, req.endpointId);
+    if (!signatureCheck.ok) {
+      metrics.agentAuthFailuresTotal.inc({ reason: signatureCheck.reason });
+      return res.status(401).json({ error: 'Invalid agent request signature', reason: signatureCheck.reason });
+    }
     return next();
   } catch (err) {
     logger.error({ err: err.message }, 'Agent auth lookup failed');

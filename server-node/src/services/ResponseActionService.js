@@ -3,23 +3,10 @@
  */
 const db = require('../utils/db');
 const logger = require('../utils/logger');
-
-/** Actions that stay pending until a second analyst approves (two-person rule in UI). */
-const DANGEROUS_ACTIONS = new Set([
-  // kill_process, rtr_shell: execute immediately (no SOC approval queue)
-  'isolate_host',
-  'lift_isolation',
-  'quarantine_file',
-  'block_ip',
-  'run_script',
-  'delete_schtask',
-  'delete_run_key',
-  'delete_path',
-]);
-
-function requiresApproval(actionType) {
-  return DANGEROUS_ACTIONS.has(String(actionType || '').toLowerCase());
-}
+const {
+  evaluateCreation,
+  evaluateDecision,
+} = require('./ResponseApprovalPolicyService');
 
 /** Ensure parameters is a plain object for JSON API (mysql2 may return JSON column as string). */
 function normalizeActionRow(row) {
@@ -35,9 +22,12 @@ function normalizeActionRow(row) {
   return { ...row, parameters: p };
 }
 
-async function create(endpointId, actionType, parameters, requestedBy, tenantId = null) {
-  const normalizedType =
-    actionType === 'simulate_isolation' ? 'isolate_host' : actionType;
+async function create(endpointId, actionType, parameters, requestedBy, tenantId = null, opts = {}) {
+  const creationPolicy = evaluateCreation({
+    actionType,
+    justification: opts.justification || parameters?.justification,
+  });
+  const normalizedType = creationPolicy.actionType;
 
   if (normalizedType === 'block_hash') {
     const IocMatchingService = require('./IocMatchingService');
@@ -65,11 +55,18 @@ async function create(endpointId, actionType, parameters, requestedBy, tenantId 
     return result.insertId;
   }
 
-  const approvalStatus = requiresApproval(normalizedType) ? 'pending' : 'auto';
+  const approvalStatus = creationPolicy.approvalStatus;
+  const mergedParameters = {
+    ...(parameters && typeof parameters === 'object' ? parameters : {}),
+    _approval_policy_version: creationPolicy.policyVersion,
+    _request_justification: opts.justification || parameters?.justification || null,
+    _requested_by_user_id: opts.requestedByUserId ?? null,
+    _requested_by_role: opts.requestedByRole ?? null,
+  };
   const result = await db.execute(
     `INSERT INTO response_actions (endpoint_id, action_type, parameters, requested_by, approval_status, status)
      VALUES (?, ?, ?, ?, ?, 'pending')`,
-    [endpointId, normalizedType, parameters ? JSON.stringify(parameters) : null, requestedBy, approvalStatus]
+    [endpointId, normalizedType, JSON.stringify(mergedParameters), requestedBy, approvalStatus]
   );
 
   if (normalizedType === 'isolate_host') {
@@ -124,31 +121,70 @@ async function listPendingApprovals(tenantId = null, limit = 200) {
   return rows.map(normalizeActionRow);
 }
 
-async function approve(id, approvedBy, { requireTwoPerson = true } = {}) {
-  const row = await db.queryOne('SELECT id, requested_by, approval_status FROM response_actions WHERE id = ?', [id]);
-  if (!row) throw new Error('Action not found');
-  if (row.approval_status !== 'pending') throw new Error('Action is not pending approval');
-  if (requireTwoPerson && String(row.requested_by || '') === String(approvedBy || '')) {
-    throw new Error('Two-person rule: requester cannot approve own action');
+async function getForApprovalDecision(id, tenantId = null) {
+  let sql = `
+    SELECT ra.id, ra.requested_by, ra.approval_status, ra.action_type, e.tenant_id
+    FROM response_actions ra
+    JOIN endpoints e ON e.id = ra.endpoint_id
+    WHERE ra.id = ?
+  `;
+  const params = [id];
+  if (tenantId != null) {
+    sql += ' AND e.tenant_id = ?';
+    params.push(tenantId);
   }
+  return db.queryOne(sql, params);
+}
+
+async function approve(id, actor, { requireTwoPerson = true, tenantId = null, reason = null } = {}) {
+  const row = await getForApprovalDecision(id, tenantId);
+  if (!row) throw new Error('Action not found');
+  const decisionPolicy = evaluateDecision({
+    action: row,
+    actor,
+    requireTwoPerson,
+    reason,
+  });
+
   await db.execute(
     `UPDATE response_actions
      SET approval_status = 'approved', approved_by = ?, approved_at = NOW()
      WHERE id = ?`,
-    [String(approvedBy).substring(0, 128), id]
+    [String(actor?.username || '').substring(0, 128), id]
   );
+  return {
+    actionId: String(id),
+    actionType: row.action_type,
+    tenantId: row.tenant_id ?? null,
+    policyVersion: decisionPolicy.policyVersion,
+    decision: 'approved',
+    reason: reason || null,
+  };
 }
 
-async function reject(id, rejectedBy, reason = null) {
-  const row = await db.queryOne('SELECT id, approval_status FROM response_actions WHERE id = ?', [id]);
+async function reject(id, actor, reason = null, { tenantId = null } = {}) {
+  const row = await getForApprovalDecision(id, tenantId);
   if (!row) throw new Error('Action not found');
-  if (row.approval_status !== 'pending') throw new Error('Action is not pending approval');
+  const decisionPolicy = evaluateDecision({
+    action: row,
+    actor,
+    requireTwoPerson: false,
+    reason,
+  });
   await db.execute(
     `UPDATE response_actions
      SET approval_status = 'rejected', rejected_by = ?, rejected_at = NOW(), rejection_reason = ?
      WHERE id = ?`,
-    [String(rejectedBy).substring(0, 128), reason ? String(reason).substring(0, 512) : null, id]
+    [String(actor?.username || '').substring(0, 128), reason ? String(reason).substring(0, 512) : null, id]
   );
+  return {
+    actionId: String(id),
+    actionType: row.action_type,
+    tenantId: row.tenant_id ?? null,
+    policyVersion: decisionPolicy.policyVersion,
+    decision: 'rejected',
+    reason: reason || null,
+  };
 }
 
 async function markSent(id) {

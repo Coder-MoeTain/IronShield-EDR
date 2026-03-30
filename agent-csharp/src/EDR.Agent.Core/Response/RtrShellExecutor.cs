@@ -9,7 +9,7 @@ namespace EDR.Agent.Core.Response;
 /// </summary>
 public sealed class RtrShellExecutor
 {
-    private static readonly HashSet<string> AllowFirstToken = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> DefaultAllowFirstToken = new(StringComparer.OrdinalIgnoreCase)
     {
         "whoami", "hostname", "ipconfig", "ver", "systeminfo", "netstat", "route", "arp", "getmac", "echo",
         // Read-only / inventory (still org policy gated on server)
@@ -19,7 +19,7 @@ public sealed class RtrShellExecutor
     private const int MaxOutputBytes = 96 * 1024;
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(45);
 
-    public Task<(bool Ok, string Message, object? Result)> ExecuteAsync(string? command, CancellationToken ct)
+    public Task<(bool Ok, string Message, object? Result)> ExecuteAsync(string? command, IEnumerable<string>? policyAllowFirstToken, CancellationToken ct)
     {
         var cmd = (command ?? "").Trim();
         if (string.IsNullOrEmpty(cmd) || cmd.Length > 480)
@@ -36,10 +36,22 @@ public sealed class RtrShellExecutor
         if (first.Contains('\\') || first.Contains('/'))
             first = Path.GetFileName(first);
 
-        if (!AllowFirstToken.Contains(first))
+        var activeAllowlist = BuildActiveAllowlist(policyAllowFirstToken);
+        if (!activeAllowlist.Contains(first))
             return Task.FromResult<(bool, string, object?)>((false, $"Command not allowlisted: {first}", null));
 
         return Task.Run(() => RunCmd(cmd, ct), ct);
+    }
+
+    private static HashSet<string> BuildActiveAllowlist(IEnumerable<string>? policyAllowFirstToken)
+    {
+        if (policyAllowFirstToken == null) return DefaultAllowFirstToken;
+        var set = new HashSet<string>(
+            policyAllowFirstToken
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim()),
+            StringComparer.OrdinalIgnoreCase);
+        return set.Count > 0 ? set : DefaultAllowFirstToken;
     }
 
     private static (bool Ok, string Message, object? Result) RunCmd(string fullCommand, CancellationToken ct)

@@ -101,6 +101,7 @@ public class SystemInfoService
             DiskPercent = diskPct,
             DiskTotalGb = diskTotalGb,
             DiskUsedGb = diskUsedGb,
+            DiskUsages = GetDiskUsages(),
             NetworkRxMbps = rxMbps,
             NetworkTxMbps = txMbps,
         };
@@ -191,6 +192,45 @@ public class SystemInfoService
         }
         catch { }
         return (null, null, null);
+    }
+
+    private List<DiskUsagePayload>? GetDiskUsages()
+    {
+        try
+        {
+            var list = new List<DiskUsagePayload>();
+            foreach (var d in DriveInfo.GetDrives().Where(x => x.IsReady))
+            {
+                try
+                {
+                    var total = d.TotalSize;
+                    var free = d.AvailableFreeSpace;
+                    var used = total - free;
+                    var totalGb = Math.Round((decimal)total / (1024 * 1024 * 1024), 2);
+                    var usedGb = Math.Round((decimal)used / (1024 * 1024 * 1024), 2);
+                    var freeGb = Math.Round((decimal)free / (1024 * 1024 * 1024), 2);
+                    var pct = total > 0 ? Math.Round((decimal)used / total * 100, 2) : (decimal?)null;
+                    list.Add(new DiskUsagePayload
+                    {
+                        Mount = d.Name,
+                        VolumeLabel = d.VolumeLabel,
+                        TotalGb = totalGb,
+                        UsedGb = usedGb,
+                        FreeGb = freeGb,
+                        UsedPercent = pct,
+                    });
+                }
+                catch
+                {
+                    // Ignore inaccessible per-drive stats
+                }
+            }
+            return list.Count > 0 ? list : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private (decimal? rxMbps, decimal? txMbps) GetNetworkBandwidth()

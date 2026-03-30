@@ -14,6 +14,7 @@ const steps = [
   'migrate-sensor-telemetry',
   'migrate-endpoint-host-inventory',
   'migrate-endpoint-hidden-c',
+  'migrate-endpoint-disk-usage',
   'migrate-tamper-signals',
   'migrate-av-realtime-debounce',
   'migrate-av-device-control',

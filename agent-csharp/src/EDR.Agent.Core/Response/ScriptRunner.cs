@@ -12,7 +12,11 @@ namespace EDR.Agent.Core.Response;
 /// </summary>
 public sealed class ScriptRunner
 {
-    public async Task<(bool Success, string Message)> RunAllowlistedScriptAsync(AgentConfig config, string? scriptPath, CancellationToken ct = default)
+    public async Task<(bool Success, string Message)> RunAllowlistedScriptAsync(
+        AgentConfig config,
+        string? scriptPath,
+        IEnumerable<string>? blockedSha256 = null,
+        CancellationToken ct = default)
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return (false, "run_script is only supported on Windows");
@@ -39,7 +43,13 @@ public sealed class ScriptRunner
             return (false, $"Script file not found: {path}");
 
         var shaList = config.ScriptAllowlistSha256 ?? new List<string>();
-        if (shaList.Count > 0)
+        var blocked = new HashSet<string>(
+            (blockedSha256 ?? Array.Empty<string>())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim().ToLowerInvariant()),
+            StringComparer.Ordinal);
+
+        if (shaList.Count > 0 || blocked.Count > 0)
         {
             string hex;
             await using (var fs = File.OpenRead(path))
@@ -48,10 +58,13 @@ public sealed class ScriptRunner
                 var hash = await sha256.ComputeHashAsync(fs, ct).ConfigureAwait(false);
                 hex = Convert.ToHexString(hash).ToLowerInvariant();
             }
+            if (blocked.Contains(hex))
+                return (false, "Script SHA-256 is explicitly blocked by policy");
+
             var okHash = shaList.Any(h =>
                 !string.IsNullOrWhiteSpace(h) &&
                 string.Equals(hex, h.Trim().ToLowerInvariant(), StringComparison.Ordinal));
-            if (!okHash)
+            if (shaList.Count > 0 && !okHash)
                 return (false, "Script SHA-256 not in ScriptAllowlistSha256");
         }
 

@@ -17,19 +17,32 @@ async function approve(req, res, next) {
   try {
     const id = req.params.id;
     const user = req.user?.username || 'unknown';
-    await ResponseActionService.approve(id, user, { requireTwoPerson: true });
+    const decision = await ResponseActionService.approve(
+      id,
+      { username: user, role: req.user?.role || 'viewer', userId: req.user?.userId ?? null },
+      {
+        requireTwoPerson: true,
+        tenantId: req.tenantId ?? null,
+        reason: req.body?.reason || null,
+      }
+    );
     await AuditLogService.log({
       userId: req.user?.userId,
       username: user,
       action: 'response_action_approve',
       resourceType: 'response_action',
       resourceId: String(id),
+      details: {
+        decision,
+        requestId: req.requestId ?? null,
+      },
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'],
     });
     res.json({ ok: true });
   } catch (e) {
     if (String(e.message || '').includes('Two-person rule')) return res.status(403).json({ error: e.message });
+    if (String(e.message || '').includes('policy denied')) return res.status(403).json({ error: e.message });
     if (String(e.message || '').includes('pending approval')) return res.status(409).json({ error: e.message });
     next(e);
   }
@@ -40,19 +53,29 @@ async function reject(req, res, next) {
     const id = req.params.id;
     const user = req.user?.username || 'unknown';
     const { reason } = req.body || {};
-    await ResponseActionService.reject(id, user, reason);
+    const decision = await ResponseActionService.reject(
+      id,
+      { username: user, role: req.user?.role || 'viewer', userId: req.user?.userId ?? null },
+      reason,
+      { tenantId: req.tenantId ?? null }
+    );
     await AuditLogService.log({
       userId: req.user?.userId,
       username: user,
       action: 'response_action_reject',
       resourceType: 'response_action',
       resourceId: String(id),
-      details: { reason: reason || null },
+      details: {
+        reason: reason || null,
+        decision,
+        requestId: req.requestId ?? null,
+      },
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'],
     });
     res.json({ ok: true });
   } catch (e) {
+    if (String(e.message || '').includes('policy denied')) return res.status(403).json({ error: e.message });
     if (String(e.message || '').includes('pending approval')) return res.status(409).json({ error: e.message });
     next(e);
   }

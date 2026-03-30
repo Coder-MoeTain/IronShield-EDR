@@ -48,6 +48,10 @@ public class AgentWorker
     /// <summary>Last EDR (sensor) policy from management server — Phase 8 policy sync telemetry.</summary>
     private int? _lastEdrPolicyId;
     private DateTimeOffset? _lastEdrPolicySyncUtc;
+    private volatile string _effectivePolicyMode = "monitor_and_alert";
+    private volatile HashSet<string> _allowedResponseActions = new(StringComparer.OrdinalIgnoreCase);
+    private volatile HashSet<string> _allowedRtrCommands = new(StringComparer.OrdinalIgnoreCase);
+    private volatile HashSet<string> _blockedScriptSha256 = new(StringComparer.OrdinalIgnoreCase);
 
     private int _heartbeatConnectedLogged;
 
@@ -563,6 +567,12 @@ public class AgentWorker
                 {
                     try
                     {
+                        if (!IsResponseActionAllowedByPolicy(action.ActionType))
+                        {
+                            await poller.SubmitResultAsync(action.Id, false, $"Blocked by endpoint policy mode={_effectivePolicyMode}", null, ct);
+                            continue;
+                        }
+
                         if (action.ActionType == "kill_process")
                         {
                             var pid = action.ProcessId;
@@ -628,7 +638,8 @@ public class AgentWorker
                         else if (action.ActionType == "run_script")
                         {
                             var scriptPath = GetActionParam(action, "script_path");
-                            var (sOk, sMsg) = await scriptRunner.RunAllowlistedScriptAsync(_config, scriptPath, ct);
+                            var blockedHashes = _blockedScriptSha256;
+                            var (sOk, sMsg) = await scriptRunner.RunAllowlistedScriptAsync(_config, scriptPath, blockedHashes, ct);
                             await poller.SubmitResultAsync(action.Id, sOk, sMsg, null, ct);
                         }
                         else if (action.ActionType == "mark_investigating")
@@ -651,7 +662,8 @@ public class AgentWorker
                             }
                             else
                             {
-                                var (rtrOk, rtrMsg, rtrRes) = await rtrShell.ExecuteAsync(cmd, ct);
+                                var policyRtrAllowlist = _allowedRtrCommands;
+                                var (rtrOk, rtrMsg, rtrRes) = await rtrShell.ExecuteAsync(cmd, policyRtrAllowlist, ct);
                                 await poller.SubmitResultAsync(action.Id, rtrOk, rtrMsg, rtrRes, ct);
                             }
                         }
@@ -894,6 +906,50 @@ public class AgentWorker
         _effectivePollSeconds = policy.PollIntervalSeconds;
         _lastEdrPolicyId = policy.PolicyId;
         _lastEdrPolicySyncUtc = DateTimeOffset.UtcNow;
+        _effectivePolicyMode = string.IsNullOrWhiteSpace(policy.Mode) ? "monitor_and_alert" : policy.Mode.Trim().ToLowerInvariant();
+
+        var actions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var a in policy.AllowedResponseActions ?? new List<string>())
+        {
+            if (!string.IsNullOrWhiteSpace(a))
+                actions.Add(a.Trim());
+        }
+        _allowedResponseActions = actions;
+
+        var rtr = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var c in policy.AllowedRtrCommands ?? new List<string>())
+        {
+            if (!string.IsNullOrWhiteSpace(c))
+                rtr.Add(c.Trim());
+        }
+        _allowedRtrCommands = rtr;
+
+        var blockedScripts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var h in policy.BlockedScriptSha256 ?? new List<string>())
+        {
+            if (!string.IsNullOrWhiteSpace(h))
+                blockedScripts.Add(h.Trim().ToLowerInvariant());
+        }
+        _blockedScriptSha256 = blockedScripts;
+    }
+
+    private bool IsResponseActionAllowedByPolicy(string? actionType)
+    {
+        var at = (actionType ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(at)) return false;
+        if (string.Equals(at, "simulate_isolation", StringComparison.OrdinalIgnoreCase)) at = "isolate_host";
+
+        // Prevent mode: default-deny unless explicitly allowlisted.
+        var mode = _effectivePolicyMode;
+        if (mode.Contains("prevent", StringComparison.OrdinalIgnoreCase) || mode.Contains("lockdown", StringComparison.OrdinalIgnoreCase))
+        {
+            var allowed = _allowedResponseActions;
+            return allowed.Count > 0 && allowed.Contains(at);
+        }
+
+        // Monitor mode: allow by default, but if allowlist exists, honor it.
+        var allowlist = _allowedResponseActions;
+        return allowlist.Count == 0 || allowlist.Contains(at);
     }
 
     private async Task UpdateCheckLoopAsync(CancellationToken ct)

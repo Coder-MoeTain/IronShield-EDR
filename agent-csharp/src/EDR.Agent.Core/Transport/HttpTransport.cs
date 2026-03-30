@@ -16,6 +16,7 @@ public class HttpTransport
 {
     private readonly HttpClient _client;
     private readonly string _baseUrl;
+    private string? _agentKey;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -25,6 +26,7 @@ public class HttpTransport
     public HttpTransport(AgentConfig config, string? agentKey = null)
     {
         _baseUrl = (config.ServerUrl ?? "").Trim().TrimEnd('/');
+        _agentKey = agentKey;
         if (string.IsNullOrWhiteSpace(_baseUrl))
             throw new InvalidOperationException("ServerUrl is required");
 
@@ -140,8 +142,19 @@ public class HttpTransport
 
     public void SetAgentKey(string agentKey)
     {
+        _agentKey = agentKey;
         _client.DefaultRequestHeaders.Remove("X-Agent-Key");
         _client.DefaultRequestHeaders.Add("X-Agent-Key", agentKey);
+    }
+
+    private HttpRequestMessage CreateSignedRequest(HttpMethod method, string url, string? jsonBody = null)
+    {
+        var req = new HttpRequestMessage(method, url);
+        if (jsonBody != null)
+            req.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+        if (!string.IsNullOrWhiteSpace(_agentKey))
+            AgentRequestSigner.SignRequest(req, _agentKey, jsonBody);
+        return req;
     }
 
     /// <summary>Lightweight connectivity check (same base URL as other agent APIs).</summary>
@@ -186,12 +199,7 @@ public class HttpTransport
     {
         var json = JsonSerializer.Serialize(payload, JsonOptions);
         using var res = await SendWithRetryAsync(
-            () =>
-            {
-                var r = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/api/agent/heartbeat");
-                r.Content = new StringContent(json, Encoding.UTF8, "application/json");
-                return r;
-            },
+            () => CreateSignedRequest(HttpMethod.Post, $"{_baseUrl}/api/agent/heartbeat", json),
             ct);
         var body = await res.Content.ReadAsStringAsync(ct);
 
@@ -206,12 +214,7 @@ public class HttpTransport
         var list = events.ToList();
         var payloadJson = JsonSerializer.Serialize(new { batch_id = batchId, events = list }, JsonOptions);
         using var res = await SendWithRetryAsync(
-            () =>
-            {
-                var r = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/api/agent/events/batch");
-                r.Content = new StringContent(payloadJson, Encoding.UTF8, "application/json");
-                return r;
-            },
+            () => CreateSignedRequest(HttpMethod.Post, $"{_baseUrl}/api/agent/events/batch", payloadJson),
             ct);
         var body = await res.Content.ReadAsStringAsync(ct);
 
@@ -223,7 +226,8 @@ public class HttpTransport
     /// </summary>
     public async Task<string> RotateAgentKeyAsync(CancellationToken ct = default)
     {
-        var res = await _client.PostAsync($"{_baseUrl}/api/agent/key/rotate", new StringContent("{}", Encoding.UTF8, "application/json"), ct);
+        using var req = CreateSignedRequest(HttpMethod.Post, $"{_baseUrl}/api/agent/key/rotate", "{}");
+        var res = await _client.SendAsync(req, ct);
         var body = await res.Content.ReadAsStringAsync(ct);
         if (!res.IsSuccessStatusCode) throw new HttpRequestException($"Key rotation failed: {res.StatusCode} - {body}");
         using var doc = JsonDocument.Parse(body);
@@ -236,7 +240,8 @@ public class HttpTransport
     /// </summary>
     public async Task<EndpointPolicy?> GetPolicyAsync(CancellationToken ct = default)
     {
-        var res = await _client.GetAsync($"{_baseUrl}/api/agent/policy", ct);
+        using var req = CreateSignedRequest(HttpMethod.Get, $"{_baseUrl}/api/agent/policy");
+        var res = await _client.SendAsync(req, ct);
         if (res.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
         res.EnsureSuccessStatusCode();
         var body = await res.Content.ReadAsStringAsync(ct);
@@ -251,8 +256,8 @@ public class HttpTransport
         var list = connections.ToList();
         if (list.Count == 0) return;
         var payload = new { connections = list };
-        var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/api/agent/network/connections");
-        req.Content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+        var json = JsonSerializer.Serialize(payload, JsonOptions);
+        var req = CreateSignedRequest(HttpMethod.Post, $"{_baseUrl}/api/agent/network/connections", json);
         var res = await _client.SendAsync(req, ct);
         if (!res.IsSuccessStatusCode)
             System.Diagnostics.Debug.WriteLine($"[Agent] Network push failed: {res.StatusCode}");
@@ -264,8 +269,8 @@ public class HttpTransport
     public async Task SubmitTriageResultAsync(long requestId, object result, bool success = true, string? message = null, CancellationToken ct = default)
     {
         var payload = new { request_id = requestId, result, success, message };
-        var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/api/agent/triage/result");
-        req.Content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+        var json = JsonSerializer.Serialize(payload, JsonOptions);
+        var req = CreateSignedRequest(HttpMethod.Post, $"{_baseUrl}/api/agent/triage/result", json);
         var res = await _client.SendAsync(req, ct);
         res.EnsureSuccessStatusCode();
     }
@@ -280,7 +285,8 @@ public class HttpTransport
 
     public async Task<AvPolicy?> GetAvPolicyAsync(CancellationToken ct = default)
     {
-        var res = await _client.GetAsync($"{_baseUrl}/api/agent/av/policy", ct);
+        using var req = CreateSignedRequest(HttpMethod.Get, $"{_baseUrl}/api/agent/av/policy");
+        var res = await _client.SendAsync(req, ct);
         if (!res.IsSuccessStatusCode) return null;
         var body = await res.Content.ReadAsStringAsync(ct);
         return JsonSerializer.Deserialize<AvPolicy>(body, AvJsonOptions);
@@ -288,7 +294,8 @@ public class HttpTransport
 
     public async Task<AvSignaturesVersion?> GetAvSignaturesVersionAsync(CancellationToken ct = default)
     {
-        var res = await _client.GetAsync($"{_baseUrl}/api/agent/av/signatures/version", ct);
+        using var req = CreateSignedRequest(HttpMethod.Get, $"{_baseUrl}/api/agent/av/signatures/version");
+        var res = await _client.SendAsync(req, ct);
         if (!res.IsSuccessStatusCode) return null;
         var body = await res.Content.ReadAsStringAsync(ct);
         return JsonSerializer.Deserialize<AvSignaturesVersion>(body, AvJsonOptions);
@@ -298,7 +305,8 @@ public class HttpTransport
     {
         var url = $"{_baseUrl}/api/agent/av/signatures/download";
         if (!string.IsNullOrEmpty(version)) url += $"?version={Uri.EscapeDataString(version)}";
-        var res = await _client.GetAsync(url, ct);
+        using var req = CreateSignedRequest(HttpMethod.Get, url);
+        var res = await _client.SendAsync(req, ct);
         if (!res.IsSuccessStatusCode) return null;
         var body = await res.Content.ReadAsStringAsync(ct);
         return JsonSerializer.Deserialize<AvSignaturesDownload>(body, AvJsonOptions);
@@ -307,8 +315,8 @@ public class HttpTransport
     public async Task SubmitAvScanResultAsync(long? taskId, IEnumerable<object> results, CancellationToken ct = default)
     {
         var payload = new { task_id = taskId, results = results.ToList() };
-        var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/api/agent/av/scan-result");
-        req.Content = new StringContent(JsonSerializer.Serialize(payload, AvJsonOptions), Encoding.UTF8, "application/json");
+        var json = JsonSerializer.Serialize(payload, AvJsonOptions);
+        var req = CreateSignedRequest(HttpMethod.Post, $"{_baseUrl}/api/agent/av/scan-result", json);
         var res = await _client.SendAsync(req, ct);
         res.EnsureSuccessStatusCode();
     }
@@ -316,8 +324,8 @@ public class HttpTransport
     public async Task SubmitAvQuarantineResultAsync(string originalPath, string quarantinePath, string? sha256, string? detectionName, CancellationToken ct = default)
     {
         var payload = new { original_path = originalPath, quarantine_path = quarantinePath, sha256, detection_name = detectionName, quarantined_by = "agent" };
-        var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/api/agent/av/quarantine-result");
-        req.Content = new StringContent(JsonSerializer.Serialize(payload, AvJsonOptions), Encoding.UTF8, "application/json");
+        var json = JsonSerializer.Serialize(payload, AvJsonOptions);
+        var req = CreateSignedRequest(HttpMethod.Post, $"{_baseUrl}/api/agent/av/quarantine-result", json);
         var res = await _client.SendAsync(req, ct);
         res.EnsureSuccessStatusCode();
     }
@@ -325,8 +333,8 @@ public class HttpTransport
     public async Task SubmitAvUpdateStatusAsync(string bundleVersion, string status, string? errorMessage = null, CancellationToken ct = default)
     {
         var payload = new { bundle_version = bundleVersion, status, error_message = errorMessage };
-        var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/api/agent/av/update-status");
-        req.Content = new StringContent(JsonSerializer.Serialize(payload, AvJsonOptions), Encoding.UTF8, "application/json");
+        var json = JsonSerializer.Serialize(payload, AvJsonOptions);
+        var req = CreateSignedRequest(HttpMethod.Post, $"{_baseUrl}/api/agent/av/update-status", json);
         var res = await _client.SendAsync(req, ct);
         res.EnsureSuccessStatusCode();
     }
@@ -334,7 +342,8 @@ public class HttpTransport
     /// <summary>IOC-derived domain blocklist for Web & URL protection (hosts sinkhole).</summary>
     public async Task<WebUrlBlocklistResponse?> GetWebBlocklistAsync(CancellationToken ct = default)
     {
-        var res = await _client.GetAsync($"{_baseUrl}/api/agent/web/blocklist", ct);
+        using var req = CreateSignedRequest(HttpMethod.Get, $"{_baseUrl}/api/agent/web/blocklist");
+        var res = await _client.SendAsync(req, ct);
         if (!res.IsSuccessStatusCode) return null;
         var body = await res.Content.ReadAsStringAsync(ct);
         return JsonSerializer.Deserialize<WebUrlBlocklistResponse>(body, JsonOptions);
