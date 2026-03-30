@@ -1,6 +1,6 @@
 # Falcon-class capabilities in IronShield (self-hosted)
 
-IronShield is **not** CrowdStrike Falcon. This document maps **similar workflows** implemented in-repo for labs and enterprise prototypes.
+IronShield is **not** CrowdStrike Falcon. This document maps **similar workflows** implemented in-repo for evaluation and enterprise prototypes.
 
 | Area | Falcon-style expectation | IronShield implementation |
 |------|--------------------------|---------------------------|

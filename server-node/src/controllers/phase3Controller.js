@@ -52,8 +52,8 @@ async function assignPolicy(req, res, next) {
 // --- Investigations ---
 async function listInvestigations(req, res, next) {
   try {
-    const cases = await InvestigationService.list(req.query);
-    res.json(cases);
+    const { rows, total } = await InvestigationService.list(req.query);
+    res.json({ investigations: rows, total });
   } catch (err) {
     next(err);
   }

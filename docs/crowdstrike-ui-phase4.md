@@ -32,14 +32,16 @@ The agent enriches `HeartbeatPayload` with:
 | Page | Changes |
 |------|---------|
 | **Host detail** (`EndpointDetail.jsx`) | **Sensor & containment** strip: operational status, backlog, uptime, containment |
-| **All hosts** (`Endpoints.jsx`) | **Sensor** column: Contained / Degraded / queue depth hint |
+| **All hosts** (`Endpoints.jsx`) | **Sensor** column via `endpointSensorListDisplay()` (`dashboard/src/utils/sensorUi.js`): Update pending → Contained → Degraded → `Q:n` when backlog is positive → **OK** (healthy / online) |
 
 The detail page polls the endpoint every ~45s so the strip updates without a full reload.
 
 ## Verification
 
-- `cd server-node/dashboard && npm run build`
-- After DB migration, register an agent and confirm columns update on heartbeat
+- `cd server-node/dashboard && npm run build` and `npm test` (includes `sensorUi.test.js` for host-list Sensor column logic).
+- `cd server-node && npm test` — `test/heartbeatSchema.telemetry.test.js` asserts Zod accepts Phase 4 heartbeat fields.
+- `dotnet test` on `EDR.Agent.Core.Tests` — heartbeat JSON includes `queue_depth`, `process_uptime_seconds`, `host_isolation_active`, `sensor_operational_status`.
+- After DB migration, register an agent and confirm `endpoints` columns update on heartbeat (`npm run migrate-sensor-telemetry` if needed).
 
 ## Notes
 

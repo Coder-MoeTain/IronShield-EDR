@@ -27,12 +27,15 @@ Phase 5 aligns **agent enrollment** and the **host console** with Falcon-style *
 | Page | Changes |
 |------|---------|
 | **All hosts** | **Tenant (CID)** column showing `tenant_slug` |
-| **Host detail** | Tenant (CID) in **System info** + subtitle when slug is present |
+| **Host detail** | Tenant (CID) in **System info**; **PageShell** description includes `CID {slug}` when present |
 
 ## Verification
 
 - Create a tenant under **Enterprise → Tenant management** (e.g. slug `acme`).
-- Set agent `TenantSlug` to `acme` and register a new endpoint; confirm slug appears on the host list and detail page.
+- Set agent `TenantSlug` to `acme` (or `EDR_TENANT_SLUG`) and register a new endpoint; confirm slug appears on the host list **Tenant (CID)** column, **Host detail** subtitle (`CID …`), and **System info**.
+- Automated checks:
+  - `cd server-node && npm test` — `registerSchema.tenant.test.js`, `tenantSlug.normalize.test.js`
+  - `cd agent-csharp && dotnet test tests/EDR.Agent.Core.Tests` — `RegistrationPayloadContractTests` (registration JSON keeps `tenant_slug` for the Node API)
 
 ## Notes
 

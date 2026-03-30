@@ -14,9 +14,13 @@
 }
 
 [data-theme='dark'] .page {
-  background:
-    radial-gradient(ellipse 90% 55% at 50% -15%, rgba(224, 30, 55, 0.12), transparent 55%),
-    linear-gradient(180deg, #080a0d 0%, #0c0e11 100%);
+  background-color: #000000;
+  background-image:
+    radial-gradient(ellipse 95% 55% at 50% -18%, rgba(6, 182, 212, 0.09), transparent 58%),
+    linear-gradient(rgba(6, 182, 212, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 182, 212, 0.028) 1px, transparent 1px);
+  background-size: auto, 48px 48px, 48px 48px;
+  background-attachment: fixed;
 }
 
 .themeToggle {
@@ -94,6 +98,11 @@
   outline: none;
   border-color: rgba(224, 30, 55, 0.5);
   box-shadow: 0 0 0 1px rgba(224, 30, 55, 0.15);
+}
+
+[data-theme='dark'] .form input:focus {
+  border-color: rgba(6, 182, 212, 0.55);
+  box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.18);
 }
 
 .form button {

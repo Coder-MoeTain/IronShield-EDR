@@ -92,6 +92,7 @@ const MENU_ITEMS = [
     Icon: IconIntel,
     children: [
       { to: '/risk', Icon: IconIntel, label: 'Endpoint risk' },
+      { to: '/web-url-protection', Icon: IconIntel, label: 'Web & URL' },
       { to: '/iocs', Icon: IconIntel, label: 'IOC watchlist' },
     ],
   },
@@ -117,6 +118,7 @@ const MENU_ITEMS = [
     label: 'Next-gen AV',
     Icon: IconShield,
     children: [
+      { to: '/protection', Icon: IconShield, label: 'Protection features' },
       { to: '/av', Icon: IconShield, label: 'Overview' },
       { to: '/av/detections', Icon: IconShield, label: 'Malware detections' },
       { to: '/av/quarantine', Icon: IconShield, label: 'Quarantine' },
@@ -180,7 +182,7 @@ function NavMenuItem({ item, user }) {
             <NavLink
               key={child.to}
               to={child.to}
-              end={child.to === '/av'}
+              end={child.to === '/av' || child.to === '/protection'}
               className={({ isActive: childActive }) =>
                 `${styles.navSubItem} ${childActive ? styles.navActive : ''}`
               }
@@ -221,7 +223,7 @@ export default function Layout() {
           </span>
           <div className={styles.logoText}>
             <span className={styles.logoTitle}>IronShield</span>
-            <span className={styles.logoSub}>Endpoint Detection &amp; Response</span>
+            <span className={styles.logoSub}>Security operations center</span>
           </div>
         </div>
         <nav className={styles.nav} aria-label="Primary">
@@ -277,7 +279,7 @@ export default function Layout() {
           <ThemeToggle />
         </div>
         <SessionExpiryBanner />
-        <div className={styles.content}>
+        <div className={styles.content} data-workspace>
           <Breadcrumbs />
           <RouteErrorBoundary key={location.pathname}>
             <Outlet />

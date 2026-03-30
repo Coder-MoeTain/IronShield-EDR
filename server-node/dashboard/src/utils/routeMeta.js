@@ -16,6 +16,7 @@ const TOP = {
   incidents: { label: 'Incidents', path: '/incidents' },
   risk: { label: 'Endpoint risk', path: '/risk' },
   iocs: { label: 'IOC watchlist', path: '/iocs' },
+  'web-url-protection': { label: 'Web & URL protection', path: '/web-url-protection' },
   policies: { label: 'Policies', path: '/policies' },
   triage: { label: 'Triage', path: '/triage' },
   network: { label: 'Network activity', path: '/network' },

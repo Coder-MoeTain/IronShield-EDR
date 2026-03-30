@@ -3,6 +3,49 @@
  */
 const db = require('../../utils/db');
 
+function normalizeRemovableAction(v) {
+  const a = String(v || 'audit')
+    .trim()
+    .toLowerCase();
+  if (a === 'block' || a === 'allow' || a === 'audit') return a;
+  return 'audit';
+}
+
+function toApiPolicy(row) {
+  if (!row) return null;
+  const rawRt = row.realtime_debounce_seconds != null ? Number(row.realtime_debounce_seconds) : 2;
+  const debounce = Math.min(60, Math.max(1, Number.isFinite(rawRt) ? rawRt : 2));
+  return {
+    id: row.id,
+    tenant_id: row.tenant_id,
+    name: row.name,
+    description: row.description,
+    realtime_enabled: !!row.realtime_enabled,
+    scheduled_enabled: !!row.scheduled_enabled,
+    execute_scan_enabled: !!row.execute_scan_enabled,
+    quarantine_threshold: row.quarantine_threshold,
+    alert_threshold: row.alert_threshold,
+    max_file_size_mb: row.max_file_size_mb,
+    process_kill_allowed: !!row.process_kill_allowed,
+    rescan_on_detection: !!row.rescan_on_detection,
+    realtime_debounce_seconds: debounce,
+    device_control_enabled: !!row.device_control_enabled,
+    web_url_protection_enabled:
+      row.web_url_protection_enabled === null || row.web_url_protection_enabled === undefined
+        ? true
+        : !!row.web_url_protection_enabled,
+    removable_storage_action: normalizeRemovableAction(row.removable_storage_action),
+    ransomware_protection_enabled:
+      row.ransomware_protection_enabled === null || row.ransomware_protection_enabled === undefined
+        ? true
+        : !!row.ransomware_protection_enabled,
+    include_paths: JSON.parse(row.include_paths_json || '[]'),
+    exclude_paths: JSON.parse(row.exclude_paths_json || '[]'),
+    exclude_extensions: JSON.parse(row.exclude_extensions_json || '[]'),
+    exclude_hashes: JSON.parse(row.exclude_hashes_json || '[]'),
+  };
+}
+
 async function listPolicies(filters = {}) {
   let sql = 'SELECT * FROM av_scan_policies WHERE 1=1';
   const params = [];
@@ -11,7 +54,13 @@ async function listPolicies(filters = {}) {
     params.push(filters.tenantId);
   }
   sql += ' ORDER BY name ASC';
-  return db.query(sql, params);
+  const rows = await db.query(sql, params);
+  return rows.map(toApiPolicy);
+}
+
+async function getPolicy(id, tenantId = null) {
+  const row = await getById(id, tenantId);
+  return toApiPolicy(row);
 }
 
 async function getById(id, tenantId = null) {
@@ -58,6 +107,20 @@ async function getForEndpoint(endpointId) {
       exclude_paths: JSON.parse(avPolicy.exclude_paths_json || '[]'),
       exclude_extensions: JSON.parse(avPolicy.exclude_extensions_json || '[]'),
       exclude_hashes: JSON.parse(avPolicy.exclude_hashes_json || '[]'),
+      realtime_debounce_seconds: (() => {
+        const raw =
+          avPolicy.realtime_debounce_seconds != null ? Number(avPolicy.realtime_debounce_seconds) : 2;
+        const v = Number.isFinite(raw) ? raw : 2;
+        return Math.min(60, Math.max(1, v));
+      })(),
+      device_control_enabled: !!avPolicy.device_control_enabled,
+      web_url_protection_enabled:
+        avPolicy.web_url_protection_enabled != null ? !!avPolicy.web_url_protection_enabled : true,
+      removable_storage_action: normalizeRemovableAction(avPolicy.removable_storage_action),
+      ransomware_protection_enabled:
+        avPolicy.ransomware_protection_enabled === null || avPolicy.ransomware_protection_enabled === undefined
+          ? true
+          : !!avPolicy.ransomware_protection_enabled,
     };
   }
   return getDefaultPolicy(ep.tenant_id);
@@ -80,6 +143,11 @@ function mapPolicyToAv(policy) {
     exclude_paths: [],
     exclude_extensions: ['.log', '.tmp', '.cache'],
     exclude_hashes: [],
+    realtime_debounce_seconds: 2,
+    device_control_enabled: false,
+    web_url_protection_enabled: true,
+    removable_storage_action: 'audit',
+    ransomware_protection_enabled: true,
   };
 }
 
@@ -99,6 +167,11 @@ function getDefaultPolicy(tenantId) {
     exclude_paths: ['C:\\Windows\\WinSxS', 'C:\\Windows\\Temp\\*'],
     exclude_extensions: ['.log', '.tmp', '.cache', '.db'],
     exclude_hashes: [],
+    realtime_debounce_seconds: 2,
+    device_control_enabled: false,
+    web_url_protection_enabled: true,
+    removable_storage_action: 'audit',
+    ransomware_protection_enabled: true,
   };
 }
 
@@ -117,8 +190,10 @@ async function create(data, tenantId = null, createdBy = 'system') {
     `INSERT INTO av_scan_policies (
       tenant_id, name, description, realtime_enabled, scheduled_enabled, execute_scan_enabled,
       quarantine_threshold, alert_threshold, max_file_size_mb, process_kill_allowed, rescan_on_detection,
+      realtime_debounce_seconds,
+      device_control_enabled, web_url_protection_enabled, removable_storage_action, ransomware_protection_enabled,
       include_paths_json, exclude_paths_json, exclude_extensions_json, exclude_hashes_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       tenantId,
       data.name || 'New Policy',
@@ -131,6 +206,11 @@ async function create(data, tenantId = null, createdBy = 'system') {
       data.max_file_size_mb ?? 100,
       data.process_kill_allowed ? 1 : 0,
       data.rescan_on_detection !== false ? 1 : 0,
+      Math.min(60, Math.max(1, parseInt(data.realtime_debounce_seconds, 10) || 2)),
+      data.device_control_enabled ? 1 : 0,
+      data.web_url_protection_enabled != null ? (data.web_url_protection_enabled ? 1 : 0) : 1,
+      normalizeRemovableAction(data.removable_storage_action),
+      data.ransomware_protection_enabled !== false ? 1 : 0,
       JSON.stringify(data.include_paths || getDefaultIncludePaths()),
       JSON.stringify(data.exclude_paths || []),
       JSON.stringify(data.exclude_extensions || ['.log', '.tmp']),
@@ -152,6 +232,11 @@ async function update(id, data, tenantId = null) {
       quarantine_threshold = COALESCE(?, quarantine_threshold), alert_threshold = COALESCE(?, alert_threshold),
       max_file_size_mb = COALESCE(?, max_file_size_mb), process_kill_allowed = COALESCE(?, process_kill_allowed),
       rescan_on_detection = COALESCE(?, rescan_on_detection),
+      realtime_debounce_seconds = COALESCE(?, realtime_debounce_seconds),
+      device_control_enabled = COALESCE(?, device_control_enabled),
+      web_url_protection_enabled = COALESCE(?, web_url_protection_enabled),
+      removable_storage_action = COALESCE(?, removable_storage_action),
+      ransomware_protection_enabled = COALESCE(?, ransomware_protection_enabled),
       include_paths_json = COALESCE(?, include_paths_json), exclude_paths_json = COALESCE(?, exclude_paths_json),
       exclude_extensions_json = COALESCE(?, exclude_extensions_json), exclude_hashes_json = COALESCE(?, exclude_hashes_json)
     WHERE id = ?`,
@@ -166,6 +251,13 @@ async function update(id, data, tenantId = null) {
       data.max_file_size_mb,
       data.process_kill_allowed != null ? (data.process_kill_allowed ? 1 : 0) : null,
       data.rescan_on_detection != null ? (data.rescan_on_detection ? 1 : 0) : null,
+      data.realtime_debounce_seconds != null
+        ? Math.min(60, Math.max(1, parseInt(data.realtime_debounce_seconds, 10) || 2))
+        : null,
+      data.device_control_enabled != null ? (data.device_control_enabled ? 1 : 0) : null,
+      data.web_url_protection_enabled != null ? (data.web_url_protection_enabled ? 1 : 0) : null,
+      data.removable_storage_action != null ? normalizeRemovableAction(data.removable_storage_action) : null,
+      data.ransomware_protection_enabled != null ? (data.ransomware_protection_enabled ? 1 : 0) : null,
       data.include_paths ? JSON.stringify(data.include_paths) : null,
       data.exclude_paths ? JSON.stringify(data.exclude_paths) : null,
       data.exclude_extensions ? JSON.stringify(data.exclude_extensions) : null,
@@ -179,6 +271,7 @@ async function update(id, data, tenantId = null) {
 module.exports = {
   listPolicies,
   getById,
+  getPolicy,
   getForEndpoint,
   getDefaultPolicy,
   create,

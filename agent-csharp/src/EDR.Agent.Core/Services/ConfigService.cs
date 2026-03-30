@@ -58,6 +58,11 @@ public class ConfigService
             Config.AgentKey = key;
         if (Environment.GetEnvironmentVariable("EDR_TENANT_SLUG") is { } tslug && !string.IsNullOrWhiteSpace(tslug))
             Config.TenantSlug = tslug.Trim();
+        if (Environment.GetEnvironmentVariable("EDR_WEB_URL_PROTECTION") is { } webProtRaw)
+        {
+            if (bool.TryParse(webProtRaw, out var webProt))
+                Config.WebUrlProtectionEnabled = webProt;
+        }
 
         // Normalize and validate
         Config.ServerUrl = (Config.ServerUrl ?? "").Trim().TrimEnd('/');

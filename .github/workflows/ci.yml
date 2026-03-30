@@ -20,9 +20,11 @@ jobs:
       - name: Install
         run: npm ci
       - name: Syntax check
-        run: node -c src/index.js
+        run: node -c src/index.js && node -c src/app.js
+      - name: OpenAPI contract
+        run: npm run test:openapi
       - name: Tests
-        run: node --test test/*.test.js
+        run: npm test
       - name: Security assurance (control mapping + audit + tests)
         run: npm run security-assurance
       - name: Detection replay regression
@@ -53,6 +55,8 @@ jobs:
         run: dotnet restore EDR.Agent.sln
       - name: Build
         run: dotnet build EDR.Agent.sln -c Release --no-restore
+      - name: Test (EDR.Agent.Core)
+        run: dotnet test tests/EDR.Agent.Core.Tests/EDR.Agent.Core.Tests.csproj -c Release --no-build --verbosity minimal
 
   dashboard:
     runs-on: ubuntu-latest
@@ -68,6 +72,8 @@ jobs:
           cache-dependency-path: server-node/dashboard/package-lock.json
       - name: Install
         run: npm ci
+      - name: Unit tests (Vitest)
+        run: npm run test
       - name: Build
         run: npm run build
       - name: Install Playwright Chromium

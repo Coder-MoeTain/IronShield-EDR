@@ -1,27 +1,45 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useConfirm } from '../context/ConfirmContext';
 import PageShell from '../components/PageShell';
 import PermissionGate from '../components/PermissionGate';
+import FalconTableShell from '../components/FalconTableShell';
 import FalconEmptyState from '../components/FalconEmptyState';
 import { falconSeverityClass } from '../utils/falconUi';
 import { asJsonList } from '../utils/apiJson';
 import styles from './IOCs.module.css';
 
+const IOC_TYPES = ['hash', 'ip', 'domain', 'path', 'url'];
+
 export default function IOCs() {
   const { api } = useAuth();
   const { confirm } = useConfirm();
+  const [searchParams] = useSearchParams();
   const [iocs, setIocs] = useState([]);
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [newType, setNewType] = useState('hash');
+  const typeFromUrl = searchParams.get('type');
+  const [newType, setNewType] = useState(() =>
+    typeFromUrl && IOC_TYPES.includes(typeFromUrl) ? typeFromUrl : 'hash'
+  );
   const [newValue, setNewValue] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newSeverity, setNewSeverity] = useState('medium');
   const [query, setQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState(() =>
+    typeFromUrl && IOC_TYPES.includes(typeFromUrl) ? typeFromUrl : 'all'
+  );
+
+  useEffect(() => {
+    const t = searchParams.get('type');
+    if (t && IOC_TYPES.includes(t)) {
+      setTypeFilter(t);
+      setNewType(t);
+      if (searchParams.get('add') === '1') setShowAdd(true);
+    }
+  }, [searchParams]);
 
   const fetchData = () => {
     setLoading(true);
@@ -103,42 +121,47 @@ export default function IOCs() {
       }
     >
     <div className={styles.container}>
-      <div className={styles.toolbar}>
-        <input
-          className={styles.search}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search IOC value, type, or severity"
-          aria-label="Search IOCs"
-        />
-        <select className={styles.filter} value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-          <option value="all">All types</option>
-          <option value="hash">Hash</option>
-          <option value="ip">IP</option>
-          <option value="domain">Domain</option>
-          <option value="path">Path</option>
-          <option value="url">URL</option>
-        </select>
-      </div>
-      <div className={styles.metrics}>
-        <div className={styles.metricCard}>
-          <span className={styles.metricLabel}>Watchlist entries</span>
-          <strong className={styles.metricValue}>{iocs.length}</strong>
-        </div>
-        <div className={styles.metricCard}>
-          <span className={styles.metricLabel}>High priority IOCs</span>
-          <strong className={styles.metricValue}>{highPriorityIocs}</strong>
-        </div>
-        <div className={styles.metricCard}>
-          <span className={styles.metricLabel}>Total matches</span>
-          <strong className={styles.metricValue}>{matches.length}</strong>
-        </div>
-        <div className={styles.metricCard}>
-          <span className={styles.metricLabel}>Matches (24h)</span>
-          <strong className={styles.metricValue}>{matchesLast24h}</strong>
-        </div>
-      </div>
-
+      <FalconTableShell
+        toolbar={
+          <>
+            <div className={styles.toolbar}>
+              <input
+                className={styles.search}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search IOC value, type, or severity"
+                aria-label="Search IOCs"
+              />
+              <select className={styles.filter} value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+                <option value="all">All types</option>
+                <option value="hash">Hash</option>
+                <option value="ip">IP</option>
+                <option value="domain">Domain</option>
+                <option value="path">Path</option>
+                <option value="url">URL</option>
+              </select>
+            </div>
+            <div className={styles.metrics}>
+              <div className={styles.metricCard}>
+                <span className={styles.metricLabel}>Watchlist entries</span>
+                <strong className={styles.metricValue}>{iocs.length}</strong>
+              </div>
+              <div className={styles.metricCard}>
+                <span className={styles.metricLabel}>High priority IOCs</span>
+                <strong className={styles.metricValue}>{highPriorityIocs}</strong>
+              </div>
+              <div className={styles.metricCard}>
+                <span className={styles.metricLabel}>Total matches</span>
+                <strong className={styles.metricValue}>{matches.length}</strong>
+              </div>
+              <div className={styles.metricCard}>
+                <span className={styles.metricLabel}>Matches (24h)</span>
+                <strong className={styles.metricValue}>{matchesLast24h}</strong>
+              </div>
+            </div>
+          </>
+        }
+      >
       {showAdd && (
         <PermissionGate permission="rules:write">
         <div className={styles.addCard}>
@@ -195,7 +218,12 @@ export default function IOCs() {
                 ))}
               </tbody>
             </table>
-            {filteredIocs.length === 0 && <div className={styles.empty}>No matching IOCs. Adjust search/filter or add new indicators.</div>}
+            {filteredIocs.length === 0 && (
+              <FalconEmptyState
+                title="No matching IOCs"
+                description="Adjust search or type filter, or add new indicators with + Add IOC."
+              />
+            )}
           </div>
         </div>
 
@@ -240,6 +268,7 @@ export default function IOCs() {
           </div>
         </div>
       </div>
+      </FalconTableShell>
     </div>
     </PageShell>
   );

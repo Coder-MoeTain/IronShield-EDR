@@ -70,6 +70,8 @@ The C# agent polls for AV tasks and executes scans. Ensure the agent is register
 4. Quarantines files above threshold, reports via `POST /api/agent/av/quarantine-result`
 5. Submits task completion via `POST /api/agent/av/tasks/:id/result`
 
+**Device control (Windows):** When `device_control_enabled` is true, the agent watches for new volume mounts. For `removable_storage_action=audit|block`, it enqueues a `usb_removable_volume` telemetry event with `device_control` details. For `block`, it attempts to eject **removable** drives only (`DriveType.Removable`).
+
 **Quarantine location:** `%ProgramData%\EDR\EDR_Quarantine\`
 
 ## Dashboard
@@ -108,10 +110,20 @@ To test: create signatures/policies via the admin UI/API and create a scan task 
 - `quarantine_threshold` - Score ≥ this → quarantine (default 70)
 - `alert_threshold` - Score ≥ this → report (default 50)
 - `max_file_size_mb` - Skip files larger than this
+- `realtime_debounce_seconds` - Cooldown between realtime scans of the same path (1–60)
+- `device_control_enabled` - **Windows agent:** subscribe to WMI `Win32_VolumeChangeEvent` for new volumes
+- `removable_storage_action` - `audit` (log + telemetry only), `block` (attempt `Win32_Volume.Eject` on removable drives), or `allow` (no device-control telemetry)
 - `include_paths` - Directories to scan
 - `exclude_paths` - Paths to skip
 - `exclude_extensions` - Extensions to skip
 - `exclude_hashes` - Hashes to skip (allowlist)
+
+**USB / removable:** User-mode only; eject is best-effort. Drives that enumerate as **Fixed** may not be classified as removable. Apply migration `npm run migrate-av-device-control` on existing databases.
+
+## Database migrations (AV)
+
+- `npm run migrate-av-realtime-debounce` — `realtime_debounce_seconds` on `av_scan_policies`
+- `npm run migrate-av-device-control` — `device_control_enabled`, `removable_storage_action`
 
 ## Exclusions
 

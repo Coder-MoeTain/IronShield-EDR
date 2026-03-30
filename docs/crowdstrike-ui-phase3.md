@@ -22,7 +22,7 @@ Styles: `.falcon-table-shell` and children in `index.css`.
 | **Normalized events** | Same pattern |
 | **Investigations** | Shell + empty state + pagination (no total from API — next page inferred from row count) |
 | **Incidents** | Shell + empty state + pagination |
-| **IOCs** | `FalconEmptyState` for watchlist + matches; **severity cells use `falconSeverityClass`** (was broken: `severityClass` undefined) |
+| **IOCs** | `FalconTableShell` (toolbar: search, type filter, KPI metrics); `FalconEmptyState` for empty filtered watchlist + for matches; **severity cells use `falconSeverityClass`** |
 
 ## Phase 2 verification
 
@@ -31,8 +31,10 @@ Styles: `.falcon-table-shell` and children in `index.css`.
 
 ## Follow-up (optional)
 
-- Return `{ rows, total }` from `/api/admin/investigations` and `/api/admin/incidents` for exact pagination counts.
-- Apply `FalconTableShell` to Detections / Events pages for structural consistency (already have pagination).
+- ~~Return `{ investigations|incidents, total }` from list APIs~~ — **done**: `GET /api/admin/investigations` returns `{ investigations, total }`; `GET /api/admin/incidents` returns `{ incidents, total }`. Dashboard passes `total` into `FalconPagination`.
+- ~~Apply `FalconTableShell` to Detections / Events pages~~ — done (see [Phase 2](crowdstrike-ui-phase2.md)).
+
+**IOC watchlist** — `IOCs.jsx` uses `FalconTableShell` (toolbar: search + metrics) and `FalconEmptyState` when the filtered watchlist is empty.
 
 ## Notes
 

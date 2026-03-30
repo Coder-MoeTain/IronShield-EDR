@@ -235,6 +235,16 @@ async function listPolicies(req, res, next) {
   }
 }
 
+async function getPolicy(req, res, next) {
+  try {
+    const row = await AvPolicyService.getPolicy(req.params.id, req.tenantId);
+    if (!row) return res.status(404).json({ error: 'Policy not found' });
+    res.json(row);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function createPolicy(req, res, next) {
   try {
     const id = await AvPolicyService.create(req.body || {}, req.tenantId, req.user?.username);
@@ -412,6 +422,7 @@ module.exports = {
   restoreQuarantine,
   deleteQuarantine,
   listPolicies,
+  getPolicy,
   createPolicy,
   updatePolicy,
   listSignatures,

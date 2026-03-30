@@ -15,10 +15,10 @@ html {
 }
 
 [data-theme="light"] {
-  --bg-primary: #f0f2f5;
-  --main-bg: #f0f2f5;
+  --bg-primary: #f4f6f9;
+  --main-bg: #f4f6f9;
   --bg-secondary: #ffffff;
-  --bg-tertiary: #e8eaef;
+  --bg-tertiary: #eef1f6;
   --bg-glass: rgba(255, 255, 255, 0.95);
   --panel-header-bg: #eceef1;
   --sidebar-bg: #ffffff;
@@ -38,6 +38,7 @@ html {
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.06);
   --topbar-bg: #ffffff;
+  --workspace-tint: rgba(15, 23, 42, 0.02);
 }
 
 /* Dark — Crucix-inspired: near-black void, teal primary, amber data (see https://www.crucix.live/) */
@@ -81,6 +82,7 @@ html {
   --cyber-violet: #a78bfa;
   --cyber-bg-deep: #000000;
   --cyber-bg-mid: #0a0a0c;
+  --workspace-tint: rgba(6, 182, 212, 0.02);
 }
 
 * {
@@ -123,17 +125,21 @@ body {
 
 [data-theme="light"] body {
   background:
-    radial-gradient(ellipse 120% 80% at 100% 0%, rgba(37, 99, 235, 0.06), transparent 50%),
-    linear-gradient(165deg, #f8fafc 0%, #f1f5f9 50%, #e8edf3 100%);
+    radial-gradient(ellipse 100% 70% at 100% 0%, rgba(37, 99, 235, 0.045), transparent 52%),
+    linear-gradient(168deg, #fafbfc 0%, #f4f6f9 42%, #eef2f7 100%);
   background-attachment: fixed;
 }
 
 [data-theme="dark"] body {
   background-color: #000000;
   background-image:
-    linear-gradient(rgba(6, 182, 212, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(6, 182, 212, 0.035) 1px, transparent 1px);
-  background-size: 56px 56px;
+    radial-gradient(ellipse 95% 55% at 50% -18%, rgba(6, 182, 212, 0.09), transparent 58%),
+    linear-gradient(rgba(6, 182, 212, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 182, 212, 0.028) 1px, transparent 1px);
+  background-size:
+    auto,
+    48px 48px,
+    48px 48px;
   background-attachment: fixed;
 }
 
@@ -226,6 +232,10 @@ button {
   outline-offset: 2px;
 }
 
+[data-theme='dark'] :focus-visible {
+  outline-color: var(--accent-cyan);
+}
+
 button:focus:not(:focus-visible) {
   outline: none;
 }
@@ -239,6 +249,39 @@ textarea {
 /* Subtle grid on main workspace */
 [data-theme="dark"] #root {
   min-height: 100vh;
+}
+
+::selection {
+  background: rgba(6, 182, 212, 0.28);
+  color: var(--text-primary);
+}
+
+[data-theme='light'] ::selection {
+  background: rgba(37, 99, 235, 0.18);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] {
+  scrollbar-color: rgba(6, 182, 212, 0.35) rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-track {
+  background: rgba(8, 10, 12, 0.85);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(6, 182, 212, 0.45), rgba(6, 182, 212, 0.2));
+  border-radius: 5px;
+  border: 2px solid rgba(0, 0, 0, 0.35);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 182, 212, 0.55);
 }
 
 /* —— Shared page chrome (use across dashboard pages) —— */
@@ -271,8 +314,30 @@ textarea {
   min-height: 40vh;
   padding: 2rem;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.75rem;
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ui-route-fallback::before {
+  content: '';
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent-cyan);
+  border-radius: 50%;
+  animation: uiSpin 0.75s linear infinite;
+}
+
+[data-theme='light'] .ui-route-fallback::before {
+  border-top-color: var(--brand-red);
 }
 
 .ui-page-header {
@@ -715,4 +780,20 @@ textarea {
 
 .falcon-table-shell-footer {
   width: 100%;
+}
+
+/* Data-dense tables & IDs — SOC readability */
+.data-mono {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Main workspace: faint panel tint for depth (target via Layout data-workspace) */
+[data-theme='dark'] [data-workspace] {
+  background: linear-gradient(180deg, var(--workspace-tint) 0%, transparent 28%);
+}
+
+[data-theme='light'] [data-workspace] {
+  background: linear-gradient(180deg, var(--workspace-tint) 0%, transparent 32%);
 }

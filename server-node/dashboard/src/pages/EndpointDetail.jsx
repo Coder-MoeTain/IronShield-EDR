@@ -218,7 +218,12 @@ export default function EndpointDetail() {
     <PageShell
       kicker="Hosts"
       title={endpoint.hostname}
-      description={`Agent ${endpoint.agent_version || '—'} · ${endpoint.ip_address || 'no IP'}`}
+      description={[
+        `Agent ${endpoint.agent_version || '—'} · ${endpoint.ip_address || 'no IP'}`,
+        endpoint.tenant_slug ? `CID ${endpoint.tenant_slug}` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')}
       actions={(
         <>
           <Link to="/endpoints" className="falcon-btn falcon-btn-ghost">← Endpoints</Link>

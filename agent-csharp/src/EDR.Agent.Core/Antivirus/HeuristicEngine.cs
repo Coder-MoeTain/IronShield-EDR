@@ -3,7 +3,8 @@ using System.Runtime.InteropServices;
 namespace EDR.Agent.Core.Antivirus;
 
 /// <summary>
-/// Safe heuristic scoring for suspicious file indicators.
+/// Safe heuristic scoring for suspicious file indicators (includes patterns often associated with
+/// staged malware and ransomware-like payloads, e.g. high entropy in user-writable paths).
 /// Defensive only - no offensive logic.
 /// </summary>
 public static class HeuristicEngine

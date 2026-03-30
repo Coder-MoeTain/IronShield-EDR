@@ -87,7 +87,10 @@ async function saveScanResult(endpointId, data, taskId = null) {
   );
   const resultId = result.insertId;
 
-  if (data.severity && ['high', 'critical'].includes(data.severity)) {
+  const det = String(data.detection_type || '').toLowerCase();
+  const shouldAlert =
+    (data.severity && ['high', 'critical'].includes(data.severity)) || det === 'ransomware';
+  if (shouldAlert) {
     await MalwareAlertService.createFromScanResult(resultId, endpointId, data);
   }
 

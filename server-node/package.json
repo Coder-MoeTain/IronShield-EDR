@@ -19,6 +19,10 @@
     "migrate-endpoint-host-inventory": "node scripts/migrate-endpoint-host-inventory.js",
     "migrate-endpoint-hidden-c": "node scripts/migrate-endpoint-hidden-c.js",
     "migrate-tamper-signals": "node scripts/migrate-tamper-signals.js",
+    "migrate-av-realtime-debounce": "node scripts/migrate-av-realtime-debounce.js",
+    "migrate-av-device-control": "node scripts/migrate-av-device-control.js",
+    "migrate-av-ransomware-protection": "node scripts/migrate-av-ransomware-protection.js",
+    "migrate-av-web-url-protection": "node scripts/migrate-av-web-url-protection.js",
     "migrate-phase5-endpoints-tenant": "node scripts/migrate-phase5-endpoints-tenant.js",
     "migrate-phase6-agent-update-telemetry": "node scripts/migrate-phase6-agent-update-telemetry.js",
     "migrate-agent-release-signatures": "node scripts/migrate-agent-release-signatures.js",
@@ -53,6 +57,8 @@
     "run-detection-replay": "node scripts/detection-replay.js --expect-matches 2",
     "export-compliance-evidence": "node scripts/export-compliance-evidence.js",
     "security-assurance": "node scripts/security-assurance.js",
+    "test": "node scripts/run-node-tests.js",
+    "test:openapi": "node scripts/validate-openapi.js",
     "build-dashboard": "cd dashboard && npm install && npm run build"
   },
   "dependencies": {
@@ -78,6 +84,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.0.2",
+    "supertest": "^7.0.0"
   }
 }

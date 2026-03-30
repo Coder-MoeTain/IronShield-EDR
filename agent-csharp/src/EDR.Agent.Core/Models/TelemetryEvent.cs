@@ -76,6 +76,14 @@ public class TelemetryEvent
     [JsonPropertyName("collector_confidence")]
     public double? CollectorConfidence { get; set; }
 
+    /// <summary>Optional device control (USB / removable) context.</summary>
+    [JsonPropertyName("device_control")]
+    public DeviceControlEventDetail? DeviceControl { get; set; }
+
+    /// <summary>Web & URL protection (IOC domain/url → hosts sinkhole).</summary>
+    [JsonPropertyName("web_url_protection")]
+    public WebUrlProtectionEventDetail? WebUrlProtection { get; set; }
+
     /// <summary>Additional properties stored as raw JSON</summary>
     [JsonExtensionData]
     public Dictionary<string, object?>? RawData { get; set; }

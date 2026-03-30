@@ -6,7 +6,10 @@ using EDR.Agent.Core.Response;
 using EDR.Agent.Core.Services;
 using EDR.Agent.Core.Transport;
 using EDR.Agent.Core.Utils;
+using EDR.Agent.Core.DeviceControl;
+using EDR.Agent.Core.WebUrl;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -47,6 +50,13 @@ public class AgentWorker
     private DateTimeOffset? _lastEdrPolicySyncUtc;
 
     private int _heartbeatConnectedLogged;
+
+    private AvPolicy? _deviceControlPolicy;
+    private readonly object _devicePolicyLock = new();
+
+    private RealtimeScanWatcher? _realtimeWatcher;
+    private readonly object _realtimeLock = new();
+    private string? _realtimeStateKey;
 
     public AgentWorker(ConfigService configService, object? _)
     {
@@ -119,8 +129,203 @@ public class AgentWorker
         var updateTask = UpdateCheckLoopAsync(_cts.Token);
         var avTask = AvTaskPollLoopAsync(_cts.Token);
         var connectivityTask = ServerConnectivityWatchLoopAsync(_cts.Token);
+        var deviceControlTask = DeviceControlPolicyLoopAsync(_cts.Token);
+        var webUrlTask = WebUrlProtectionLoopAsync(_cts.Token);
 
-        await Task.WhenAll(_heartbeatTask, _uploadTask, _collectTask, commandTask, triageTask, updateTask, avTask, connectivityTask);
+        await Task.WhenAll(_heartbeatTask, _uploadTask, _collectTask, commandTask, triageTask, updateTask, avTask, connectivityTask, deviceControlTask, webUrlTask);
+    }
+
+    /// <summary>USB / removable volume policy: WMI volume arrival, audit or eject (user-mode).</summary>
+    private async Task DeviceControlPolicyLoopAsync(CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(_config.AgentKey)) return;
+        DeviceControlWatcher? w = null;
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                try
+                {
+                    var policy = await _transport.GetAvPolicyAsync(ct);
+                    lock (_devicePolicyLock) _deviceControlPolicy = policy;
+
+                    var want = policy != null &&
+                               policy.DeviceControlEnabled &&
+                               RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+                    if (want && w == null)
+                    {
+                        w = new DeviceControlWatcher(
+                            () => { lock (_devicePolicyLock) return _deviceControlPolicy; },
+                            _queue,
+                            () => Environment.MachineName);
+                        w.Start();
+                        Console.WriteLine("[DeviceControl] watcher started (removable_storage_action=" +
+                            (policy?.EffectiveRemovableStorageAction ?? "audit") + ")");
+                    }
+                    else if (!want && w != null)
+                    {
+                        w.Dispose();
+                        w = null;
+                        Console.WriteLine("[DeviceControl] watcher stopped");
+                    }
+
+                    await Task.Delay(TimeSpan.FromSeconds(25), ct);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[DeviceControl] {ex.Message}");
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(60), ct);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+        finally
+        {
+            w?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Polls IOC domain/url blocklist and applies a Windows hosts-file sinkhole (127.0.0.1).
+    /// Requires Administrator / LocalSystem. Does not cover DNS-over-HTTPS or IP-only C2.
+    /// </summary>
+    private async Task WebUrlProtectionLoopAsync(CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(_config.AgentKey)) return;
+        string? lastSyncedVersion = null;
+
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(120), ct);
+
+                if (!_config.WebUrlProtectionEnabled)
+                {
+                    if (lastSyncedVersion != "local-disabled")
+                    {
+                        var exclude = BuildWebExcludeHosts();
+                        var (ok, msg) = WebUrlHostsFileWriter.Apply([], exclude);
+                        if (ok)
+                        {
+                            Console.WriteLine($"[WebUrlProtection] disabled locally: {msg}");
+                            EnqueueWebUrlProtectionEvent("local_disabled", null, 0, msg);
+                            lastSyncedVersion = "local-disabled";
+                        }
+                    }
+
+                    continue;
+                }
+
+                var bl = await _transport.GetWebBlocklistAsync(ct);
+                if (bl == null) continue;
+
+                var excludeHosts = BuildWebExcludeHosts();
+
+                if (!bl.Enabled)
+                {
+                    if (lastSyncedVersion != "policy-disabled")
+                    {
+                        var (ok, msg) = WebUrlHostsFileWriter.Apply([], excludeHosts);
+                        if (ok)
+                        {
+                            Console.WriteLine($"[WebUrlProtection] policy off: {msg}");
+                            EnqueueWebUrlProtectionEvent("policy_disabled", null, 0, msg);
+                            lastSyncedVersion = "policy-disabled";
+                        }
+                    }
+
+                    continue;
+                }
+
+                if (lastSyncedVersion == bl.Version) continue;
+
+                var list = (bl.Domains ?? new List<string>())
+                    .Where(d => !string.IsNullOrWhiteSpace(d))
+                    .Select(d => d.Trim().ToLowerInvariant())
+                    .Where(d => !excludeHosts.Contains(d))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                var (success, message) = WebUrlHostsFileWriter.Apply(list, excludeHosts);
+                if (success)
+                {
+                    Console.WriteLine($"[WebUrlProtection] {message} (version={bl.Version})");
+                    EnqueueWebUrlProtectionEvent("applied", bl.Version, list.Count, message);
+                    lastSyncedVersion = bl.Version;
+                }
+                else
+                {
+                    Console.WriteLine($"[WebUrlProtection] {message}");
+                    if (lastSyncedVersion == null)
+                        EnqueueWebUrlProtectionEvent("error", bl.Version, list.Count, message);
+                }
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WebUrlProtection] {ex.Message}");
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(60), ct);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+            }
+        }
+    }
+
+    private HashSet<string> BuildWebExcludeHosts()
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(_config.ServerUrl) &&
+                Uri.TryCreate(_config.ServerUrl, UriKind.Absolute, out var u) &&
+                !string.IsNullOrEmpty(u.Host))
+                set.Add(u.Host.ToLowerInvariant());
+        }
+        catch
+        {
+            /* ignore */
+        }
+
+        return set;
+    }
+
+    private void EnqueueWebUrlProtectionEvent(string action, string? version, int count, string message)
+    {
+        var evt = new TelemetryEvent
+        {
+            EventId = $"web-url-{Guid.NewGuid():N}",
+            Hostname = Environment.MachineName,
+            Timestamp = DateTime.UtcNow,
+            EventSource = "ironshield.web_url_protection",
+            EventType = "web_url_blocklist_sync",
+            WebUrlProtection = new WebUrlProtectionEventDetail
+            {
+                Action = action,
+                BlocklistVersion = version,
+                DomainCount = count,
+                Message = message,
+            },
+        };
+        _queue.Enqueue(evt);
     }
 
     /// <summary>Periodic GET /api/agent/ping — surfaces API outages even when heartbeats are infrequent.</summary>
@@ -870,40 +1075,66 @@ public class AgentWorker
         var avPoller = new AvTaskPollingService(_config.ServerUrl, _config.AgentKey);
         var pollInterval = _effectivePollSeconds > 0 ? _effectivePollSeconds : _config.CommandPollIntervalSeconds;
 
-        while (!ct.IsCancellationRequested)
+        try
         {
-            try
+            while (!ct.IsCancellationRequested)
             {
-                await Task.Delay(TimeSpan.FromSeconds(pollInterval), ct);
-            }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
-            try
-            {
-                var policy = await _transport.GetAvPolicyAsync(ct);
-                if (policy == null) continue;
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(pollInterval), ct);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                try
+                {
+                    var policy = await _transport.GetAvPolicyAsync(ct);
+                    if (policy == null) continue;
 
-                _ngavRealtimeEnabled = policy.RealtimeEnabled;
-                var sigVer = await _transport.GetAvSignaturesVersionAsync(ct);
-                _ngavBundleVersion = sigVer?.Version;
+                    _ngavRealtimeEnabled = policy.RealtimeEnabled;
+                    var sigVer = await _transport.GetAvSignaturesVersionAsync(ct);
+                    _ngavBundleVersion = sigVer?.Version;
 
-                var sigService = new SignatureUpdateService(_transport);
-                var signatures = await sigService.LoadOrFetchAsync(ct);
-                _ngavSignatureCount = signatures.Count;
-                await _transport.SubmitAvUpdateStatusAsync(
-                    _ngavBundleVersion ?? (signatures.Count > 0 ? "loaded" : "empty"),
-                    "up_to_date",
-                    null,
-                    ct);
+                    var sigService = new SignatureUpdateService(_transport);
+                    var signatures = await sigService.LoadOrFetchAsync(ct);
+                    _ngavSignatureCount = signatures.Count;
+                    await _transport.SubmitAvUpdateStatusAsync(
+                        _ngavBundleVersion ?? (signatures.Count > 0 ? "loaded" : "empty"),
+                        "up_to_date",
+                        null,
+                        ct);
 
-                var matcher = new SignatureMatcher(signatures);
-                var quarantine = new QuarantineService();
-                var scanner = new FileScanService(matcher, policy);
-                var executor = new ScanTaskExecutor(scanner, quarantine, policy);
+                    var matcher = new SignatureMatcher(signatures);
+                    var quarantine = new QuarantineService();
+                    var scanner = new FileScanService(matcher, policy);
+                    var executor = new ScanTaskExecutor(scanner, quarantine, policy);
 
-                var tasks = await avPoller.GetPendingAsync(ct);
+                    var rtKey =
+                        $"{policy.Id}:{policy.RealtimeEnabled}:{policy.RansomwareProtectionEnabled != false}:{policy.QuarantineThreshold}:{policy.AlertThreshold}:{policy.RealtimeDebounceSeconds}:{_ngavBundleVersion ?? "v0"}:{signatures.Count}";
+                    lock (_realtimeLock)
+                    {
+                        if (!policy.RealtimeEnabled)
+                        {
+                            _realtimeWatcher?.Dispose();
+                            _realtimeWatcher = null;
+                            _realtimeStateKey = null;
+                        }
+                        else if (rtKey != _realtimeStateKey || _realtimeWatcher == null)
+                        {
+                            _realtimeWatcher?.Dispose();
+                            _realtimeWatcher = null;
+                            _realtimeStateKey = rtKey;
+                            var watcher = new RealtimeScanWatcher(
+                                scanner,
+                                policy,
+                                async (r, c) => { await HandleRealtimeDetectionAsync(r, quarantine, policy, c); });
+                            watcher.Start();
+                            _realtimeWatcher = watcher;
+                        }
+                    }
+
+                    var tasks = await avPoller.GetPendingAsync(ct);
                 foreach (var task in tasks)
                 {
                     try
@@ -953,11 +1184,72 @@ public class AgentWorker
                         await avPoller.SubmitResultAsync(task.Id, 0, 0, false, ex.Message, ct);
                     }
                 }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Agent] AV task poll error: {ex.Message}");
+                }
             }
-            catch (Exception ex)
+        }
+        finally
+        {
+            lock (_realtimeLock)
             {
-                Console.WriteLine($"[Agent] AV task poll error: {ex.Message}");
+                _realtimeWatcher?.Dispose();
+                _realtimeWatcher = null;
+                _realtimeStateKey = null;
             }
+        }
+    }
+
+    private async Task HandleRealtimeDetectionAsync(ScanResult r, QuarantineService q, AvPolicy policy, CancellationToken ct)
+    {
+        try
+        {
+            if (r.Score >= policy.QuarantineThreshold && !string.IsNullOrEmpty(r.FilePath) && File.Exists(r.FilePath))
+            {
+                var qr = await q.QuarantineAsync(r.FilePath!, r.DetectionName, ct);
+                if (qr != null)
+                {
+                    try
+                    {
+                        await _transport.SubmitAvQuarantineResultAsync(
+                            qr.OriginalPath,
+                            qr.QuarantinePath,
+                            qr.Sha256,
+                            r.DetectionName,
+                            ct);
+                    }
+                    catch
+                    {
+                        // best-effort
+                    }
+                }
+            }
+
+            var apiResults = new List<object>
+            {
+                new
+                {
+                    r.FilePath,
+                    r.FileName,
+                    r.Sha256,
+                    r.FileSize,
+                    r.DetectionName,
+                    r.DetectionType,
+                    r.Family,
+                    r.Severity,
+                    r.Score,
+                    r.Disposition,
+                    r.SignerStatus,
+                    raw_details = r.RawDetails,
+                },
+            };
+            await _transport.SubmitAvScanResultAsync(null, apiResults, ct);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Agent] Realtime AV submit error: {ex.Message}");
         }
     }
 

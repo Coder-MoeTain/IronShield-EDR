@@ -144,3 +144,5 @@ The AV module does **not** include:
 | Node.js AV       | `server-node/src/modules/antivirus/` |
 | DB Schema        | `database/schema-antivirus.sql` |
 | Dashboard AV     | `server-node/dashboard/src/pages/Av*.jsx` |
+| Improvement plan | `docs/antivirus-improvement-phases.md` |
+| Capability map (14 areas) | `docs/endpoint-protection-capabilities.md` |

@@ -24,6 +24,23 @@ export function pickSummary(data) {
   return null;
 }
 
+/**
+ * Admin list responses shaped as `{ [listKey]: T[], total: number }` (investigations, incidents, audit logs).
+ * Falls back to a bare array or missing total for older clients.
+ */
+export async function asJsonListWithTotal(response, listKey) {
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    return { list: [], total: 0 };
+  }
+  if (!response.ok) return { list: [], total: 0 };
+  const list = Array.isArray(data?.[listKey]) ? data[listKey] : Array.isArray(data) ? data : [];
+  const total = typeof data?.total === 'number' ? data.total : list.length;
+  return { list, total };
+}
+
 /** Supports either a bare array or { [listKey]: array, summary?: object } */
 export async function asJsonListOrKeyed(response, listKey = 'rules') {
   let data;

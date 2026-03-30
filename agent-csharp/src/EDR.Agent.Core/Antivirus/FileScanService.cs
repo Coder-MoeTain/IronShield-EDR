@@ -10,6 +10,9 @@ namespace EDR.Agent.Core.Antivirus;
 /// </summary>
 public class FileScanService
 {
+    /// <summary>Max depth for directory enumeration (policy-driven depth is a later roadmap item).</summary>
+    private const int MaxDirectoryRecursionDepth = 4;
+
     private static readonly string[] ScanExtensions = [
         ".exe", ".dll", ".scr", ".bat", ".cmd", ".ps1", ".vbs", ".js", ".msi", ".com"
     ];
@@ -52,7 +55,7 @@ public class FileScanService
         List<string> files;
         try
         {
-            files = Directory.EnumerateFiles(root, "*", new EnumerationOptions { RecurseSubdirectories = true, MaxRecursionDepth = 4 }).ToList();
+            files = Directory.EnumerateFiles(root, "*", new EnumerationOptions { RecurseSubdirectories = true, MaxRecursionDepth = MaxDirectoryRecursionDepth }).ToList();
         }
         catch
         {
@@ -86,7 +89,7 @@ public class FileScanService
             var raw = new Dictionary<string, object?> { ["signature_uuid"] = sig.SignatureUuid, ["match_type"] = "hash" };
             var pe = PeMetadataReader.TryRead(filePath);
             if (pe != null) { raw["pe_machine"] = pe.MachineType; raw["pe_sections"] = pe.SectionNames; }
-            return new ScanResult
+            return ApplyRansomwareClassification(new ScanResult
             {
                 FilePath = filePath,
                 FileName = fi.Name,
@@ -99,7 +102,7 @@ public class FileScanService
                 Score = 95,
                 Disposition = "malicious",
                 RawDetails = raw,
-            };
+            }, null, null, 0);
         }
 
         sig = _signatureMatcher.MatchPath(filePath, fi.Name);
@@ -108,7 +111,7 @@ public class FileScanService
             var raw = new Dictionary<string, object?> { ["pattern_matched"] = sig.Pattern, ["signature_uuid"] = sig.SignatureUuid, ["match_type"] = "path" };
             var pe = PeMetadataReader.TryRead(filePath);
             if (pe != null) { raw["pe_machine"] = pe.MachineType; raw["pe_sections"] = pe.SectionNames; }
-            return new ScanResult
+            return ApplyRansomwareClassification(new ScanResult
             {
                 FilePath = filePath,
                 FileName = fi.Name,
@@ -121,7 +124,7 @@ public class FileScanService
                 Score = 85,
                 Disposition = "malicious",
                 RawDetails = raw,
-            };
+            }, null, null, 0);
         }
 
         sig = _signatureMatcher.MatchBinaryPattern(filePath);
@@ -130,7 +133,7 @@ public class FileScanService
             var raw = new Dictionary<string, object?> { ["pattern_matched"] = sig.Pattern, ["signature_uuid"] = sig.SignatureUuid, ["match_type"] = "binary" };
             var pe = PeMetadataReader.TryRead(filePath);
             if (pe != null) { raw["pe_machine"] = pe.MachineType; raw["pe_sections"] = pe.SectionNames; }
-            return new ScanResult
+            return ApplyRansomwareClassification(new ScanResult
             {
                 FilePath = filePath,
                 FileName = fi.Name,
@@ -143,7 +146,7 @@ public class FileScanService
                 Score = 90,
                 Disposition = "malicious",
                 RawDetails = raw,
-            };
+            }, null, null, 0);
         }
 
         var entropy = HeuristicEngine.EstimateEntropy(filePath);
@@ -167,7 +170,7 @@ public class FileScanService
                 if (peInfo.ImportedDlls.Count > 0) raw["pe_imports"] = peInfo.ImportedDlls;
                 raw["pe_has_suspicious_imports"] = peInfo.HasSuspiciousImports;
             }
-            return new ScanResult
+            return ApplyRansomwareClassification(new ScanResult
             {
                 FilePath = filePath,
                 FileName = fi.Name,
@@ -180,10 +183,42 @@ public class FileScanService
                 Disposition = "suspicious",
                 SignerStatus = isSigned ? "signed" : "unsigned",
                 RawDetails = raw,
-            };
+            }, entropy, rules, score);
         }
 
         return null;
+    }
+
+    private ScanResult ApplyRansomwareClassification(
+        ScanResult r,
+        double? entropy,
+        IReadOnlyList<HeuristicEngine.HeuristicRule>? rules,
+        int heuristicScore)
+    {
+        if (_policy.RansomwareProtectionEnabled == false) return r;
+
+        if (r.DetectionType == "signature")
+        {
+            if (RansomwarePatterns.IsKnownRansomwareSignature(r.Family, r.DetectionName))
+            {
+                r.DetectionType = "ransomware";
+                r.RawDetails ??= new Dictionary<string, object?>();
+                r.RawDetails["ransomware_kind"] = "known_signature";
+                if (!string.Equals(r.Severity, "critical", StringComparison.OrdinalIgnoreCase))
+                    r.Severity = "high";
+            }
+        }
+        else if (r.DetectionType == "heuristic" && rules != null && entropy.HasValue
+                 && RansomwarePatterns.LooksLikeRansomwareBehavior(heuristicScore, rules, entropy))
+        {
+            r.DetectionType = "ransomware";
+            r.DetectionName = "Ransomware.Behavioral";
+            r.Severity = "high";
+            r.RawDetails ??= new Dictionary<string, object?>();
+            r.RawDetails["ransomware_kind"] = "behavioral";
+        }
+
+        return r;
     }
 
     private static bool CheckSigner(string path)

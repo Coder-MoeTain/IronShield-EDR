@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useConfirm } from '../context/ConfirmContext';
 import PageShell from '../components/PageShell';
+import FalconTableShell from '../components/FalconTableShell';
 import FalconEmptyState from '../components/FalconEmptyState';
 import FalconPagination from '../components/FalconPagination';
 import VirtualizedScrollList from '../components/VirtualizedScrollList';
@@ -389,6 +390,9 @@ export default function Alerts() {
       }
     >
       <div className={styles.container}>
+      <FalconTableShell
+        toolbar={
+          <>
       <div className={styles.statsBar}>
         <div
           className={`${styles.statCard} ${styles.statNew}`}
@@ -554,7 +558,21 @@ export default function Alerts() {
           Reset layout
         </button>
       </div>
-
+          </>
+        }
+        footer={
+          <FalconPagination
+            offset={filters.offset}
+            limit={filters.limit}
+            total={summary?.total}
+            pageItemCount={alerts.length}
+            onPrev={() => setFilters((f) => ({ ...f, offset: Math.max(0, f.offset - f.limit) }))}
+            onNext={() => setFilters((f) => ({ ...f, offset: f.offset + f.limit }))}
+            onLimitChange={(newLimit) => setFilters((f) => ({ ...f, limit: newLimit, offset: 0 }))}
+            pageSizeOptions={[25, 50, 100]}
+          />
+        }
+      >
       <div className={styles.tableWrap}>
         {alerts.length > 0 && (
           <>
@@ -628,17 +646,7 @@ export default function Alerts() {
           />
         )}
       </div>
-
-      <FalconPagination
-        offset={filters.offset}
-        limit={filters.limit}
-        total={summary?.total}
-        pageItemCount={alerts.length}
-        onPrev={() => setFilters((f) => ({ ...f, offset: Math.max(0, f.offset - f.limit) }))}
-        onNext={() => setFilters((f) => ({ ...f, offset: f.offset + f.limit }))}
-        onLimitChange={(newLimit) => setFilters((f) => ({ ...f, limit: newLimit, offset: 0 }))}
-        pageSizeOptions={[25, 50, 100]}
-      />
+      </FalconTableShell>
     </div>
     </PageShell>
   );

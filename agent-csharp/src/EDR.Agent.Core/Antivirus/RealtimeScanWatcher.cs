@@ -14,7 +14,7 @@ public class RealtimeScanWatcher : IDisposable
     private readonly Func<ScanResult, CancellationToken, Task> _onDetection;
     private readonly List<FileSystemWatcher> _watchers = [];
     private readonly ConcurrentDictionary<string, DateTime> _recentScan = new();
-    private readonly TimeSpan _debounce = TimeSpan.FromSeconds(2);
+    private readonly TimeSpan _debounce;
     private CancellationTokenSource? _cts;
     private bool _disposed;
 
@@ -26,6 +26,10 @@ public class RealtimeScanWatcher : IDisposable
         _scanner = scanner;
         _policy = policy;
         _onDetection = onDetection;
+        var sec = policy.RealtimeDebounceSeconds;
+        if (sec <= 0) sec = 2;
+        sec = Math.Clamp(sec, 1, 60);
+        _debounce = TimeSpan.FromSeconds(sec);
     }
 
     public void Start()

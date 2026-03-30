@@ -48,4 +48,8 @@ router.post('/av/update-status', authAgentValidated, avController.submitUpdateSt
 router.get('/av/tasks/pending', authAgentValidated, avController.getPendingTasks);
 router.post('/av/tasks/:id/result', authAgentValidated, avController.submitTaskResult);
 
+// Web & URL protection (IOC domain/url → agent hosts sinkhole)
+const webProtectionController = require('../controllers/webProtectionController');
+router.get('/web/blocklist', authAgentValidated, webProtectionController.getWebBlocklist);
+
 module.exports = router;

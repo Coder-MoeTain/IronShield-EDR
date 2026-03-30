@@ -3,6 +3,7 @@
  */
 const db = require('../utils/db');
 const logger = require('../utils/logger');
+const { enrichWebDestinationRows } = require('../utils/webDestinationUrl');
 
 /** Common loopback remotes (IPv4/IPv6) to optionally hide from Network views */
 const LOCALHOST_REMOTE_IPS = ['::1', '127.0.0.1', '::ffff:127.0.0.1'];
@@ -408,6 +409,63 @@ async function getHttpMapAggregates(tenantId, hours = 24) {
   }
 }
 
+/** Typical HTTP/S and alternate web ports seen in outbound telemetry. */
+const WEB_DESTINATION_PORTS = [80, 443, 8080, 8443, 8000, 8888];
+
+/**
+ * Aggregated top outbound web destinations (by connection rows). IPs are shown as reported by the agent;
+ * full URLs are not available unless the sensor logs them elsewhere.
+ */
+async function listWebDestinations(filters = {}) {
+  try {
+    const portPh = WEB_DESTINATION_PORTS.map(() => '?').join(', ');
+    let sql = `
+      SELECT nc.remote_address, nc.remote_port, nc.protocol,
+             COUNT(*) AS connection_count,
+             COUNT(DISTINCT nc.endpoint_id) AS endpoint_count,
+             MAX(nc.last_seen) AS last_seen
+      FROM network_connections nc
+      JOIN endpoints e ON e.id = nc.endpoint_id
+      WHERE nc.remote_address IS NOT NULL AND nc.remote_address != '' AND nc.remote_address != '0.0.0.0'
+        AND nc.remote_port IN (${portPh})
+    `;
+    const params = [...WEB_DESTINATION_PORTS];
+
+    if (filters.tenantId != null) {
+      sql += ' AND e.tenant_id = ?';
+      params.push(filters.tenantId);
+    }
+    if (filters.endpointId) {
+      sql += ' AND nc.endpoint_id = ?';
+      params.push(filters.endpointId);
+    }
+    if (filters.hours) {
+      sql += ' AND nc.last_seen >= DATE_SUB(NOW(), INTERVAL ? HOUR)';
+      params.push(filters.hours);
+    }
+    if (excludeLocalhostEnabled(filters)) {
+      sql = appendExcludeLocalhostRemote(sql, 'nc', 'remote_address');
+      params.push(...LOCALHOST_REMOTE_IPS);
+    }
+
+    sql += ' GROUP BY nc.remote_address, nc.remote_port, nc.protocol ORDER BY connection_count DESC';
+    const limit = Math.min(parseInt(filters.limit, 10) || 100, 500);
+    sql += ' LIMIT ?';
+    params.push(limit);
+
+    const rows = await safeQuery(sql, params);
+    try {
+      return await enrichWebDestinationRows(rows);
+    } catch (e) {
+      logger.warn({ err: e.message }, 'enrichWebDestinationRows failed; returning raw rows');
+      return rows;
+    }
+  } catch (err) {
+    logger.warn({ err: err.message }, 'NetworkService.listWebDestinations');
+    return [];
+  }
+}
+
 async function upsertConnection(endpointId, conn) {
   const local_address = toNull(conn.local_address);
   const local_port = toNull(conn.local_port);
@@ -447,5 +505,6 @@ module.exports = {
   getNetworkKpi,
   getNetworkEventsFromNormalized,
   getHttpMapAggregates,
+  listWebDestinations,
   upsertConnection,
 };

@@ -1,0 +1,213 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "IronShield EDR API",
+    "description": "Management (admin), sensor (agent), authentication, and ingest APIs. **Contract version** matches `info.version`; URL paths are not prefixed with `/v1` — version is semantic for documentation and clients.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "IronShield EDR"
+    }
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Same origin as the console (or API base URL)"
+    }
+  ],
+  "tags": [
+    { "name": "Health", "description": "Liveness and readiness" },
+    { "name": "Contract", "description": "Machine-readable API contract" },
+    { "name": "Auth", "description": "Admin user authentication" },
+    { "name": "Agent", "description": "Windows/Linux sensor — registration, heartbeat, events" },
+    { "name": "Admin", "description": "SOC console — JWT Bearer required" }
+  ],
+  "paths": {
+    "/healthz": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Liveness",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "status": { "type": "string", "example": "ok" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Readiness (database, optional Redis)",
+        "responses": {
+          "200": { "description": "Ready" },
+          "503": { "description": "Not ready" }
+        }
+      }
+    },
+    "/api/openapi.json": {
+      "get": {
+        "tags": ["Contract"],
+        "summary": "OpenAPI 3 document (this specification)",
+        "responses": {
+          "200": {
+            "description": "OpenAPI JSON",
+            "content": { "application/json": { "schema": { "type": "object" } } }
+          },
+          "500": { "description": "Spec file missing or unreadable" }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Admin login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": { "type": "string" },
+                  "password": { "type": "string" }
+                },
+                "required": ["username", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Tokens issued" },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Current admin user",
+        "security": [{ "adminBearer": [] }],
+        "responses": {
+          "200": { "description": "User profile" },
+          "401": { "description": "Missing or invalid JWT" }
+        }
+      }
+    },
+    "/api/agent/ping": {
+      "get": {
+        "tags": ["Agent"],
+        "summary": "Connectivity check (no authentication)",
+        "responses": {
+          "200": { "description": "OK" }
+        }
+      }
+    },
+    "/api/agent/register": {
+      "post": {
+        "tags": ["Agent"],
+        "summary": "Register sensor with registration token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hostname": { "type": "string" },
+                  "agent_version": { "type": "string" },
+                  "registration_token": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Registered; agent key returned" },
+          "403": { "description": "Invalid token" }
+        }
+      }
+    },
+    "/api/agent/heartbeat": {
+      "post": {
+        "tags": ["Agent"],
+        "summary": "Sensor heartbeat",
+        "security": [{ "agentKey": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hostname": { "type": "string" },
+                  "cpu_percent": { "type": "number" },
+                  "listening_ports": { "type": "array" },
+                  "connections": { "type": "array" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Accepted" },
+          "401": { "description": "Invalid or missing agent key" }
+        }
+      }
+    },
+    "/api/agent/events/batch": {
+      "post": {
+        "tags": ["Agent"],
+        "summary": "Upload batched events",
+        "security": [{ "agentKey": [] }],
+        "responses": {
+          "200": { "description": "Ingest result" },
+          "401": { "description": "Invalid agent key" }
+        }
+      }
+    },
+    "/api/admin/endpoints": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "List endpoints (hosts)",
+        "security": [{ "adminBearer": [] }],
+        "responses": {
+          "200": { "description": "Endpoint list" },
+          "401": { "description": "Authentication required" },
+          "403": { "description": "Insufficient permissions or tenant context" }
+        }
+      }
+    },
+    "/api/admin/alerts": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "List alerts/detections",
+        "security": [{ "adminBearer": [] }],
+        "responses": {
+          "200": { "description": "Alerts" },
+          "401": { "description": "Authentication required" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "adminBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT from POST /api/auth/login"
+      },
+      "agentKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Agent-Key",
+        "description": "Per-endpoint agent key from registration"
+      }
+    }
+  }
+}

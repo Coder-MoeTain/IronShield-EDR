@@ -330,10 +330,21 @@ public class HttpTransport
         var res = await _client.SendAsync(req, ct);
         res.EnsureSuccessStatusCode();
     }
+
+    /// <summary>IOC-derived domain blocklist for Web & URL protection (hosts sinkhole).</summary>
+    public async Task<WebUrlBlocklistResponse?> GetWebBlocklistAsync(CancellationToken ct = default)
+    {
+        var res = await _client.GetAsync($"{_baseUrl}/api/agent/web/blocklist", ct);
+        if (!res.IsSuccessStatusCode) return null;
+        var body = await res.Content.ReadAsStringAsync(ct);
+        return JsonSerializer.Deserialize<WebUrlBlocklistResponse>(body, JsonOptions);
+    }
 }
 
 public record AvSignaturesVersion(string Version, string? UpdatedAt);
 public record AvSignaturesDownload(string Version, List<AvSignature> Signatures);
+
+public record WebUrlBlocklistResponse(bool Enabled, string Version, List<string> Domains);
 
 public record RegistrationResult(string AgentKey, int EndpointId);
 public record HeartbeatResult(int EndpointId = 0);

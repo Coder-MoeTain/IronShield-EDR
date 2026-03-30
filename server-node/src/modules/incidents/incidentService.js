@@ -9,31 +9,42 @@ function generateIncidentId() {
 }
 
 async function list(filters = {}) {
-  let sql = `
-    SELECT i.*, e.hostname
-    FROM incidents i
-    LEFT JOIN endpoints e ON e.id = i.endpoint_id
-    WHERE 1=1
-  `;
+  let where = 'WHERE 1=1';
   const params = [];
   if (filters.status) {
-    sql += ' AND i.status = ?';
+    where += ' AND i.status = ?';
     params.push(filters.status);
   }
   if (filters.severity) {
-    sql += ' AND i.severity = ?';
+    where += ' AND i.severity = ?';
     params.push(filters.severity);
   }
   if (String(filters.sla_breached || '') === 'true') {
-    sql += " AND i.due_at IS NOT NULL AND i.due_at < NOW() AND i.status IN ('open','investigating')";
+    where += " AND i.due_at IS NOT NULL AND i.due_at < NOW() AND i.status IN ('open','investigating')";
   }
   if (filters.owner) {
-    sql += ' AND i.owner_username = ?';
+    where += ' AND i.owner_username = ?';
     params.push(filters.owner);
   }
-  sql += ' ORDER BY i.updated_at DESC LIMIT ? OFFSET ?';
-  params.push(Math.min(filters.limit || 50, 200), filters.offset || 0);
-  return db.query(sql, params);
+
+  const limit = Math.min(parseInt(String(filters.limit), 10) || 50, 200);
+  const offset = Math.max(parseInt(String(filters.offset), 10) || 0, 0);
+
+  const from = `
+    FROM incidents i
+    LEFT JOIN endpoints e ON e.id = i.endpoint_id
+  `;
+  const countRows = await db.query(`SELECT COUNT(*) AS c ${from} ${where}`, params);
+  const total = Number(countRows?.[0]?.c ?? 0);
+
+  const sql = `
+    SELECT i.*, e.hostname
+    ${from}
+    ${where}
+    ORDER BY i.updated_at DESC LIMIT ? OFFSET ?
+  `;
+  const rows = await db.query(sql, [...params, limit, offset]);
+  return { rows, total };
 }
 
 async function getById(id) {

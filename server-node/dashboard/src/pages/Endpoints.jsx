@@ -7,7 +7,29 @@ import PageShell from '../components/PageShell';
 import FalconEmptyState from '../components/FalconEmptyState';
 import PermissionGate from '../components/PermissionGate';
 import { asJsonList } from '../utils/apiJson';
+import { endpointSensorListDisplay } from '../utils/sensorUi';
 import styles from './Endpoints.module.css';
+
+const SENSOR_CLASS = {
+  sensorUpdatePending: styles.sensorUpdatePending,
+  sensorContain: styles.sensorContain,
+  sensorDegraded: styles.sensorDegraded,
+  sensorQueue: styles.sensorQueue,
+  sensorOk: styles.sensorOk,
+};
+
+function HostSensorCell({ ep }) {
+  const d = endpointSensorListDisplay(ep);
+  const cls = d.className ? SENSOR_CLASS[d.className] : null;
+  if (!cls) {
+    return <span title={d.title}>{d.text}</span>;
+  }
+  return (
+    <span className={cls} title={d.title}>
+      {d.text}
+    </span>
+  );
+}
 
 export default function Endpoints() {
   const { api } = useAuth();
@@ -134,25 +156,7 @@ export default function Endpoints() {
                 <td>{ep.ram_percent != null ? `${ep.ram_percent}%` : '-'}</td>
                 <td>{ep.disk_percent != null ? `${ep.disk_percent}%` : '-'}</td>
                 <td className={styles.sensorCell}>
-                  {(ep.agent_update_status || '').toLowerCase() === 'update_available' ? (
-                    <span className={styles.sensorUpdatePending} title="Newer agent release available on server">
-                      Update
-                    </span>
-                  ) : ep.host_isolation_active === true || ep.host_isolation_active === 1 ? (
-                    <span className={styles.sensorContain} title="Network containment active on host">
-                      Contained
-                    </span>
-                  ) : (ep.sensor_operational_status || '').toLowerCase() === 'degraded' ? (
-                    <span className={styles.sensorDegraded} title="Sensor backlog or health degraded">
-                      Degraded
-                    </span>
-                  ) : ep.sensor_queue_depth != null ? (
-                    <span className={styles.sensorQueue} title="Local event queue depth">
-                      Q:{ep.sensor_queue_depth}
-                    </span>
-                  ) : (
-                    '—'
-                  )}
+                  <HostSensorCell ep={ep} />
                 </td>
                 <td className={styles.ngavCell}>
                   {(ep.av_ngav_prevention_status || '').toLowerCase() === 'degraded' ? (

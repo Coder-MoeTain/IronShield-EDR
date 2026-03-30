@@ -93,4 +93,9 @@ public class AgentConfig
     /// Optional target binary path that updater will replace. Defaults to current service executable.
     /// </summary>
     public string? UpdateTargetPath { get; set; }
+
+    /// <summary>
+    /// When true (default), Windows agent applies Web & URL protection (IOC domains → hosts sinkhole) if policy allows.
+    /// </summary>
+    public bool WebUrlProtectionEnabled { get; set; } = true;
 }

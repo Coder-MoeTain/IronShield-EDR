@@ -34,6 +34,10 @@ public class AvPolicy
     [JsonPropertyName("rescan_on_detection")]
     public bool RescanOnDetection { get; set; } = true;
 
+    /// <summary>Minimum seconds between realtime scans of the same path (1–60). 0 or missing defaults to 2.</summary>
+    [JsonPropertyName("realtime_debounce_seconds")]
+    public int RealtimeDebounceSeconds { get; set; }
+
     [JsonPropertyName("include_paths")]
     public List<string>? IncludePaths { get; set; }
 
@@ -45,4 +49,30 @@ public class AvPolicy
 
     [JsonPropertyName("exclude_hashes")]
     public List<string>? ExcludeHashes { get; set; }
+
+    /// <summary>Enable WMI-based removable volume monitoring (Windows agent).</summary>
+    [JsonPropertyName("device_control_enabled")]
+    public bool DeviceControlEnabled { get; set; }
+
+    /// <summary>audit = log only; block = eject removable volumes after mount; allow = no telemetry (noise reduction).</summary>
+    [JsonPropertyName("removable_storage_action")]
+    public string? RemovableStorageAction { get; set; }
+
+    /// <summary>When not false, known-ransomware signatures and behavioral rules use detection_type ransomware. Null/missing from API defaults to enabled.</summary>
+    [JsonPropertyName("ransomware_protection_enabled")]
+    public bool? RansomwareProtectionEnabled { get; set; }
+
+    /// <summary>IOC domain/url blocklist applied via Windows hosts sinkhole (requires elevation).</summary>
+    [JsonPropertyName("web_url_protection_enabled")]
+    public bool WebUrlProtectionEnabled { get; set; } = true;
+
+    /// <summary>Normalized action: audit | block | allow.</summary>
+    public string EffectiveRemovableStorageAction
+    {
+        get
+        {
+            var a = (RemovableStorageAction ?? "audit").Trim().ToLowerInvariant();
+            return a is "block" or "allow" or "audit" ? a : "audit";
+        }
+    }
 }

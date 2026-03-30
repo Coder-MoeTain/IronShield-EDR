@@ -30,6 +30,7 @@ router.get('/av/quarantine', avController.listQuarantine);
 router.post('/av/quarantine/:id/restore', requireAnyPermission('actions:write', '*'), avController.restoreQuarantine);
 router.post('/av/quarantine/:id/delete', requireAnyPermission('actions:write', '*'), avController.deleteQuarantine);
 router.get('/av/policies', avController.listPolicies);
+router.get('/av/policies/:id', avController.getPolicy);
 router.post('/av/policies', requireAnyPermission('actions:write', '*'), avController.createPolicy);
 router.put('/av/policies/:id', requireAnyPermission('actions:write', '*'), avController.updatePolicy);
 router.get('/av/signatures', avController.listSignatures);
@@ -45,6 +46,9 @@ router.get('/av/malware-alerts', avController.listMalwareAlerts);
 router.patch('/av/malware-alerts/:id/status', requireAnyPermission('actions:write', '*'), avController.updateMalwareAlertStatus);
 router.get('/av/malware-alerts/:id', avController.getMalwareAlert);
 router.get('/av/updates/status', avController.listUpdateStatus);
+
+const platformController = require('../controllers/platformController');
+router.get('/platform/protection-capabilities', platformController.getProtectionCapabilities);
 
 router.get('/dashboard/summary', adminController.dashboardSummary);
 router.get('/dashboard/cyber-news', adminController.cyberNews);
@@ -192,7 +196,11 @@ router.get('/network/outgoing-ips', networkController.getOutgoingIps);
 router.get('/network/traffic', networkController.getTrafficSummary);
 router.get('/network/summary', networkController.getNetworkSummary);
 router.get('/network/logs', networkController.getNetworkLogs);
+router.get('/network/web-destinations', networkController.listWebDestinations);
 router.post('/network/geo-lookup', networkController.geoLookup);
+
+const webUrlAdminController = require('../controllers/webUrlAdminController');
+router.get('/web/url-blocklist', webUrlAdminController.getWebUrlConfig);
 router.get('/process-monitor', phase3.processMonitor);
 router.get('/search/global', phase3.globalSearch);
 

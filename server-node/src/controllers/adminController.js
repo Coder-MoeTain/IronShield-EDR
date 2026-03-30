@@ -302,8 +302,8 @@ async function getNormalizedEvent(req, res, next) {
 
 async function listAuditLogs(req, res, next) {
   try {
-    const logs = await AuditLogService.list(req.query);
-    res.json(logs);
+    const { rows, total } = await AuditLogService.list(req.query);
+    res.json({ logs: rows, total });
   } catch (err) {
     next(err);
   }

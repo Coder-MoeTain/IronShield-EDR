@@ -6,12 +6,13 @@ import FalconTableShell from '../components/FalconTableShell';
 import FalconEmptyState from '../components/FalconEmptyState';
 import FalconPagination from '../components/FalconPagination';
 import { falconSeverityClass } from '../utils/falconUi';
-import { asJsonList } from '../utils/apiJson';
+import { asJsonList, asJsonListWithTotal } from '../utils/apiJson';
 import styles from './Alerts.module.css';
 
 export default function Investigations() {
   const { api } = useAuth();
   const [cases, setCases] = useState([]);
+  const [listTotal, setListTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ status: '', limit: 50, offset: 0 });
   const [showCreate, setShowCreate] = useState(false);
@@ -23,9 +24,15 @@ export default function Investigations() {
   useEffect(() => {
     const params = new URLSearchParams(filters);
     api(`/api/admin/investigations?${params}`)
-      .then((r) => asJsonList(r))
-      .then(setCases)
-      .catch(() => setCases([]))
+      .then((r) => asJsonListWithTotal(r, 'investigations'))
+      .then(({ list, total }) => {
+        setCases(list);
+        setListTotal(total);
+      })
+      .catch(() => {
+        setCases([]);
+        setListTotal(0);
+      })
       .finally(() => setLoading(false));
   }, [filters]);
 
@@ -54,7 +61,9 @@ export default function Investigations() {
     setNewEndpointId('');
     const params = new URLSearchParams(filters);
     const r = await api(`/api/admin/investigations?${params}`);
-    setCases(await asJsonList(r));
+    const { list, total } = await asJsonListWithTotal(r, 'investigations');
+    setCases(list);
+    setListTotal(total);
   };
 
   return (
@@ -99,6 +108,7 @@ export default function Investigations() {
           <FalconPagination
             offset={filters.offset}
             limit={filters.limit}
+            total={listTotal}
             pageItemCount={cases.length}
             onPrev={() => setFilters((f) => ({ ...f, offset: Math.max(0, f.offset - f.limit) }))}
             onNext={() => setFilters((f) => ({ ...f, offset: f.offset + f.limit }))}

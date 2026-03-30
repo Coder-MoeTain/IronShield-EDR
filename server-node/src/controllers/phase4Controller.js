@@ -7,8 +7,8 @@ const db = require('../utils/db');
 
 async function listIncidents(req, res, next) {
   try {
-    const incidents = await IncidentService.list(req.query);
-    res.json(incidents);
+    const { rows, total } = await IncidentService.list(req.query);
+    res.json({ incidents: rows, total });
   } catch (err) {
     next(err);
   }

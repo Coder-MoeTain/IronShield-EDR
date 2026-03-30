@@ -1,6 +1,7 @@
 {
   "ServerUrl": "https://edr.example.com",
   "RegistrationToken": "your-registration-token-from-server",
+  "TenantSlug": "",
   "AgentKey": null,
   "HeartbeatIntervalMinutes": 5,
   "EventBatchIntervalSeconds": 30,
@@ -9,5 +10,6 @@
   "MaxRetries": 5,
   "LocalQueuePath": "queue",
   "MaxWindowsEventLogEventsPerPoll": 500,
-  "MaxSysmonEventsPerPoll": 500
+  "MaxSysmonEventsPerPoll": 500,
+  "WebUrlProtectionEnabled": true
 }

@@ -48,6 +48,15 @@ try {
   exitCode = 1;
 }
 
+// 1b) OpenAPI contract (Phase 1)
+console.log('\n--- OpenAPI contract ---\n');
+try {
+  run('node scripts/validate-openapi.js', { stdio: 'inherit' });
+} catch {
+  console.error('[fail] openapi/openapi.json validation');
+  exitCode = 1;
+}
+
 // 2) npm audit
 console.log('\n--- npm audit (server-node) ---\n');
 try {

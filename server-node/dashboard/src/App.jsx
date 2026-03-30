@@ -30,6 +30,7 @@ const Incidents = lazy(() => import('./pages/Incidents'));
 const IncidentDetail = lazy(() => import('./pages/IncidentDetail'));
 const Risk = lazy(() => import('./pages/Risk'));
 const IOCs = lazy(() => import('./pages/IOCs'));
+const WebUrlProtection = lazy(() => import('./pages/WebUrlProtection'));
 const Policies = lazy(() => import('./pages/Policies'));
 const Triage = lazy(() => import('./pages/Triage'));
 const ProcessTree = lazy(() => import('./pages/ProcessTree'));
@@ -45,6 +46,7 @@ const AvSignatures = lazy(() => import('./pages/AvSignatures'));
 const AvMalwareAlerts = lazy(() => import('./pages/AvMalwareAlerts'));
 const AvMalwareAlertDetail = lazy(() => import('./pages/AvMalwareAlertDetail'));
 const AvFileReputation = lazy(() => import('./pages/AvFileReputation'));
+const ProtectionCapabilities = lazy(() => import('./pages/ProtectionCapabilities'));
 const EnterpriseSettings = lazy(() => import('./pages/EnterpriseSettings'));
 const TenantManagement = lazy(() => import('./pages/TenantManagement'));
 const MsspConsole = lazy(() => import('./pages/MsspConsole'));
@@ -65,7 +67,7 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 
 function RouteFallback() {
   return (
-    <div className="ui-loading ui-route-fallback" role="status" aria-live="polite" aria-label="Loading view">
+    <div className="ui-route-fallback" role="status" aria-live="polite" aria-label="Loading view">
       Loading…
     </div>
   );
@@ -137,6 +139,7 @@ export default function App() {
                   <Route path="incidents" element={<Incidents />} />
                   <Route path="incidents/:id" element={<IncidentDetail />} />
                   <Route path="risk" element={<Risk />} />
+                  <Route path="web-url-protection" element={<WebUrlProtection />} />
                   <Route path="iocs" element={<IOCs />} />
                   <Route path="policies" element={<Policies />} />
                   <Route path="triage" element={<Triage />} />
@@ -144,6 +147,7 @@ export default function App() {
                   <Route path="process-monitor" element={<ProcessMonitor />} />
                   <Route path="network" element={<Network />} />
                   <Route path="respond/approvals" element={<ResponseApprovals />} />
+                  <Route path="protection" element={<ProtectionCapabilities />} />
                   <Route path="av" element={<AvOverview />} />
                   <Route path="av/detections" element={<AvDetections />} />
                   <Route path="av/detections/:id" element={<AvDetectionDetail />} />

@@ -63,7 +63,7 @@
   color: var(--text-primary);
 }
 
-.kpiLab {
+.kpiCaption {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;

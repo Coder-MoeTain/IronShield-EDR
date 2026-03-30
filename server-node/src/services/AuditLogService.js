@@ -166,22 +166,28 @@ async function log(payload) {
 }
 
 async function list(filters = {}) {
-  let sql = 'SELECT * FROM audit_logs WHERE 1=1';
+  let where = 'WHERE 1=1';
   const params = [];
 
   if (filters.userId) {
-    sql += ' AND user_id = ?';
+    where += ' AND user_id = ?';
     params.push(filters.userId);
   }
   if (filters.action) {
-    sql += ' AND action LIKE ?';
+    where += ' AND action LIKE ?';
     params.push(`%${filters.action}%`);
   }
 
-  sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-  params.push(Math.min(filters.limit || 100, 500), filters.offset || 0);
+  const limit = Math.min(Math.max(parseInt(String(filters.limit), 10) || 100, 1), 500);
+  const offset = Math.max(parseInt(String(filters.offset), 10) || 0, 0);
 
-  return db.query(sql, params);
+  const countRows = await db.query(`SELECT COUNT(*) AS c FROM audit_logs ${where}`, params);
+  const total = Number(countRows?.[0]?.c ?? 0);
+
+  const sql = `SELECT * FROM audit_logs ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+  const rows = await db.query(sql, [...params, limit, offset]);
+
+  return { rows, total };
 }
 
 module.exports = { log, list };

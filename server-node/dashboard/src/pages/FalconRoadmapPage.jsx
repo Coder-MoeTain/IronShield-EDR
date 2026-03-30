@@ -81,21 +81,21 @@ export default function FalconRoadmapPage() {
           <div className={styles.kpiRow}>
             <div className={styles.kpi}>
               <div className={styles.kpiVal}>{d.posture_score ?? 0}</div>
-              <div className={styles.kpiLab}>Zero Trust posture score</div>
+              <div className={styles.kpiCaption}>Zero Trust posture score</div>
             </div>
             <div className={styles.kpi}>
               <div className={styles.kpiVal}>{d.identity_coverage_pct ?? 0}%</div>
-              <div className={styles.kpiLab}>Identity coverage</div>
+              <div className={styles.kpiCaption}>Identity coverage</div>
             </div>
             <div className={styles.kpi}>
               <div className={styles.kpiVal}>{d.spread_accounts_3plus_hosts ?? 0}</div>
-              <div className={styles.kpiLab}>Accounts on 3+ hosts</div>
+              <div className={styles.kpiCaption}>Accounts on 3+ hosts</div>
             </div>
             <div className={styles.kpi}>
               <div className={styles.kpiVal}>
                 {(d.privileged_console_accounts ?? 0) + (d.privileged_event_accounts_7d ?? 0)}
               </div>
-              <div className={styles.kpiLab}>Privileged-like accounts</div>
+              <div className={styles.kpiCaption}>Privileged-like accounts</div>
             </div>
           </div>
           <div className={styles.warn} style={{ marginBottom: '0.8rem' }}>
@@ -259,7 +259,7 @@ export default function FalconRoadmapPage() {
           <div className={styles.kpiRow}>
             <div className={styles.kpi}>
               <div className={styles.kpiVal}>{d.network_connection_rows ?? 0}</div>
-              <div className={styles.kpiLab}>Non-loopback connection rows</div>
+              <div className={styles.kpiCaption}>Non-loopback connection rows</div>
             </div>
           </div>
           <h3 className={styles.sectionTitle}>Top remote IP:port (network_connections)</h3>
@@ -341,31 +341,31 @@ export default function FalconRoadmapPage() {
           <div className={styles.kpiRow}>
             <div className={styles.kpi}>
               <div className={styles.kpiVal}>{d.saved_hunt_count ?? 0}</div>
-              <div className={styles.kpiLab}>Saved hunts</div>
+              <div className={styles.kpiCaption}>Saved hunts</div>
             </div>
             <div className={styles.kpi}>
               <div className={styles.kpiVal}>{d.xdr_events_24h ?? 0}</div>
-              <div className={styles.kpiLab}>XDR events (24h)</div>
+              <div className={styles.kpiCaption}>XDR events (24h)</div>
             </div>
             <div className={styles.kpi}>
               <div className={styles.kpiVal}>{d.xdr_detections_24h ?? 0}</div>
-              <div className={styles.kpiLab}>XDR detections (24h)</div>
+              <div className={styles.kpiCaption}>XDR detections (24h)</div>
             </div>
             <div className={styles.kpi}>
               <div className={styles.kpiVal}>{d.xdr_critical_24h ?? 0}</div>
-              <div className={styles.kpiLab}>Critical detections</div>
+              <div className={styles.kpiCaption}>Critical detections</div>
             </div>
             <div className={styles.kpi}>
               <div className={styles.kpiVal}>{d.incidents_open ?? 0}</div>
-              <div className={styles.kpiLab}>Open incidents</div>
+              <div className={styles.kpiCaption}>Open incidents</div>
             </div>
             <div className={styles.kpi}>
               <div className={styles.kpiVal}>{d.triage_pending ?? 0}</div>
-              <div className={styles.kpiLab}>Pending triage</div>
+              <div className={styles.kpiCaption}>Pending triage</div>
             </div>
             <div className={styles.kpi}>
               <div className={styles.kpiVal}>{d.avg_hunt_matches_7d ?? 0}</div>
-              <div className={styles.kpiLab}>Avg hunt matches (7d)</div>
+              <div className={styles.kpiCaption}>Avg hunt matches (7d)</div>
             </div>
           </div>
           <h3 className={styles.sectionTitle}>Recommended Overwatch hunts</h3>
@@ -497,19 +497,19 @@ export default function FalconRoadmapPage() {
           <div className={styles.kpiRow}>
             <div className={styles.kpi}>
               <div className={styles.kpiVal}>{d.endpoints_total ?? 0}</div>
-              <div className={styles.kpiLab}>Endpoints</div>
+              <div className={styles.kpiCaption}>Endpoints</div>
             </div>
             <div className={styles.kpi}>
               <div className={styles.kpiVal}>{d.network_containment_active ?? 0}</div>
-              <div className={styles.kpiLab}>Network containment</div>
+              <div className={styles.kpiCaption}>Network containment</div>
             </div>
             <div className={styles.kpi}>
               <div className={styles.kpiVal}>{d.ngav_realtime_on ?? 0}</div>
-              <div className={styles.kpiLab}>NGAV realtime on</div>
+              <div className={styles.kpiCaption}>NGAV realtime on</div>
             </div>
             <div className={styles.kpi}>
               <div className={styles.kpiVal}>{d.ngav_realtime_off ?? 0}</div>
-              <div className={styles.kpiLab}>Realtime off / unknown</div>
+              <div className={styles.kpiCaption}>Realtime off / unknown</div>
             </div>
           </div>
           <h3 className={styles.sectionTitle}>NGAV prevention status (by host count)</h3>

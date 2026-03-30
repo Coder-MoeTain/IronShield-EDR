@@ -63,6 +63,19 @@ async function getNetworkLogs(req, res, next) {
 }
 
 /** Batch geolocate IPs for world map (geoip-lite, max 500). */
+async function listWebDestinations(req, res, next) {
+  try {
+    const filters = { ...req.query };
+    if (req.tenantId != null) filters.tenantId = req.tenantId;
+    if (filters.hours) filters.hours = parseInt(filters.hours, 10) || 24;
+    if (filters.endpointId) filters.endpointId = parseInt(filters.endpointId, 10) || undefined;
+    const rows = await NetworkService.listWebDestinations(filters);
+    res.json(rows);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function geoLookup(req, res, next) {
   try {
     const raw = Array.isArray(req.body?.ips) ? req.body.ips : [];
@@ -80,5 +93,6 @@ module.exports = {
   getTrafficSummary,
   getNetworkSummary,
   getNetworkLogs,
+  listWebDestinations,
   geoLookup,
 };

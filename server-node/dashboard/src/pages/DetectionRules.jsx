@@ -2,6 +2,8 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import PageShell from '../components/PageShell';
+import FalconTableShell from '../components/FalconTableShell';
+import FalconEmptyState from '../components/FalconEmptyState';
 import Suppressions from './Suppressions';
 import { falconSeverityClass } from '../utils/falconUi';
 import { asJsonListOrKeyed } from '../utils/apiJson';
@@ -159,111 +161,120 @@ export default function DetectionRules() {
             </div>
           </div>
 
-          <div className={styles.toolbar}>
-            <input
-              type="search"
-              className={styles.search}
-              placeholder="Search name, title, description…"
-              value={q}
-              onChange={(e) => setFilter('q', e.target.value)}
-              aria-label="Search rules"
-            />
-            <select value={severity} onChange={(e) => setFilter('severity', e.target.value)}>
-              <option value="">All severities</option>
-              <option value="critical">Critical</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
-            <select value={enabled} onChange={(e) => setFilter('enabled', e.target.value)}>
-              <option value="">All states</option>
-              <option value="true">Enabled only</option>
-              <option value="false">Disabled only</option>
-            </select>
-            <button type="button" className="falcon-btn falcon-btn-ghost" onClick={fetchRules}>
-              ↻ Refresh
-            </button>
-            <button
-              type="button"
-              className="falcon-btn falcon-btn-ghost"
-              onClick={() => {
-                const next = new URLSearchParams(searchParams);
-                next.delete('q');
-                next.delete('severity');
-                next.delete('enabled');
-                setSearchParams(next, { replace: true });
-              }}
-              disabled={!q && !severity && !enabled}
-            >
-              Clear filters
-            </button>
-          </div>
-
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Status</th>
-                  <th>Rule ID</th>
-                  <th>Title</th>
-                  <th>Severity</th>
-                  <th>MITRE</th>
-                  <th>Description</th>
-                  <th>Updated</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rules.map((r) => (
-                  <tr key={r.id}>
-                    <td>
-                      <button
-                        type="button"
-                        className={`${styles.togglePill} ${r.enabled ? styles.on : styles.off}`}
-                        onClick={() => toggleRule(r)}
-                        disabled={toggling === r.id}
-                        title={r.enabled ? 'Disable' : 'Enable'}
-                      >
-                        {toggling === r.id ? '…' : r.enabled ? 'On' : 'Off'}
-                      </button>
-                    </td>
-                    <td className={`mono ${styles.ruleId}`}>{r.name}</td>
-                    <td>
-                      <Link to={`/detection-rules/${r.id}`} className={styles.titleLink}>
-                        {r.title}
-                      </Link>
-                    </td>
-                    <td>
-                      <span className={falconSeverityClass(r.severity)}>{r.severity}</span>
-                    </td>
-                    <td className={styles.mitreCell}>
-                      {r.mitre_technique ? (
-                        <span title={r.mitre_tactic || ''}>{r.mitre_technique}</span>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td className={styles.descCell} title={r.description || ''}>
-                      {r.description ? r.description.slice(0, 72) : '—'}
-                      {r.description && r.description.length > 72 ? '…' : ''}
-                    </td>
-                    <td className={styles.timeCell}>
-                      {r.updated_at ? new Date(r.updated_at).toLocaleString() : '—'}
-                    </td>
-                    <td className={styles.rowActions}>
-                      <Link to={`/detection-rules/${r.id}`} className={styles.linkBtn}>
-                        View
-                      </Link>
-                      <Link to={`/detection-rules/${r.id}/edit`} className={styles.linkBtn}>
-                        Edit
-                      </Link>
-                    </td>
+          <FalconTableShell
+            toolbar={
+              <div className={styles.toolbar}>
+                <input
+                  type="search"
+                  className={styles.search}
+                  placeholder="Search name, title, description…"
+                  value={q}
+                  onChange={(e) => setFilter('q', e.target.value)}
+                  aria-label="Search rules"
+                />
+                <select value={severity} onChange={(e) => setFilter('severity', e.target.value)}>
+                  <option value="">All severities</option>
+                  <option value="critical">Critical</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+                <select value={enabled} onChange={(e) => setFilter('enabled', e.target.value)}>
+                  <option value="">All states</option>
+                  <option value="true">Enabled only</option>
+                  <option value="false">Disabled only</option>
+                </select>
+                <button type="button" className="falcon-btn falcon-btn-ghost" onClick={fetchRules}>
+                  ↻ Refresh
+                </button>
+                <button
+                  type="button"
+                  className="falcon-btn falcon-btn-ghost"
+                  onClick={() => {
+                    const next = new URLSearchParams(searchParams);
+                    next.delete('q');
+                    next.delete('severity');
+                    next.delete('enabled');
+                    setSearchParams(next, { replace: true });
+                  }}
+                  disabled={!q && !severity && !enabled}
+                >
+                  Clear filters
+                </button>
+              </div>
+            }
+          >
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Status</th>
+                    <th>Rule ID</th>
+                    <th>Title</th>
+                    <th>Severity</th>
+                    <th>MITRE</th>
+                    <th>Description</th>
+                    <th>Updated</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {rules.length === 0 && <p className={styles.empty}>No detection rules match filters.</p>}
+                </thead>
+                <tbody>
+                  {rules.map((r) => (
+                    <tr key={r.id}>
+                      <td>
+                        <button
+                          type="button"
+                          className={`${styles.togglePill} ${r.enabled ? styles.on : styles.off}`}
+                          onClick={() => toggleRule(r)}
+                          disabled={toggling === r.id}
+                          title={r.enabled ? 'Disable' : 'Enable'}
+                        >
+                          {toggling === r.id ? '…' : r.enabled ? 'On' : 'Off'}
+                        </button>
+                      </td>
+                      <td className={`mono ${styles.ruleId}`}>{r.name}</td>
+                      <td>
+                        <Link to={`/detection-rules/${r.id}`} className={styles.titleLink}>
+                          {r.title}
+                        </Link>
+                      </td>
+                      <td>
+                        <span className={falconSeverityClass(r.severity)}>{r.severity}</span>
+                      </td>
+                      <td className={styles.mitreCell}>
+                        {r.mitre_technique ? (
+                          <span title={r.mitre_tactic || ''}>{r.mitre_technique}</span>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td className={styles.descCell} title={r.description || ''}>
+                        {r.description ? r.description.slice(0, 72) : '—'}
+                        {r.description && r.description.length > 72 ? '…' : ''}
+                      </td>
+                      <td className={styles.timeCell}>
+                        {r.updated_at ? new Date(r.updated_at).toLocaleString() : '—'}
+                      </td>
+                      <td className={styles.rowActions}>
+                        <Link to={`/detection-rules/${r.id}`} className={styles.linkBtn}>
+                          View
+                        </Link>
+                        <Link to={`/detection-rules/${r.id}/edit`} className={styles.linkBtn}>
+                          Edit
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {rules.length === 0 && (
+                <FalconEmptyState
+                  title="No detection rules match filters"
+                  description="Clear search or filters, or create a new rule from the toolbar."
+                />
+              )}
+            </div>
+          </FalconTableShell>
         </>
       )}
     </PageShell>

@@ -224,6 +224,17 @@
   color: var(--text-secondary);
 }
 
+.sensorOk {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.72rem;
+  background: rgba(22, 163, 74, 0.12);
+  color: #15803d;
+  border: 1px solid rgba(22, 163, 74, 0.28);
+}
+
 .policyCell {
   white-space: nowrap;
 }

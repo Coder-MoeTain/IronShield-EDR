@@ -53,4 +53,4 @@ See **[crowdstrike-ui-phase3.md](./crowdstrike-ui-phase3.md)** — `FalconTableS
 
 ## Notes
 
-IronShield is **not** affiliated with CrowdStrike; this is a **visual parity** goal for lab/SOC UX only.
+IronShield is **not** affiliated with CrowdStrike; this is a **visual parity** goal for SOC operator UX only.

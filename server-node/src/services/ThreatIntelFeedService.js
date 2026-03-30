@@ -1,7 +1,7 @@
 /**
  * Free community IPv4 threat feeds (no API key). Refreshed on a schedule.
  * Sources: abuse.ch Feodo Tracker, IPsum, Emerging Threats compromised-IPs list.
- * Use for lab / augmentation only; verify licensing for your environment.
+ * Use for evaluation or augmentation only; verify licensing for your environment.
  */
 const logger = require('../utils/logger');
 const config = require('../config');

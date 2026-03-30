@@ -6,7 +6,7 @@ import FalconTableShell from '../components/FalconTableShell';
 import FalconEmptyState from '../components/FalconEmptyState';
 import FalconPagination from '../components/FalconPagination';
 import { falconSeverityClass } from '../utils/falconUi';
-import { asJsonList } from '../utils/apiJson';
+import { asJsonListWithTotal } from '../utils/apiJson';
 import styles from './Incidents.module.css';
 
 function timeAgo(date) {
@@ -23,6 +23,7 @@ export default function Incidents() {
   const { api } = useAuth();
   const navigate = useNavigate();
   const [incidents, setIncidents] = useState([]);
+  const [listTotal, setListTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ status: '', severity: '', sla_breached: '', limit: 50, offset: 0 });
 
@@ -33,9 +34,15 @@ export default function Incidents() {
     });
     setLoading(true);
     api(`/api/admin/incidents?${params}`)
-      .then((r) => asJsonList(r))
-      .then(setIncidents)
-      .catch(() => setIncidents([]))
+      .then((r) => asJsonListWithTotal(r, 'incidents'))
+      .then(({ list, total }) => {
+        setIncidents(list);
+        setListTotal(total);
+      })
+      .catch(() => {
+        setIncidents([]);
+        setListTotal(0);
+      })
       .finally(() => setLoading(false));
   };
 
@@ -108,6 +115,7 @@ export default function Incidents() {
           <FalconPagination
             offset={filters.offset}
             limit={filters.limit}
+            total={listTotal}
             pageItemCount={incidents.length}
             onPrev={() => setFilters((f) => ({ ...f, offset: Math.max(0, f.offset - f.limit) }))}
             onNext={() => setFilters((f) => ({ ...f, offset: f.offset + f.limit }))}

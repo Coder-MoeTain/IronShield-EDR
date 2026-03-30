@@ -1,4 +1,7 @@
 .title { font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem; }
+.container { display: flex; flex-direction: column; gap: 0; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; }
+.toolbar input[type='search'] { min-width: 200px; padding: 0.45rem 0.65rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text); }
 .tableWrap { background: var(--bg-glass); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm); }
 .table { width: 100%; border-collapse: collapse; }
 .table th, .table td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border); }
