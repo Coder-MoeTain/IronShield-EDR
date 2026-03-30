@@ -6,6 +6,7 @@ const logger = require('../utils/logger');
 const NetworkService = require('./NetworkService');
 const AlertService = require('./AlertService');
 const RiskService = require('../modules/risk/riskService');
+const AvPolicyService = require('../modules/antivirus/avPolicyService');
 
 const RESOURCE_THRESHOLDS = { cpu: 90, ram: 90, disk: 95 };
 
@@ -365,7 +366,71 @@ async function processHeartbeat(agentKey, payload) {
 
   await upsertAvNgavFromHeartbeat(endpoint.id, payload);
 
+  try {
+    await checkAvRealtimeDisabledAlert(endpoint.id, payload);
+  } catch (e) {
+    logger.warn({ err: e.message }, 'AV realtime disabled alert');
+  }
+
   return { endpointId: endpoint.id };
+}
+
+const AV_REALTIME_DISABLED_TITLE = 'NGAV realtime protection disabled (heartbeat)';
+
+/**
+ * Alert when the agent reports realtime malware prevention off while assigned AV policy requires it.
+ */
+async function checkAvRealtimeDisabledAlert(endpointId, payload) {
+  if (payload?.av_realtime_enabled !== false) return;
+
+  let policy;
+  try {
+    policy = await AvPolicyService.getForEndpoint(endpointId);
+  } catch (e) {
+    logger.warn({ err: e.message }, 'checkAvRealtimeDisabledAlert: policy load');
+    return;
+  }
+  if (!policy?.realtime_enabled) return;
+
+  const open = await db.query(
+    `SELECT id FROM alerts WHERE endpoint_id = ? AND title = ? AND status IN ('new', 'investigating') LIMIT 1`,
+    [endpointId, AV_REALTIME_DISABLED_TITLE]
+  );
+  if (open?.length) return;
+
+  const recent = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const recentAny = await db.query(
+    `SELECT id FROM alerts WHERE endpoint_id = ? AND title = ? AND created_at > ? LIMIT 1`,
+    [endpointId, AV_REALTIME_DISABLED_TITLE, recent]
+  );
+  if (recentAny?.length) return;
+
+  const ep = await db.queryOne('SELECT hostname FROM endpoints WHERE id = ?', [endpointId]);
+  const hostname = ep?.hostname || `Endpoint ${endpointId}`;
+  const ps = payload.av_prevention_status != null ? String(payload.av_prevention_status) : 'unknown';
+  const sig = payload.av_signature_count != null ? String(payload.av_signature_count) : '—';
+  const bundle = payload.av_signature_bundle != null ? String(payload.av_signature_bundle) : '—';
+  const desc = [
+    `Agent reported NGAV realtime scanning is disabled on ${hostname} while policy "${policy.name || policy.id}" requires realtime protection.`,
+    `Prevention status: ${ps}. Signature bundle: ${bundle}. Signature count: ${sig}.`,
+    'Investigate policy sync, AV module health, disk space, and whether protection was disabled locally.',
+  ].join(' ');
+
+  await AlertService.createFromDetection([
+    {
+      endpoint_id: endpointId,
+      rule_id: null,
+      title: AV_REALTIME_DISABLED_TITLE,
+      description: desc,
+      severity: 'high',
+      confidence: 0.9,
+      mitre_tactic: 'Defense Evasion',
+      mitre_technique: 'T1562',
+      source_event_ids: null,
+      first_seen: new Date(),
+      last_seen: new Date(),
+    },
+  ]);
 }
 
 /** Phase 7 — NGAV / malware prevention row (Falcon-style) from heartbeat. */
