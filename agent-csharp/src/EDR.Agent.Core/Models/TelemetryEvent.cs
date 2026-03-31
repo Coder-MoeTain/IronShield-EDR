@@ -76,6 +76,14 @@ public class TelemetryEvent
     [JsonPropertyName("collector_confidence")]
     public double? CollectorConfidence { get; set; }
 
+    /// <summary>Approximate CPU % for this process (Windows perf counter, snapshot).</summary>
+    [JsonPropertyName("process_cpu_percent")]
+    public double? ProcessCpuPercent { get; set; }
+
+    /// <summary>Working set (resident) memory for this process in MiB.</summary>
+    [JsonPropertyName("process_working_set_mb")]
+    public double? ProcessWorkingSetMb { get; set; }
+
     /// <summary>Optional device control (USB / removable) context.</summary>
     [JsonPropertyName("device_control")]
     public DeviceControlEventDetail? DeviceControl { get; set; }

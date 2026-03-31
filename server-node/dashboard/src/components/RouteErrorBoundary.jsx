@@ -32,7 +32,7 @@ export class RouteErrorBoundary extends React.Component {
               Reload page
             </button>
             <Link to="/" className="falcon-btn falcon-btn-ghost">
-              Activity
+              Dashboard
             </Link>
           </div>
         </div>

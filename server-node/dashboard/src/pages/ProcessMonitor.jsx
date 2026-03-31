@@ -52,6 +52,20 @@ export default function ProcessMonitor() {
       .catch(() => setEndpoints([]));
   }, []);
 
+  useEffect(() => {
+    if (!selected) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setSelected(null);
+    };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [selected]);
+
   const truncate = (s, len = 50) => {
     if (!s) return '-';
     return s.length > len ? s.slice(0, len) + '…' : s;
@@ -112,13 +126,22 @@ export default function ProcessMonitor() {
     return <span className={`${styles.suspectBadge} ${cls}`}>{reason.replace('_', ' ')}</span>;
   };
 
+  const isAgentSensorProcess = (name) => {
+    if (!name || typeof name !== 'string') return false;
+    const n = name.toLowerCase().replace(/\.exe$/i, '');
+    return n === 'edr.agent.service' || n.endsWith('agent.service');
+  };
+
+  const formatCpuPct = (v) => (v != null && Number.isFinite(Number(v)) ? `${Number(v).toFixed(1)}%` : '—');
+  const formatRamMb = (v) => (v != null && Number.isFinite(Number(v)) ? `${Number(v).toFixed(1)} MiB` : '—');
+
   if (loading && processes.length === 0) return <PageShell loading loadingLabel="Loading process monitor…" />;
 
   return (
     <PageShell
       kicker="Explore"
       title="Process monitor"
-      description="Live and recent process activity with suspect highlighting and response shortcuts."
+      description="Live and recent process activity with suspect highlighting, per-process CPU/RAM when reported by the agent, and response shortcuts."
       actions={
         <button type="button" onClick={fetchData} className="falcon-btn falcon-btn-ghost">
           ↻ Refresh
@@ -182,6 +205,8 @@ export default function ProcessMonitor() {
               <th>Host</th>
               <th>Process</th>
               <th>PID</th>
+              <th>CPU</th>
+              <th>RAM</th>
               <th>User</th>
               <th>Parent</th>
               <th>Path</th>
@@ -206,9 +231,18 @@ export default function ProcessMonitor() {
                 </td>
                 <td className={styles.processCell}>
                   <span className={styles.processName}>{proc.process_name || '-'}</span>
+                  {isAgentSensorProcess(proc.process_name) ? (
+                    <span className={styles.sensorBadge} title="EDR agent / sensor process">Sensor</span>
+                  ) : null}
                   {suspectBadge(proc)}
                 </td>
                 <td className={styles.mono}>{proc.process_id ?? '-'}</td>
+                <td className={`${styles.metricsCell} ${styles.mono}`} title="CPU % (agent snapshot)">
+                  {formatCpuPct(proc.process_cpu_percent)}
+                </td>
+                <td className={`${styles.metricsCell} ${styles.mono}`} title="Working set (resident memory)">
+                  {formatRamMb(proc.process_working_set_mb)}
+                </td>
                 <td>{proc.username || '-'}</td>
                 <td className={styles.parentCell}>{proc.parent_process_name || '-'}</td>
                 <td className={`${styles.pathCell} mono`} title={proc.process_path || proc.command_line}>
@@ -280,31 +314,63 @@ export default function ProcessMonitor() {
       </div>
 
       {selected && (
-        <div className={styles.detailPanel}>
-          <h3>Process Details</h3>
-          <dl>
-            <dt>Process</dt>
-            <dd>{selected.process_name}</dd>
-            <dt>Path</dt>
-            <dd className="mono" style={{ wordBreak: 'break-all' }}>{selected.process_path || '-'}</dd>
-            <dt>Command Line</dt>
-            <dd className="mono" style={{ wordBreak: 'break-all' }}>{selected.command_line || '-'}</dd>
-            <dt>Hash</dt>
-            <dd className="mono">{selected.file_hash_sha256 || '-'}</dd>
-            <dt>Linked Alerts</dt>
-            <dd>
-              {selected.linked_alerts?.length > 0 ? (
-                selected.linked_alerts.map((a) => (
-                  <Link key={a.id} to={`/alerts/${a.id}`}>
-                    {a.title} ({a.severity})
-                  </Link>
-                ))
-              ) : (
-                '-'
-              )}
-            </dd>
-          </dl>
-          <button className={styles.closeDetail} onClick={() => setSelected(null)}>Close</button>
+        <div
+          className={styles.modalOverlay}
+          role="presentation"
+          onClick={() => setSelected(null)}
+        >
+          <div
+            className={styles.modal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="process-detail-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <h3 id="process-detail-title">Process details</h3>
+              <button
+                type="button"
+                className={styles.modalClose}
+                aria-label="Close"
+                onClick={() => setSelected(null)}
+              >
+                ×
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <dl className={styles.detailDl}>
+                <dt>Process</dt>
+                <dd>{selected.process_name}</dd>
+                <dt>Path</dt>
+                <dd className="mono" style={{ wordBreak: 'break-all' }}>{selected.process_path || '-'}</dd>
+                <dt>Command Line</dt>
+                <dd className="mono" style={{ wordBreak: 'break-all' }}>{selected.command_line || '-'}</dd>
+                <dt>Hash</dt>
+                <dd className="mono">{selected.file_hash_sha256 || '-'}</dd>
+                <dt>CPU</dt>
+                <dd className="mono">{formatCpuPct(selected.process_cpu_percent)}</dd>
+                <dt>RAM (working set)</dt>
+                <dd className="mono">{formatRamMb(selected.process_working_set_mb)}</dd>
+                <dt>Linked Alerts</dt>
+                <dd>
+                  {selected.linked_alerts?.length > 0 ? (
+                    selected.linked_alerts.map((a) => (
+                      <Link key={a.id} to={`/alerts/${a.id}`}>
+                        {a.title} ({a.severity})
+                      </Link>
+                    ))
+                  ) : (
+                    '-'
+                  )}
+                </dd>
+              </dl>
+            </div>
+            <div className={styles.modalFooter}>
+              <button type="button" className={styles.modalFooterBtn} onClick={() => setSelected(null)}>
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

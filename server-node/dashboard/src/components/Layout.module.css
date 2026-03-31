@@ -127,6 +127,14 @@
   overflow-y: auto;
 }
 
+/* Home / dashboard — pinned to top of the scrollable nav */
+.navDashboardTop {
+  flex-shrink: 0;
+  margin: 0 0 0.35rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.06));
+}
+
 .navItem {
   min-width: 0;
 }

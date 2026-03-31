@@ -17,11 +17,32 @@ function isSuspiciousProcess(name) {
   return SUSPICIOUS_PROCS.includes(name.toLowerCase());
 }
 
+/** Per-process CPU/RAM from agent telemetry (stored in normalized_events.raw_event_json). */
+function metricsFromRawJson(raw) {
+  let j = raw;
+  if (j == null) return { process_cpu_percent: null, process_working_set_mb: null };
+  if (typeof j === 'string') {
+    try {
+      j = JSON.parse(j);
+    } catch {
+      return { process_cpu_percent: null, process_working_set_mb: null };
+    }
+  }
+  const cpu = j.process_cpu_percent ?? j.ProcessCpuPercent;
+  const ram = j.process_working_set_mb ?? j.ProcessWorkingSetMb;
+  const nCpu = cpu != null && cpu !== '' ? Number(cpu) : null;
+  const nRam = ram != null && ram !== '' ? Number(ram) : null;
+  return {
+    process_cpu_percent: Number.isFinite(nCpu) ? nCpu : null,
+    process_working_set_mb: Number.isFinite(nRam) ? nRam : null,
+  };
+}
+
 async function list(filters = {}) {
   let sql = `
     SELECT ne.id, ne.raw_event_id, ne.endpoint_id, ne.hostname, ne.username, ne.timestamp, ne.event_source, ne.event_type,
            ne.process_name, ne.process_path, ne.process_id, ne.parent_process_name, ne.parent_process_id,
-           ne.command_line, ne.file_hash_sha256, e.hostname as endpoint_hostname
+           ne.command_line, ne.file_hash_sha256, ne.raw_event_json, e.hostname as endpoint_hostname
     FROM normalized_events ne
     JOIN endpoints e ON e.id = ne.endpoint_id
     WHERE ne.event_type = 'process_create'
@@ -95,9 +116,12 @@ async function list(filters = {}) {
     const suspectProc = isSuspiciousProcess(r.process_name);
     const linkedAlerts = alertMap[String(r.raw_event_id)] || [];
     const isSuspect = linkedAlerts.length > 0 || suspectPath || suspectProc;
+    const { raw_event_json, ...rest } = r;
+    const metrics = metricsFromRawJson(raw_event_json);
 
     return {
-      ...r,
+      ...rest,
+      ...metrics,
       is_suspect: isSuspect,
       suspect_reason: linkedAlerts.length ? 'alert' : suspectPath ? 'suspicious_path' : suspectProc ? 'suspicious_process' : null,
       linked_alerts: linkedAlerts,

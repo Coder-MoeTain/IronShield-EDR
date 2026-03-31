@@ -107,6 +107,7 @@ export default function App() {
                   }
                 >
                   <Route index element={<Dashboard />} />
+                  <Route path="dashboard" element={<Navigate to="/" replace />} />
                   <Route path="endpoints" element={<Endpoints />} />
                   <Route path="host-groups" element={<HostGroups />} />
                   <Route path="sensor-health" element={<SensorHealth />} />

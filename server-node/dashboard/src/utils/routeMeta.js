@@ -68,11 +68,11 @@ function isNumericId(s) {
 export function getBreadcrumbs(pathname) {
   const path = pathname || '/';
   if (path === '/' || path === '') {
-    return [{ label: 'Activity', to: '/' }];
+    return [{ label: 'Dashboard', to: '/' }];
   }
 
   const segments = path.split('/').filter(Boolean);
-  const crumbs = [{ label: 'Activity', to: '/' }];
+  const crumbs = [{ label: 'Dashboard', to: '/' }];
 
   const [a0, a1, a2] = segments;
 

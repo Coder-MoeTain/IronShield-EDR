@@ -4,7 +4,7 @@ import { getBreadcrumbs } from '../utils/routeMeta';
 import styles from './Breadcrumbs.module.css';
 
 /**
- * Falcon-style wayfinding: Activity → Section → Detail
+ * Falcon-style wayfinding: Dashboard → Section → Detail
  */
 export default function Breadcrumbs() {
   const { pathname } = useLocation();

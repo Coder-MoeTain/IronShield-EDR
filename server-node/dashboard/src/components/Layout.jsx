@@ -19,12 +19,15 @@ import {
   IconConfig,
   IconShield,
   IconTerminal,
+  IconNetwork,
+  IconIntel,
+  IconGraph,
+  IconEnterprise,
 } from './NavIcons';
 import styles from './Layout.module.css';
 import { filterEnterpriseNavChildren } from '../utils/socRoles';
 
 const MENU_ITEMS = [
-  { to: '/', end: true, Icon: IconActivity, label: 'Dashboard' },
   { to: '/alerts', Icon: IconDetections, label: 'Alerts' },
   {
     label: 'Endpoints',
@@ -33,6 +36,8 @@ const MENU_ITEMS = [
       { to: '/endpoints', Icon: IconHosts, label: 'All endpoints' },
       { to: '/host-groups', Icon: IconHosts, label: 'Host groups' },
       { to: '/sensor-health', Icon: IconHosts, label: 'Sensor health' },
+      { to: '/network', Icon: IconNetwork, label: 'Network' },
+      { to: '/hunting', Icon: IconExplore, label: 'Hunting' },
     ],
   },
   {
@@ -42,13 +47,40 @@ const MENU_ITEMS = [
       { to: '/events', Icon: IconExplore, label: 'Events' },
       { to: '/normalized-events', Icon: IconExplore, label: 'Normalized' },
       { to: '/raw-events', Icon: IconExplore, label: 'Raw' },
-      { to: '/process-monitor', Icon: IconExplore, label: 'Process' },
+      { to: '/process-monitor', Icon: IconExplore, label: 'Process monitor' },
+    ],
+  },
+  {
+    label: 'Analytics',
+    Icon: IconGraph,
+    children: [
+      { to: '/analytics-detections', Icon: IconGraph, label: 'Detection analytics' },
+      { to: '/threat-graph', Icon: IconGraph, label: 'Threat graph' },
+      { to: '/agent-network-map', Icon: IconNetwork, label: 'Agent network map' },
+    ],
+  },
+  {
+    label: 'XDR',
+    Icon: IconExplore,
+    children: [
+      { to: '/xdr/events', Icon: IconExplore, label: 'XDR events' },
+      { to: '/xdr/detections', Icon: IconDetections, label: 'XDR detections' },
+      { to: '/xdr/realtime', Icon: IconActivity, label: 'XDR realtime' },
     ],
   },
   {
     label: 'Rules',
     Icon: IconRules,
     children: [{ to: '/detection-rules', Icon: IconRules, label: 'Detection rules' }],
+  },
+  {
+    label: 'Threat Intel',
+    Icon: IconIntel,
+    children: [
+      { to: '/risk', Icon: IconIntel, label: 'Risk' },
+      { to: '/iocs', Icon: IconIntel, label: 'IOCs' },
+      { to: '/web-url-protection', Icon: IconShield, label: 'Web URL protection' },
+    ],
   },
   {
     label: 'Respond',
@@ -67,6 +99,17 @@ const MENU_ITEMS = [
     children: [
       { to: '/policies', Icon: IconConfig, label: 'Policies' },
       { to: '/audit-logs', Icon: IconConfig, label: 'Audit logs' },
+      { to: '/protection', Icon: IconShield, label: 'Protection capabilities' },
+    ],
+  },
+  {
+    label: 'Enterprise',
+    Icon: IconEnterprise,
+    children: [
+      { to: '/enterprise', Icon: IconEnterprise, label: 'Settings' },
+      { to: '/tenants', Icon: IconEnterprise, label: 'Tenants' },
+      { to: '/mssp', Icon: IconEnterprise, label: 'MSSP console' },
+      { to: '/rbac', Icon: IconConfig, label: 'RBAC' },
     ],
   },
   {
@@ -76,8 +119,11 @@ const MENU_ITEMS = [
       { to: '/av', Icon: IconShield, label: 'Overview' },
       { to: '/av/detections', Icon: IconShield, label: 'Detections' },
       { to: '/av/quarantine', Icon: IconShield, label: 'Quarantine' },
+      { to: '/av/scan-tasks', Icon: IconShield, label: 'Scan tasks' },
       { to: '/av/policies', Icon: IconShield, label: 'Policies' },
       { to: '/av/signatures', Icon: IconShield, label: 'Signatures' },
+      { to: '/av/malware-alerts', Icon: IconShield, label: 'Malware alerts' },
+      { to: '/av/reputation', Icon: IconShield, label: 'File reputation' },
     ],
   },
 ];
@@ -86,9 +132,7 @@ function NavMenuItem({ item, user }) {
   const location = useLocation();
   const children =
     item.label === 'Enterprise' && item.children ? filterEnterpriseNavChildren(item.children, user) : item.children;
-  if (item.label === 'Enterprise' && (!children || children.length === 0)) {
-    return null;
-  }
+
   const paths = children?.map((c) => c.to) ?? [];
   const isActive = paths.some((p) => location.pathname === p || location.pathname.startsWith(`${p}/`));
   const [expanded, setExpanded] = useState(isActive);
@@ -112,6 +156,10 @@ function NavMenuItem({ item, user }) {
         </NavLink>
       </div>
     );
+  }
+
+  if (!children || children.length === 0) {
+    return null;
   }
 
   return (
@@ -166,7 +214,6 @@ export default function Layout() {
       <a href="#main-content" className="falcon-skip-link">
         Skip to main content
       </a>
-      {!professionalView && (
       <aside className={styles.sidebar}>
         <div className={styles.logo}>
           <span className={styles.logoMark} aria-hidden>
@@ -177,6 +224,18 @@ export default function Layout() {
           </div>
         </div>
         <nav className={styles.nav} aria-label="Primary">
+          <div className={styles.navDashboardTop}>
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) => (isActive ? styles.navActive : '')}
+            >
+              <span className={styles.navIcon}>
+                <IconActivity />
+              </span>
+              Dashboard
+            </NavLink>
+          </div>
           {MENU_ITEMS.map((item) => (
             <NavMenuItem key={item.label || item.to} item={item} user={user} />
           ))}
@@ -189,40 +248,10 @@ export default function Layout() {
           </button>
         </div>
       </aside>
-      )}
       <main id="main-content" className={styles.main} tabIndex={-1} aria-label="Workspace">
         <RouteAnnouncer />
         <div className={styles.mainHeader}>
           <TenantSwitcher />
-          {professionalView && (
-            <nav className={styles.proQuickNav} aria-label="Quick navigation">
-              <NavLink
-                to="/"
-                end
-                className={({ isActive }) => `${styles.proQuickLink} ${isActive ? styles.proQuickLinkActive : ''}`}
-              >
-                Activity
-              </NavLink>
-              <NavLink
-                to="/alerts"
-                className={({ isActive }) => `${styles.proQuickLink} ${isActive ? styles.proQuickLinkActive : ''}`}
-              >
-                Detections
-              </NavLink>
-              <NavLink
-                to="/endpoints"
-                className={({ isActive }) => `${styles.proQuickLink} ${isActive ? styles.proQuickLinkActive : ''}`}
-              >
-                Hosts
-              </NavLink>
-              <NavLink
-                to="/events"
-                className={({ isActive }) => `${styles.proQuickLink} ${isActive ? styles.proQuickLinkActive : ''}`}
-              >
-                Events
-              </NavLink>
-            </nav>
-          )}
           <GlobalSearch />
           <ThemeToggle />
         </div>

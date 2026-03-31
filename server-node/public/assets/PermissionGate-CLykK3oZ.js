@@ -1,1 +1,0 @@
-import{u as l}from"./index-D5JKdMQm.js";function h({permission:r,anyOf:e,children:o,fallback:u=null}){const{hasPermission:s}=l();let t=!0;return e!=null&&e.length?t=e.some(i=>s(i)):r&&(t=s(r)),t?o:u}export{h as P};

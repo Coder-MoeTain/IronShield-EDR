@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Management;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using EDR.Agent.Core.Models;
@@ -43,6 +44,8 @@ public class ProcessCollector : EventCollectorBase
                         var hash = !string.IsNullOrEmpty(path) ? ComputeFileSha256(path) : null;
                         var indicatorCount = BuildSuspiciousIndicatorCount(name, path);
                         var entropy = ComputeTextEntropy(path);
+                        var wsMb = TryGetWorkingSetMb(pid);
+                        var cpuPct = TryGetProcessCpuPercent(pid);
                         events.Add(new TelemetryEvent
                         {
                             EventId = $"proc_create_{pid}_{DateTime.UtcNow:O}",
@@ -58,9 +61,11 @@ public class ProcessCollector : EventCollectorBase
                             CommandLineEntropy = entropy,
                             SuspiciousIndicatorCount = indicatorCount,
                             CollectorConfidence = 0.92,
+                            ProcessWorkingSetMb = wsMb,
+                            ProcessCpuPercent = cpuPct,
                             RawData = new Dictionary<string, object?>
                             {
-                                ["collector_version"] = "process-v2",
+                                ["collector_version"] = "process-v3",
                                 ["path_depth"] = CountPathDepth(path),
                             },
                         });
@@ -160,5 +165,42 @@ public class ProcessCollector : EventCollectorBase
     {
         if (string.IsNullOrWhiteSpace(path)) return 0;
         return path.Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries).Length;
+    }
+
+    private static double? TryGetWorkingSetMb(int pid)
+    {
+        try
+        {
+            using var p = Process.GetProcessById(pid);
+            return Math.Round(p.WorkingSet64 / (1024.0 * 1024.0), 2);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Windows formatted perf counter: % of total CPU time for this process (can be 0 on first sample).</summary>
+    private static double? TryGetProcessCpuPercent(int pid)
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return null;
+        try
+        {
+            using var searcher = new ManagementObjectSearcher(
+                $"SELECT PercentProcessorTime FROM Win32_PerfFormattedData_PerfProc_Process WHERE IDProcess = {pid}");
+            using var results = searcher.Get();
+            foreach (ManagementObject mo in results)
+            {
+                var v = mo["PercentProcessorTime"];
+                if (v == null) continue;
+                return Math.Round(Convert.ToDouble(v), 2);
+            }
+        }
+        catch
+        {
+            /* WMI unavailable or counter not ready */
+        }
+
+        return null;
     }
 }

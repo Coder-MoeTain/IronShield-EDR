@@ -443,7 +443,7 @@ export default function Dashboard() {
   return (
     <PageShell
       kicker="Overview"
-      title="Activity"
+      title="Dashboard"
       description="Sensor volume, detections, SOC queue, host policy, and workflows — 24h charts refresh every 30s."
       actions={(
         <>

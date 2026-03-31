@@ -9,14 +9,14 @@ test.describe('dashboard smoke', () => {
     await expect(page.getByPlaceholder('Username')).toBeVisible();
   });
 
-  test('home dashboard shows Activity and SOC posture strip', async ({ page }) => {
+  test('home dashboard shows Dashboard heading and SOC posture strip', async ({ page }) => {
     await installDashboardApiMocks(page);
     await page.addInitScript((token) => {
       localStorage.setItem('edr_token', token);
     }, MOCK_JWT);
 
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'Activity' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 30_000 });
     await expect(page.getByRole('region', { name: 'SOC posture' })).toBeVisible();
     await expect(page.getByText('Online 15m: 2/3')).toBeVisible();
     await expect(page.getByText('Alert queue: 1')).toBeVisible();

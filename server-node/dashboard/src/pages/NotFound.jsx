@@ -11,10 +11,10 @@ export default function NotFound() {
     <PageShell
       kicker="Navigation"
       title="Page not found"
-      description="The URL does not match any view in this console. Use the sidebar, search, or go back to Activity."
+      description="The URL does not match any view in this console. Use the sidebar, search, or go back to the dashboard."
       actions={
         <Link to="/" className="falcon-btn falcon-btn-primary">
-          Activity
+          Dashboard
         </Link>
       }
     >

@@ -16,7 +16,7 @@ export default function SocRouteGuard({ children, allow }) {
       description="Your role does not include this area. Contact an administrator if you need access."
     >
       <Link to="/" className="falcon-btn falcon-btn-primary" style={{ marginTop: '0.75rem', display: 'inline-block' }}>
-        Back to Activity
+        Back to dashboard
       </Link>
     </PageShell>
   );
