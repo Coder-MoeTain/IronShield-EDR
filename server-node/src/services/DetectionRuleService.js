@@ -95,11 +95,13 @@ async function list(filters = {}) {
     params.push(q, q, q);
   }
   sql += ' ORDER BY name ASC';
-  return db.query(sql, params);
+  const rows = await db.query(sql, params);
+  return rows.map(normalizeRuleRow);
 }
 
 async function getById(id) {
-  return db.queryOne('SELECT * FROM detection_rules WHERE id = ?', [id]);
+  const row = await db.queryOne('SELECT * FROM detection_rules WHERE id = ?', [id]);
+  return row ? normalizeRuleRow(row) : null;
 }
 
 async function create(data) {
@@ -171,7 +173,9 @@ async function update(id, data) {
 
 function n(v) {
   if (v == null) return 0;
-  return typeof v === 'bigint' ? Number(v) : Number(v);
+  if (typeof v === 'bigint') return Number(v);
+  const x = Number(v);
+  return Number.isFinite(x) ? x : 0;
 }
 
 async function summary() {

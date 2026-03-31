@@ -63,9 +63,10 @@ const MENU_ITEMS = [
     label: 'XDR',
     Icon: IconExplore,
     children: [
+      { to: '/xdr', Icon: IconExplore, label: 'Overview' },
       { to: '/xdr/events', Icon: IconExplore, label: 'XDR events' },
       { to: '/xdr/detections', Icon: IconDetections, label: 'XDR detections' },
-      { to: '/xdr/realtime', Icon: IconActivity, label: 'XDR realtime' },
+      { to: '/xdr/realtime', Icon: IconActivity, label: 'Live stream' },
     ],
   },
   {
@@ -181,7 +182,7 @@ function NavMenuItem({ item, user }) {
             <NavLink
               key={child.to}
               to={child.to}
-              end={child.to === '/av' || child.to === '/protection'}
+              end={child.to === '/av' || child.to === '/protection' || child.to === '/xdr'}
               className={({ isActive: childActive }) =>
                 `${styles.navSubItem} ${childActive ? styles.navActive : ''}`
               }
@@ -221,6 +222,7 @@ export default function Layout() {
           </span>
           <div className={styles.logoText}>
             <span className={styles.logoTitle}>IronShield</span>
+            <span className={styles.logoSub}>Full EDR</span>
           </div>
         </div>
         <nav className={styles.nav} aria-label="Primary">

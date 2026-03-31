@@ -1,5 +1,6 @@
 agent-csharp > dotnet run --project src\EDR.Agent.Service\EDR.Agent.Service.csproj -- --console
 server-node > npm start
 
+cd server-node && npm run migrate-all
 admin
 ChangeMe123!

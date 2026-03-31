@@ -204,7 +204,7 @@ export default function GeoWorldMap({
     return [...m.values()];
   }, [edges]);
 
-  const h = compact ? 260 : fullscreen ? '100%' : 'min(62vh, 640px)';
+  const h = compact ? 265 : fullscreen ? '100%' : 'min(62vh, 640px)';
 
   return (
     <div

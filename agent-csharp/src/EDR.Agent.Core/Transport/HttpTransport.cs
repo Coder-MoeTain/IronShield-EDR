@@ -4,6 +4,7 @@ using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using EDR.Agent.Core.Antivirus.Models;
 using EDR.Agent.Core.Models;
 
@@ -21,6 +22,13 @@ public class HttpTransport
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = false,
+    };
+
+    private static readonly JsonSerializerOptions DetectionRulesJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        PropertyNameCaseInsensitive = true,
+        NumberHandling = JsonNumberHandling.AllowReadingFromString,
     };
 
     public HttpTransport(AgentConfig config, string? agentKey = null)
@@ -233,6 +241,19 @@ public class HttpTransport
         using var doc = JsonDocument.Parse(body);
         if (!doc.RootElement.TryGetProperty("agent_key", out var k)) throw new InvalidOperationException("Invalid rotate response");
         return k.GetString() ?? throw new InvalidOperationException("Invalid agent_key");
+    }
+
+    /// <summary>
+    /// Fetch enabled IOA detection rules for local evaluation (same semantics as server engine).
+    /// </summary>
+    public async Task<DetectionRulesSyncResponse?> GetDetectionRulesAsync(CancellationToken ct = default)
+    {
+        using var req = CreateSignedRequest(HttpMethod.Get, $"{_baseUrl}/api/agent/detection-rules");
+        var res = await _client.SendAsync(req, ct);
+        if (res.StatusCode == HttpStatusCode.NotFound) return null;
+        if (!res.IsSuccessStatusCode) return null;
+        var body = await res.Content.ReadAsStringAsync(ct);
+        return JsonSerializer.Deserialize<DetectionRulesSyncResponse>(body, DetectionRulesJsonOptions);
     }
 
     /// <summary>

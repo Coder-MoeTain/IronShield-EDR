@@ -9,6 +9,10 @@ This folder provides **structured substitutes** for three activities that are no
 | Pentest substitute | [assurance-program.md](assurance-program.md) | Automated checks + manual review cadence + scope limits. |
 | SOC gap matrix | [soc-gap-matrix.md](soc-gap-matrix.md) | Maps EDR/SOC expectations to repo features vs operational work. |
 
+## Product UI screenshots
+
+For **dashboard / console** screenshots (PNG, regenerated via Playwright), see the main repository [README](../../README.md#screenshots) and the [`docs/images/`](../images/) folder.
+
 ## Quick commands
 
 From `server-node`:

@@ -1,3 +1,97 @@
+.tabBar {
+  margin-bottom: 1.25rem;
+}
+
+.tabBar :global(.ui-segmented) {
+  flex-wrap: wrap;
+}
+
+.tabPanel {
+  animation: tabFade 0.2s ease;
+}
+
+@keyframes tabFade {
+  from {
+    opacity: 0.85;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.kpiRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.kpiChip {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.65rem 1rem;
+  min-width: 7.5rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-glass);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-sm);
+}
+
+.kpiChipLabel {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.kpiChipValue {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+.sectionTitle {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+}
+
+.subsection {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.subsection:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.subsection h4 {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 0.65rem;
+}
+
+.quickLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
 .header {
   display: flex;
   align-items: center;
@@ -37,9 +131,8 @@
   color: #b91c1c;
 }
 
-/* Falcon-style sensor / containment strip (Phase 4) */
 .sensorStrip {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
   padding: 1rem 1.25rem;
   border-radius: 12px;
   border: 1px solid var(--border);
@@ -124,9 +217,9 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 0;
 }
 
 .card {
@@ -162,7 +255,7 @@
 }
 
 .section {
-  margin-top: 1.5rem;
+  margin-top: 1.25rem;
   background: var(--bg-glass);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -185,7 +278,8 @@
   margin-bottom: 0.5rem;
 }
 
-.actionForm select, .actionForm input {
+.actionForm select,
+.actionForm input {
   padding: 0.5rem 0.75rem;
   background: var(--bg-tertiary);
   border: 1px solid var(--border);

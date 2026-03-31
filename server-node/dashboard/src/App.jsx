@@ -58,6 +58,7 @@ const ThreatGraph = lazy(() => import('./pages/ThreatGraph'));
 const AgentNetworkMap = lazy(() => import('./pages/AgentNetworkMap'));
 const AnalyticsDetections = lazy(() => import('./pages/AnalyticsDetections'));
 const FalconRoadmapPage = lazy(() => import('./pages/FalconRoadmapPage'));
+const XdrOverview = lazy(() => import('./pages/XdrOverview'));
 const XdrEvents = lazy(() => import('./pages/XdrEvents'));
 const XdrDetections = lazy(() => import('./pages/XdrDetections'));
 const XdrRealtime = lazy(() => import('./pages/XdrRealtime'));
@@ -117,6 +118,7 @@ export default function App() {
                   <Route path="agent-network-map" element={<AgentNetworkMap />} />
                   <Route path="analytics-detections" element={<AnalyticsDetections />} />
                   <Route path="falcon/:area" element={<FalconRoadmapPage />} />
+                  <Route path="xdr" element={<XdrOverview />} />
                   <Route path="xdr/events" element={<XdrEvents />} />
                   <Route path="xdr/detections" element={<XdrDetections />} />
                   <Route path="xdr/realtime" element={<XdrRealtime />} />

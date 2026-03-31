@@ -17,7 +17,7 @@ export default function Login() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = 'Sign in — IronShield';
+    document.title = 'Sign in — IronShield Full EDR';
   }, []);
 
   const handleSubmit = async (e) => {
@@ -52,7 +52,7 @@ export default function Login() {
             <IconShield />
           </div>
           <h1>IronShield</h1>
-          <p>Sign in to the EDR console</p>
+          <p>Full EDR — sign in to the console</p>
         </div>
         <form onSubmit={handleSubmit} className={styles.form}>
           {error && <div className={styles.error}>{error}</div>}

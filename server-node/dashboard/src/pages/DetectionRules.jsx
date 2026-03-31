@@ -9,6 +9,12 @@ import { falconSeverityClass } from '../utils/falconUi';
 import { asJsonListOrKeyed } from '../utils/apiJson';
 import styles from './DetectionRules.module.css';
 
+function numOrNull(v) {
+  if (v == null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
 export default function DetectionRules() {
   const { api } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -18,6 +24,8 @@ export default function DetectionRules() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(null);
+  const [selected, setSelected] = useState(() => new Set());
+  const [bulkWorking, setBulkWorking] = useState(false);
 
   const q = searchParams.get('q') || '';
   const severity = searchParams.get('severity') || '';
@@ -46,6 +54,10 @@ export default function DetectionRules() {
     if (tab === 'rules') fetchRules();
   }, [tab, fetchRules]);
 
+  useEffect(() => {
+    setSelected(new Set());
+  }, [q, severity, enabled]);
+
   const setFilter = (key, value) => {
     const next = new URLSearchParams(searchParams);
     if (value === '' || value == null) next.delete(key);
@@ -73,6 +85,45 @@ export default function DetectionRules() {
     }
   };
 
+  const toggleSelect = (ruleId) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(ruleId)) next.delete(ruleId);
+      else next.add(ruleId);
+      return next;
+    });
+  };
+
+  const selectAllVisible = () => {
+    if (rules.length === 0) return;
+    setSelected(new Set(rules.map((r) => r.id)));
+  };
+
+  const clearSelection = () => setSelected(new Set());
+
+  const setBulkEnabled = async (enabledNext) => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    setBulkWorking(true);
+    try {
+      for (const id of ids) {
+        const res = await api(`/api/admin/detection-rules/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled: enabledNext }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `Failed on rule ${id}`);
+      }
+      clearSelection();
+      fetchRules();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setBulkWorking(false);
+    }
+  };
+
   const setTab = (next) => {
     if (next === 'rules') {
       const n = new URLSearchParams(searchParams);
@@ -82,16 +133,22 @@ export default function DetectionRules() {
   };
 
   const s = summary || {};
-  const stats = useMemo(
-    () => [
-      { label: 'Total rules', value: s.total ?? '—' },
-      { label: 'Enabled', value: s.enabled_count ?? '—' },
-      { label: 'Critical', value: s.critical ?? '—' },
-      { label: 'High', value: s.high ?? '—' },
-      { label: 'Medium / Low', value: `${s.medium ?? 0} / ${s.low ?? 0}` },
-    ],
-    [s]
-  );
+  const totalInDb = numOrNull(s.total);
+
+  const stats = useMemo(() => {
+    const med = numOrNull(s.medium);
+    const low = numOrNull(s.low);
+    return [
+      { label: 'Total rules (database)', value: numOrNull(s.total) ?? '—' },
+      { label: 'Enabled (database)', value: numOrNull(s.enabled_count) ?? '—' },
+      { label: 'Critical', value: numOrNull(s.critical) ?? '—' },
+      { label: 'High', value: numOrNull(s.high) ?? '—' },
+      {
+        label: 'Medium / Low',
+        value: med != null && low != null ? `${med} / ${low}` : '—',
+      },
+    ];
+  }, [s]);
 
   const visibleRules = rules.length;
   const activeFilterCount = [q, severity, enabled].filter(Boolean).length;
@@ -102,7 +159,7 @@ export default function DetectionRules() {
     <PageShell
       kicker="Detection"
       title="Custom IOA rules"
-      description="Falcon-style detection definitions: sensor evaluates normalized events against JSON conditions (Sigma-like). Manage suppressions separately to reduce noise."
+      description="Define conditions (ANDed) for the server detection engine. Enabled rules are pushed to agents for local evaluation; matching rules appear as agent_rule_matches on telemetry. Use suppressions to reduce noise."
       actions={
         tab === 'rules' ? (
           <Link to="/detection-rules/new" className="falcon-btn">
@@ -142,9 +199,29 @@ export default function DetectionRules() {
             ))}
           </div>
 
+          {!loading && (
+            <p className={styles.listContext} role="status">
+              {totalInDb != null ? (
+                <>
+                  Showing <strong>{visibleRules}</strong> of <strong>{totalInDb}</strong> rules in this table
+                  {activeFilterCount > 0
+                    ? ' (filters applied)'
+                    : visibleRules === totalInDb
+                      ? ' — all rules in the database'
+                      : ''}
+                  .
+                </>
+              ) : (
+                <>
+                  Showing <strong>{visibleRules}</strong> rules (database totals unavailable).
+                </>
+              )}
+            </p>
+          )}
+
           <div className={styles.overviewStrip}>
             <div className={styles.overviewItem}>
-              <span className={styles.overviewLabel}>Visible rules</span>
+              <span className={styles.overviewLabel}>Rows listed</span>
               <strong className={styles.overviewValue}>{visibleRules}</strong>
             </div>
             <div className={styles.overviewItem}>
@@ -187,6 +264,28 @@ export default function DetectionRules() {
                 <button type="button" className="falcon-btn falcon-btn-ghost" onClick={fetchRules}>
                   ↻ Refresh
                 </button>
+                <button type="button" className="falcon-btn falcon-btn-ghost" onClick={selectAllVisible} disabled={rules.length === 0}>
+                  Select visible
+                </button>
+                <button type="button" className="falcon-btn falcon-btn-ghost" onClick={clearSelection} disabled={selected.size === 0}>
+                  Clear selection ({selected.size})
+                </button>
+                <button
+                  type="button"
+                  className="falcon-btn falcon-btn-ghost"
+                  onClick={() => setBulkEnabled(true)}
+                  disabled={selected.size === 0 || bulkWorking}
+                >
+                  {bulkWorking ? '…' : 'Enable selected'}
+                </button>
+                <button
+                  type="button"
+                  className="falcon-btn falcon-btn-ghost"
+                  onClick={() => setBulkEnabled(false)}
+                  disabled={selected.size === 0 || bulkWorking}
+                >
+                  {bulkWorking ? '…' : 'Disable selected'}
+                </button>
                 <button
                   type="button"
                   className="falcon-btn falcon-btn-ghost"
@@ -208,6 +307,13 @@ export default function DetectionRules() {
               <table className={styles.table}>
                 <thead>
                   <tr>
+                    <th className={styles.checkCol} aria-label="Select">
+                      <input
+                        type="checkbox"
+                        checked={rules.length > 0 && selected.size === rules.length}
+                        onChange={() => (selected.size === rules.length ? clearSelection() : selectAllVisible())}
+                      />
+                    </th>
                     <th>Status</th>
                     <th>Rule ID</th>
                     <th>Title</th>
@@ -221,6 +327,14 @@ export default function DetectionRules() {
                 <tbody>
                   {rules.map((r) => (
                     <tr key={r.id}>
+                      <td className={styles.checkCol}>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(r.id)}
+                          onChange={() => toggleSelect(r.id)}
+                          aria-label={`Select ${r.name}`}
+                        />
+                      </td>
                       <td>
                         <button
                           type="button"

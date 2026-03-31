@@ -13,7 +13,10 @@ export async function asJsonList(response, listKey = null) {
   if (!response.ok) return [];
   if (listKey != null) {
     const v = data?.[listKey];
-    return Array.isArray(v) ? v : [];
+    if (Array.isArray(v)) return v;
+    // Older servers returned a bare array for some list endpoints.
+    if (Array.isArray(data)) return data;
+    return [];
   }
   return Array.isArray(data) ? data : [];
 }

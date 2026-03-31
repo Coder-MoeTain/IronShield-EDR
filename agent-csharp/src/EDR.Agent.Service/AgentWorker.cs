@@ -7,6 +7,7 @@ using EDR.Agent.Core.Services;
 using EDR.Agent.Core.Transport;
 using EDR.Agent.Core.Utils;
 using EDR.Agent.Core.DeviceControl;
+using EDR.Agent.Core.Detection;
 using EDR.Agent.Core.WebUrl;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -57,6 +58,9 @@ public class AgentWorker
 
     private AvPolicy? _deviceControlPolicy;
     private readonly object _devicePolicyLock = new();
+
+    /// <summary>Enabled detection rules from server — evaluated locally before upload; matches stored in raw as agent_rule_matches.</summary>
+    private IReadOnlyList<AgentDetectionRuleDto> _detectionRules = Array.Empty<AgentDetectionRuleDto>();
 
     private RealtimeScanWatcher? _realtimeWatcher;
     private readonly object _realtimeLock = new();
@@ -125,6 +129,7 @@ public class AgentWorker
         _updateChecker = new UpdateCheckService(_config.ServerUrl, () => _config.AgentKey, AgentVersion);
         _ = SendImmediateHeartbeatAndNetworkAsync(_cts.Token);
         _ = InitialPolicyFetchAsync(_cts.Token);
+        _ = InitialDetectionRulesFetchAsync(_cts.Token);
         _heartbeatTask = HeartbeatLoopAsync(_cts.Token);
         _uploadTask = UploadLoopAsync(_cts.Token);
         _collectTask = CollectLoopAsync(_cts.Token);
@@ -135,8 +140,9 @@ public class AgentWorker
         var connectivityTask = ServerConnectivityWatchLoopAsync(_cts.Token);
         var deviceControlTask = DeviceControlPolicyLoopAsync(_cts.Token);
         var webUrlTask = WebUrlProtectionLoopAsync(_cts.Token);
+        var detectionRulesTask = DetectionRulesSyncLoopAsync(_cts.Token);
 
-        await Task.WhenAll(_heartbeatTask, _uploadTask, _collectTask, commandTask, triageTask, updateTask, avTask, connectivityTask, deviceControlTask, webUrlTask);
+        await Task.WhenAll(_heartbeatTask, _uploadTask, _collectTask, commandTask, triageTask, updateTask, avTask, connectivityTask, deviceControlTask, webUrlTask, detectionRulesTask);
     }
 
     /// <summary>USB / removable volume policy: WMI volume arrival, audit or eject (user-mode).</summary>
@@ -484,6 +490,7 @@ public class AgentWorker
 
             var apiObjects = batch.Select((b) =>
             {
+                ApplyAgentDetectionRules(b.Event);
                 EnsureEventId(b.Event);
                 return EventSerializer.ToApiObject(b.Event);
             }).ToList();
@@ -895,6 +902,78 @@ public class AgentWorker
         {
             /* non-fatal */
         }
+    }
+
+    private async Task InitialDetectionRulesFetchAsync(CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(_config.AgentKey)) return;
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5), ct);
+            var res = await _transport.GetDetectionRulesAsync(ct);
+            if (res?.Rules is { Count: > 0 } rules)
+            {
+                _detectionRules = rules;
+                Console.WriteLine($"[Agent] Loaded {rules.Count} enabled detection rules for local evaluation (version {res.Version}).");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Agent] Initial detection rules fetch failed: {ex.Message}");
+        }
+    }
+
+    private async Task DetectionRulesSyncLoopAsync(CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromMinutes(1), ct);
+        }
+        catch
+        {
+            return;
+        }
+
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(_config.AgentKey))
+                {
+                    var res = await _transport.GetDetectionRulesAsync(ct);
+                    if (res?.Rules != null)
+                        _detectionRules = res.Rules;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Agent] Detection rules sync failed: {ex.Message}");
+            }
+
+            try
+            {
+                await Task.Delay(TimeSpan.FromMinutes(5), ct);
+            }
+            catch
+            {
+                break;
+            }
+        }
+    }
+
+    private void ApplyAgentDetectionRules(TelemetryEvent evt)
+    {
+        if (_detectionRules.Count == 0) return;
+        var matches = new List<Dictionary<string, object?>>();
+        foreach (var rule in _detectionRules)
+        {
+            if (DetectionRuleEvaluator.Matches(rule, evt))
+                matches.Add(new Dictionary<string, object?> { ["rule_id"] = rule.Id, ["name"] = rule.Name });
+        }
+
+        if (matches.Count == 0) return;
+        evt.RawData ??= new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        evt.RawData["agent_rule_matches"] = matches;
     }
 
     private void ApplyEndpointPolicy(EndpointPolicy? policy)

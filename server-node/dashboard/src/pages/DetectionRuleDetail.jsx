@@ -87,7 +87,8 @@ export default function DetectionRuleDetail() {
       <section className={styles.section}>
         <h3 className={styles.h3}>Conditions (logic)</h3>
         <p className={styles.hint}>
-          All keys must match (AND). Keys are evaluated by the detection engine on normalized events.
+          All keys must match (AND). The server evaluates on ingest; enabled rules are also synced to agents for local
+          evaluation. Matches may appear on raw events as <code className={styles.code}>agent_rule_matches</code>.
         </p>
         <pre className={styles.pre}>{condJson}</pre>
       </section>

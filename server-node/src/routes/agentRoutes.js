@@ -52,4 +52,7 @@ router.post('/av/tasks/:id/result', authAgentValidated, avController.submitTaskR
 const webProtectionController = require('../controllers/webProtectionController');
 router.get('/web/blocklist', authAgentValidated, webProtectionController.getWebBlocklist);
 
+const agentDetectionRulesController = require('../controllers/agentDetectionRulesController');
+router.get('/detection-rules', authAgentValidated, agentDetectionRulesController.getDetectionRules);
+
 module.exports = router;

@@ -9,7 +9,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:install": "playwright install --with-deps chromium"
+    "test:e2e:install": "playwright install --with-deps chromium",
+    "capture-screenshots": "node scripts/capture-readme-screenshots.mjs"
   },
   "dependencies": {
     "@tanstack/react-virtual": "^3.13.23",

@@ -93,6 +93,7 @@ function getCapabilitiesCatalog() {
           { label: 'Web & URL console', path: '/web-url-protection' },
           { label: 'IOC watchlist', path: '/iocs' },
           { label: 'Network activity', path: '/network' },
+          { label: 'XDR overview', path: '/xdr' },
           { label: 'XDR events', path: '/xdr/events' },
         ],
       },

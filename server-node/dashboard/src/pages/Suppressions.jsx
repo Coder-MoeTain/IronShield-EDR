@@ -27,7 +27,7 @@ export default function Suppressions({ embedded = false }) {
     Promise.all([api('/api/admin/suppressions'), api('/api/admin/detection-rules')])
       .then(async ([rs, rr]) => {
         setRows(await asJsonList(rs));
-        setRules(await asJsonList(rr));
+        setRules(await asJsonList(rr, 'rules'));
       })
       .catch(() => {
         setRows([]);

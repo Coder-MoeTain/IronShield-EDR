@@ -1,12 +1,13 @@
 {
   "name": "edr-platform-backend",
   "version": "1.0.0",
-  "description": "IronShield EDR Platform - Node.js Backend API",
+  "description": "IronShield Full EDR — Node.js backend API (ingest, detection, alerts, RBAC)",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "create-admin": "node scripts/create-admin.js",
+    "seed:detection-rules-100": "node scripts/seed-detection-rules-100.js",
     "process-events": "node scripts/process-unprocessed-events.js",
     "worker": "node src/worker.js",
     "worker:kafka:endpoint-raw": "node src/workers/KafkaEndpointRawWorker.js",

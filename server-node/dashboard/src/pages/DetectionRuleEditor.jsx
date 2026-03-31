@@ -18,6 +18,9 @@ const ALLOWED_KEYS = [
   'dns_query_length_gt',
   'registry_key_contains',
   'image_loaded_contains',
+  'command_line_entropy_gt',
+  'suspicious_indicator_count_gte',
+  'collector_confidence_lt',
 ];
 
 const TEMPLATE = `{

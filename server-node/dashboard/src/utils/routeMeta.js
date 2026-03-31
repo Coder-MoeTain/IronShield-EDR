@@ -2,7 +2,7 @@
  * Route labels for document title and breadcrumbs (SOC console IA).
  */
 
-const APP = 'IronShield';
+const APP = 'IronShield Full EDR';
 
 const TOP = {
   endpoints: { label: 'Hosts', path: '/endpoints' },
@@ -76,8 +76,13 @@ export function getBreadcrumbs(pathname) {
 
   const [a0, a1, a2] = segments;
 
+  if (a0 === 'xdr' && !a1) {
+    crumbs.push({ label: 'XDR', to: '/xdr' });
+    return crumbs;
+  }
+
   if (a0 === 'xdr' && a1 && XDR_SUB[a1]) {
-    crumbs.push({ label: 'XDR', to: '/xdr/events' });
+    crumbs.push({ label: 'XDR', to: '/xdr' });
     crumbs.push({ label: XDR_SUB[a1].label, to: XDR_SUB[a1].path });
     return crumbs;
   }

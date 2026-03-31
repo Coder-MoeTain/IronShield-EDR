@@ -464,8 +464,9 @@ async function listResponseActions(req, res, next) {
 
 async function listDetectionRules(req, res, next) {
   try {
-    const rules = await db.query('SELECT * FROM detection_rules ORDER BY name');
-    res.json(rules);
+    const rules = await DetectionRuleService.list(req.query || {});
+    const summary = await DetectionRuleService.summary();
+    res.json({ rules, summary });
   } catch (err) {
     next(err);
   }
@@ -495,14 +496,15 @@ async function createDetectionRule(req, res, next) {
 
 async function updateDetectionRule(req, res, next) {
   try {
-    const { id } = req.params;
-    const { enabled } = req.body || {};
-    if (enabled !== undefined) {
-      await db.query('UPDATE detection_rules SET enabled = ? WHERE id = ?', [enabled ? 1 : 0, id]);
-    }
-    const rule = await db.queryOne('SELECT * FROM detection_rules WHERE id = ?', [id]);
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid id' });
+    const rule = await DetectionRuleService.update(id, req.body || {});
+    if (!rule) return res.status(404).json({ error: 'Rule not found' });
     res.json(rule);
   } catch (err) {
+    if (err.message?.includes('required') || err.message?.includes('invalid') || err.message?.includes('must')) {
+      return res.status(400).json({ error: err.message });
+    }
     next(err);
   }
 }

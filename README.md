@@ -11,8 +11,8 @@
 </p>
 
 <p align="center">
-  <strong>IronShield EDR</strong> — A defensive Windows Endpoint Detection and Response (EDR) platform<br>
-  for endpoint monitoring, security event analysis, and coordinated response.
+  <strong>IronShield Full EDR</strong> — A defensive Windows-focused <strong>full EDR</strong> platform<br>
+  (telemetry, prevention, detection, response, investigations) for security monitoring and coordinated response.
 </p>
 
 <p align="center">
@@ -50,16 +50,19 @@
 
 | When | What |
 |:-----|:-----|
-| **Mar 2025** | **Network activity (Falcon-style)** — Explore page: KPI strip backed by `GET /api/admin/network/summary`, time window + endpoint filters, **Exclude localhost**, remote IP / process search, **Scope** badges (RFC1918 / External / Loopback), tabs (Connections, Outgoing IPs, Traffic by endpoint, Network logs). Docs: [crowdstrike-network-activity.md](docs/crowdstrike-network-activity.md). |
-| **Mar 2026** | **XDR UI + integrations** — Added XDR pages for `xdr_events` and `xdr_detections`, live **Realtime** feed (`/ws`), host/network bandwidth (RX/TX Mbps), and Enterprise settings for **3rd‑party IP blacklist feeds** → IOC watchlist (`/api/admin/xdr/ip-feeds`). |
-| **Mar 2025** | **README** — Screenshot gallery (vector UI previews) + this changelog. Rebuild dashboard after UI changes: `cd server-node && npm run build-dashboard`. |
+| **Mar 2026** | **Host detail UX** — `/endpoints/:id` uses a tabbed console layout (**Overview**, **Sensor & policies**, **Inventory**, **Response**): KPI strip, consolidated system/health/resource cards, trimmed operational copy, and removal of the legacy one-click demo remediation block. |
+| **Mar 2026** | **README screenshots** — Real UI captures live in [`docs/images/`](docs/images/) (PNG). Regenerate with Playwright after UI changes (see [Screenshots](#screenshots)). |
+| **Mar 2026** | **XDR UI + integrations** — XDR pages for `xdr_events` and `xdr_detections`, live **Realtime** feed (`/ws`), host/network bandwidth (RX/TX Mbps), and Enterprise settings for **3rd‑party IP blacklist feeds** → IOC watchlist (`/api/admin/xdr/ip-feeds`). |
+| **Mar 2025** | **Network activity (Falcon-style)** — Explore page: KPI strip (`GET /api/admin/network/summary`), time window + endpoint filters, **Exclude localhost**, remote IP / process search, **Scope** badges, tabs (Connections, Outgoing IPs, Traffic by endpoint, Network logs). Docs: [crowdstrike-network-activity.md](docs/crowdstrike-network-activity.md). |
 | **Earlier** | Falcon parity phases (sensor telemetry, tenants, NGAV, EDR policy, policy compliance, host timeline), **Detection rules** (Custom IOA), **RTR**, **Threat graph**, **Hunting**, **IOC** watchlist — see [falcon-parity-features.md](docs/falcon-parity-features.md). |
 
 ---
 
 ## 📋 Overview
 
-IronShield EDR is a full-stack security platform that combines telemetry collection, rule-based detection, real-time response actions, and a SOC-style dashboard. Deploy agents on Windows endpoints, ingest events, and analyze threats with built-in antivirus correlation and investigation workflows.
+IronShield is a **full EDR** stack: self-hosted **endpoint visibility**, **NGAV-style prevention**, **rule- and IOC-based detection**, **alerts and investigations**, **remote response (RTR-style)**, optional **XDR-style** correlation (`xdr_events` / `xdr_detections`), and **enterprise controls** (RBAC, multi-tenant, audit). Deploy the **Windows agent** on endpoints, ingest events through the API, and operate from the SOC dashboard.
+
+**What “full EDR” means here:** prevention + detection + response + case workflows in one product—not only log shipping. OS coverage is **Windows-first** for the agent; other platforms are not the focus of this repository.
 
 | Component | Tech Stack | Description |
 |:----------|:-----------|:------------|
@@ -72,11 +75,38 @@ IronShield EDR is a full-stack security platform that combines telemetry collect
 
 ## 📸 Screenshots
 
+Captured from the **IronShield Full EDR** dashboard (default **mock** mode uses Playwright + stubbed `/api/**` responses so you do not need MySQL or a logged-in stack). **Live** mode records your real data: set `README_CAPTURE_MODE=live`, `README_CAPTURE_USERNAME`, and `README_CAPTURE_PASSWORD`.
+
+**Regenerate PNGs** (Vite dev server must be running on port **5173**):
+
+```bash
+cd server-node/dashboard
+npm run dev
+# other terminal:
+npm run capture-screenshots
+# optional: README_CAPTURE_URL=http://127.0.0.1:5173
+```
+
+Outputs are written to **`docs/images/`** (`login.png`, `dashboard.png`, `banner.png`, `hosts.png`, `host-detail.png`, `network-activity.png`, `detection-rules.png`, `architecture.png` from `assets/architecture.svg`).
+
+| Sign in | Dashboard |
+|:---:|:---:|
+| ![Sign in — IronShield Full EDR](docs/images/login.png) | ![SOC dashboard](docs/images/dashboard.png) |
+
+| All hosts | Host detail (Overview tab) |
+|:---:|:---:|
+| ![Hosts list](docs/images/hosts.png) | ![Endpoint detail](docs/images/host-detail.png) |
+
+| Network activity | Detection rules |
+|:---:|:---:|
+| ![Network explore](docs/images/network-activity.png) | ![Detection rules](docs/images/detection-rules.png) |
+
 <p align="center">
-  <sub>Architecture diagram: <a href="#-architecture">Architecture</a> · Banner: <code>assets/banner.svg</code></sub>
+  <sub>Wide banner crop (marketing / hero) · <code>docs/images/banner.png</code></sub><br />
+  <img src="docs/images/banner.png" alt="Dashboard banner crop" width="85%" />
 </p>
 
-The repo no longer ships “demo preview” screenshots by default. Generate your own UI captures for releases.
+Vector assets (`assets/banner.svg`, `assets/screenshot-*.svg`) remain available for diagrams; **product UI** shots above are raster PNGs.
 
 ---
 
@@ -99,6 +129,7 @@ The repo no longer ships “demo preview” screenshots by default. Generate you
 
 ### Dashboard Highlights
 
+- **Host detail** — Tabbed host console: overview KPIs, sensor/policy/NGAV strips, inventory (timeline, ports, disk, shares, connections), and response (RTR, queued actions, policy, triage, playbooks); see [screenshots](#screenshots)
 - **Network activity** — Falcon-style Explore view: KPIs, filters, scope badges, logs ([docs](docs/crowdstrike-network-activity.md); [screenshots](#screenshots))
 - **Bandwidth telemetry** — Agent-reported RX/TX Mbps in host metrics and Network Explore when filtering by endpoint
 - **Process Monitor** — Suspect process detection with suspicious path indicators
