@@ -243,4 +243,19 @@ router.post('/agent-releases', requireAnyPermission('*'), phase6.createAgentRele
 router.patch('/agent-releases/:id', requireAnyPermission('*'), phase6.updateAgentRelease);
 router.delete('/agent-releases/:id', requireAnyPermission('*'), phase6.deleteAgentRelease);
 
+// Phases 3–9: MITRE coverage, reports, system health, integrations
+const mitreController = require('../controllers/mitreController');
+const reportsController = require('../controllers/reportsController');
+const systemHealthController = require('../controllers/systemHealthController');
+const integrationsController = require('../controllers/integrationsController');
+
+router.get('/mitre/coverage', mitreController.getCoverage);
+router.get('/system/health', systemHealthController.getHealth);
+router.get('/reports', reportsController.list);
+router.post('/reports', requireAnyPermission('audit:read', '*'), reportsController.create);
+router.get('/reports/:id/download', requireAnyPermission('audit:read', '*'), reportsController.download);
+router.get('/integrations', integrationsController.list);
+router.post('/integrations', requireAnyPermission('manage_integrations', '*'), integrationsController.create);
+router.post('/integrations/:id/test', requireAnyPermission('manage_integrations', '*'), integrationsController.test);
+
 module.exports = router;

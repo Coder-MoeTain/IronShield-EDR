@@ -1,0 +1,36 @@
+{
+  "id": "IRN-WIN-0050",
+  "name": "LSASS Memory Access Tool",
+  "description": "LSASS Memory Access Tool (defensive detection).",
+  "status": "stable",
+  "severity": "critical",
+  "risk_score": 90,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Credential Access"
+    ],
+    "techniques": [
+      "T1003.001"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "procdump.exe"
+      },
+      {
+        "field": "command_line",
+        "op": "contains",
+        "value": "lsass"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

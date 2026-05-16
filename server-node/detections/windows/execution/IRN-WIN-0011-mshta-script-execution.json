@@ -1,0 +1,36 @@
+{
+  "id": "IRN-WIN-0011",
+  "name": "Mshta Script Execution",
+  "description": "Mshta Script Execution (defensive detection).",
+  "status": "stable",
+  "severity": "high",
+  "risk_score": 72,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Execution"
+    ],
+    "techniques": [
+      "T1218.005"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "mshta.exe"
+      },
+      {
+        "field": "command_line",
+        "op": "contains",
+        "value": "http"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

@@ -1,0 +1,31 @@
+{
+  "id": "IRN-WIN-0070",
+  "name": "Remote Service via PsExec",
+  "description": "Remote Service via PsExec (defensive detection).",
+  "status": "stable",
+  "severity": "high",
+  "risk_score": 75,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Lateral Movement"
+    ],
+    "techniques": [
+      "T1021.002"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "psexec.exe"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

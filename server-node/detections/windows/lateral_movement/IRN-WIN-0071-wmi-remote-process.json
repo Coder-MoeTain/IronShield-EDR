@@ -1,0 +1,36 @@
+{
+  "id": "IRN-WIN-0071",
+  "name": "WMI Remote Process",
+  "description": "WMI Remote Process (defensive detection).",
+  "status": "stable",
+  "severity": "high",
+  "risk_score": 70,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Lateral Movement"
+    ],
+    "techniques": [
+      "T1021.003"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "wmic.exe"
+      },
+      {
+        "field": "command_line",
+        "op": "contains",
+        "value": "/node:"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

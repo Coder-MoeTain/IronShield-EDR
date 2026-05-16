@@ -1,0 +1,87 @@
+# IronShield EDR — production-oriented compose (TLS/mTLS and secrets via env)
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: edr-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: edr_platform
+      MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: edr-redis
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build:
+      context: ./server-node
+      dockerfile: Dockerfile
+    container_name: edr-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: edr_platform
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      AGENT_REGISTRATION_TOKEN: ${AGENT_REGISTRATION_TOKEN:?set AGENT_REGISTRATION_TOKEN}
+      REDIS_URL: redis://redis:6379
+      INGEST_QUEUE_FIRST: 'true'
+      AGENT_REQUEST_SIGNING_REQUIRED: 'true'
+      AGENT_NONCE_STORE: mysql
+      METRICS_TOKEN: ${METRICS_TOKEN:?set METRICS_TOKEN}
+      RESPONSE_COMMAND_HMAC_KEY: ${RESPONSE_COMMAND_HMAC_KEY:-}
+      KAFKA_ENABLED: ${KAFKA_ENABLED:-false}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
+      XDR_INGEST_KEY: ${XDR_INGEST_KEY:?set XDR_INGEST_KEY}
+    ports:
+      - '3000:3000'
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  worker:
+    build:
+      context: ./server-node
+      dockerfile: Dockerfile
+    container_name: edr-worker
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: edr_platform
+      JWT_SECRET: ${JWT_SECRET}
+      AGENT_REGISTRATION_TOKEN: ${AGENT_REGISTRATION_TOKEN}
+      REDIS_URL: redis://redis:6379
+      INGEST_QUEUE_FIRST: 'true'
+    depends_on:
+      - backend
+      - redis
+    command: npm run worker
+
+volumes:
+  mysql_data:
+  redis_data:

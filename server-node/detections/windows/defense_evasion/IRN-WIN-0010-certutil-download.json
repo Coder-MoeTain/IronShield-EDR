@@ -1,0 +1,25 @@
+{
+  "id": "IRN-WIN-0010",
+  "name": "Suspicious Certutil Usage",
+  "description": "Detects certutil with URL or decode flags often used for file transfer.",
+  "status": "stable",
+  "severity": "medium",
+  "risk_score": 65,
+  "platform": "windows",
+  "event_types": ["process_start"],
+  "mitre": { "tactics": ["Defense Evasion"], "techniques": ["T1218"] },
+  "logic": {
+    "all": [
+      { "field": "process_name", "op": "contains", "value": "certutil" },
+      {
+        "any": [
+          { "field": "command_line", "op": "contains", "value": "urlcache" },
+          { "field": "command_line", "op": "contains", "value": "split" },
+          { "field": "command_line", "op": "contains", "value": "decode" }
+        ]
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

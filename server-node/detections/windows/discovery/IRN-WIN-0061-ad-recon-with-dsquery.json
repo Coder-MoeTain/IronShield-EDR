@@ -1,0 +1,31 @@
+{
+  "id": "IRN-WIN-0061",
+  "name": "AD Recon with dsquery",
+  "description": "AD Recon with dsquery (defensive detection).",
+  "status": "stable",
+  "severity": "medium",
+  "risk_score": 50,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Discovery"
+    ],
+    "techniques": [
+      "T1087.002"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "dsquery.exe"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

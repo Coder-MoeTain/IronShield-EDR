@@ -17,6 +17,18 @@ public class ResponseAction
     [JsonPropertyName("parameters")]
     public JsonElement? Parameters { get; set; }
 
+    [JsonPropertyName("endpoint_id")]
+    public long? EndpointId { get; set; }
+
+    [JsonPropertyName("command_signature")]
+    public string? CommandSignature { get; set; }
+
+    [JsonPropertyName("command_expires_at")]
+    public string? CommandExpiresAt { get; set; }
+
+    [JsonPropertyName("command_payload_version")]
+    public string? CommandPayloadVersion { get; set; }
+
     [JsonIgnore]
     public int? ProcessId
     {

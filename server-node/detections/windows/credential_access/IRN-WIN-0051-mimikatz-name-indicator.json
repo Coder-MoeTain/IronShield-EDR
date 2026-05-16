@@ -1,0 +1,31 @@
+{
+  "id": "IRN-WIN-0051",
+  "name": "Mimikatz Name Indicator",
+  "description": "Mimikatz Name Indicator (defensive detection).",
+  "status": "stable",
+  "severity": "critical",
+  "risk_score": 95,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Credential Access"
+    ],
+    "techniques": [
+      "T1003"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "mimikatz"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

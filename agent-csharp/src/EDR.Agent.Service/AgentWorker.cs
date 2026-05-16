@@ -4,6 +4,7 @@ using EDR.Agent.Core.Collectors;
 using EDR.Agent.Core.Models;
 using EDR.Agent.Core.Response;
 using EDR.Agent.Core.Services;
+using EDR.Agent.Core.Security;
 using EDR.Agent.Core.Transport;
 using EDR.Agent.Core.Utils;
 using EDR.Agent.Core.DeviceControl;
@@ -386,7 +387,7 @@ public class AgentWorker
         try
         {
             var result = await _transport.RegisterAsync(payload, token, ct);
-            _configService.SaveAgentKey(result.AgentKey);
+            _configService.SaveAgentKey(result.AgentKey, result.EndpointId);
             _transport.SetAgentKey(result.AgentKey);
             Console.WriteLine($"[Agent] Registered. EndpointId={result.EndpointId}");
         }
@@ -574,6 +575,18 @@ public class AgentWorker
                 {
                     try
                     {
+                        if (!string.IsNullOrWhiteSpace(action.CommandSignature))
+                        {
+                            var endpointId = action.EndpointId ?? _config.EndpointId;
+                            if (!endpointId.HasValue || endpointId.Value <= 0
+                                || string.IsNullOrEmpty(_config.AgentKey)
+                                || !ResponseCommandVerifier.TryVerify(action, endpointId.Value, _config.AgentKey, out var verifyErr))
+                            {
+                                await poller.SubmitResultAsync(action.Id, false, $"Command signature rejected: {verifyErr ?? "missing_endpoint"}", null, ct);
+                                continue;
+                            }
+                        }
+
                         if (!IsResponseActionAllowedByPolicy(action.ActionType))
                         {
                             await poller.SubmitResultAsync(action.Id, false, $"Blocked by endpoint policy mode={_effectivePolicyMode}", null, ct);

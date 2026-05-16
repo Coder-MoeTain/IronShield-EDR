@@ -39,6 +39,12 @@ public class AgentConfig
     /// <summary>Agent key received after registration (persisted)</summary>
     public string? AgentKey { get; set; }
 
+    /// <summary>Endpoint id from server after registration</summary>
+    public long? EndpointId { get; set; }
+
+    /// <summary>DPAPI-protected agent key (preferred over plaintext AgentKey on disk)</summary>
+    public string? AgentKeyProtected { get; set; }
+
     /// <summary>Heartbeat interval in minutes</summary>
     public int HeartbeatIntervalMinutes { get; set; } = 5;
 

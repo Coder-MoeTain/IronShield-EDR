@@ -1,129 +1,124 @@
 /**
- * IronShield EDR Platform - Configuration
+ * IronShield EDR Platform - Configuration (Zod-validated)
  */
 require('dotenv').config();
 
-function requiredEnv(name) {
-  const v = process.env[name];
-  if (v === undefined || v === null || String(v).trim() === '') {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-  return String(v);
-}
+const { parseEnv, trimOrNull } = require('./schema');
 
-function envOrNull(name) {
-  const v = process.env[name];
-  if (v === undefined || v === null) return null;
-  const s = String(v).trim();
-  return s === '' ? null : s;
-}
+const derivedEnv =
+  process.env.NODE_ENV === 'test'
+    ? 'test'
+    : process.env.npm_lifecycle_event === 'dev'
+      ? 'development'
+      : process.env.NODE_ENV || 'development';
 
-const derivedEnv = process.env.npm_lifecycle_event === 'dev'
-  ? 'development'
-  : (process.env.NODE_ENV || 'development');
+const env = parseEnv(process.env, derivedEnv);
+
+function splitCsv(value) {
+  return String(value || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 module.exports = {
   env: derivedEnv,
-  port: parseInt(process.env.PORT || '3000', 10),
+  port: env.PORT ?? 3000,
   tls: {
-    enabled: process.env.TLS_ENABLED === 'true',
-    keyPath: envOrNull('TLS_KEY_PATH'),
-    certPath: envOrNull('TLS_CERT_PATH'),
-    caPath: envOrNull('TLS_CA_PATH'),
-    agentMtlsRequired: process.env.AGENT_MTLS_REQUIRED === 'true',
+    enabled: env.TLS_ENABLED === 'true',
+    keyPath: trimOrNull(env.TLS_KEY_PATH),
+    certPath: trimOrNull(env.TLS_CERT_PATH),
+    caPath: trimOrNull(env.TLS_CA_PATH),
+    agentMtlsRequired: env.AGENT_MTLS_REQUIRED === 'true',
   },
   security: {
-    // Enterprise defaults: in production require TLS and mTLS for agent channel unless explicitly disabled.
-    enforceTlsInProduction: process.env.ENFORCE_TLS_IN_PRODUCTION !== 'false',
-    enforceAgentMtlsInProduction: process.env.ENFORCE_AGENT_MTLS_IN_PRODUCTION !== 'false',
+    enforceTlsInProduction: env.ENFORCE_TLS_IN_PRODUCTION !== 'false',
+    enforceAgentMtlsInProduction: env.ENFORCE_AGENT_MTLS_IN_PRODUCTION !== 'false',
   },
   metrics: {
-    enabled: process.env.METRICS_ENABLED !== 'false',
-    token: envOrNull('METRICS_TOKEN'),
+    enabled: env.METRICS_ENABLED !== 'false',
+    token: trimOrNull(env.METRICS_TOKEN),
   },
   http: {
-    trustProxy: process.env.TRUST_PROXY === 'true',
-    corsOrigins: (process.env.CORS_ORIGINS || '')
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean),
+    trustProxy: env.TRUST_PROXY === 'true',
+    corsOrigins: splitCsv(env.CORS_ORIGINS),
   },
   db: {
-    host: requiredEnv('DB_HOST'),
-    port: parseInt(requiredEnv('DB_PORT'), 10),
-    user: requiredEnv('DB_USER'),
-    password: process.env.DB_PASSWORD ?? '',
-    database: requiredEnv('DB_NAME'),
+    host: env.DB_HOST,
+    port: env.DB_PORT,
+    user: env.DB_USER,
+    password: env.DB_PASSWORD ?? '',
+    database: env.DB_NAME,
   },
   jwt: {
-    secret: requiredEnv('JWT_SECRET'),
-    /** Optional: previous signing key while rotating JWT_SECRET (verify-only). */
-    secretPrevious: envOrNull('JWT_SECRET_PREVIOUS'),
-    expiresIn: process.env.JWT_EXPIRES_IN || '24h',
-    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+    secret: env.JWT_SECRET,
+    secretPrevious: trimOrNull(env.JWT_SECRET_PREVIOUS),
+    expiresIn: env.JWT_EXPIRES_IN || '24h',
+    refreshExpiresIn: env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
   auth: {
-    maxFailedLogins: parseInt(process.env.AUTH_MAX_FAILED_LOGINS || '5', 10),
-    lockMinutes: parseInt(process.env.AUTH_LOCK_MINUTES || '15', 10),
-    enforceMfaAllAdmins: process.env.AUTH_ENFORCE_MFA_ALL_ADMINS === 'true',
-    requireMfaForLocalLogin: process.env.AUTH_REQUIRE_MFA_LOCAL_LOGIN === 'true',
+    maxFailedLogins: env.AUTH_MAX_FAILED_LOGINS ?? 5,
+    lockMinutes: env.AUTH_LOCK_MINUTES ?? 15,
+    enforceMfaAllAdmins: env.AUTH_ENFORCE_MFA_ALL_ADMINS === 'true',
+    requireMfaForLocalLogin: env.AUTH_REQUIRE_MFA_LOCAL_LOGIN === 'true',
   },
   sso: {
-    oidcEnabled: process.env.OIDC_ENABLED === 'true',
-    oidcIssuer: envOrNull('OIDC_ISSUER_URL'),
-    oidcClientId: envOrNull('OIDC_CLIENT_ID'),
-    oidcClientSecret: envOrNull('OIDC_CLIENT_SECRET'),
-    oidcRedirectUri: envOrNull('OIDC_REDIRECT_URI'),
-    oidcScope: process.env.OIDC_SCOPE || 'openid profile email',
-    oidcAcrValues: envOrNull('OIDC_ACR_VALUES'),
-    samlEnabled: process.env.SAML_ENABLED === 'true',
-    samlTrustedHeaderUser: process.env.SAML_TRUSTED_HEADER_USER || 'x-sso-user',
-    samlTrustedHeaderEmail: process.env.SAML_TRUSTED_HEADER_EMAIL || 'x-sso-email',
-    samlTrustedHeaderNameId: process.env.SAML_TRUSTED_HEADER_NAMEID || 'x-sso-nameid',
-    samlTrustedProxySecret: envOrNull('SAML_TRUSTED_PROXY_SECRET'),
+    oidcEnabled: env.OIDC_ENABLED === 'true',
+    oidcIssuer: trimOrNull(env.OIDC_ISSUER_URL),
+    oidcClientId: trimOrNull(env.OIDC_CLIENT_ID),
+    oidcClientSecret: trimOrNull(env.OIDC_CLIENT_SECRET),
+    oidcRedirectUri: trimOrNull(env.OIDC_REDIRECT_URI),
+    oidcScope: env.OIDC_SCOPE || 'openid profile email',
+    oidcAcrValues: trimOrNull(env.OIDC_ACR_VALUES),
+    samlEnabled: env.SAML_ENABLED === 'true',
+    samlTrustedHeaderUser: env.SAML_TRUSTED_HEADER_USER || 'x-sso-user',
+    samlTrustedHeaderEmail: env.SAML_TRUSTED_HEADER_EMAIL || 'x-sso-email',
+    samlTrustedHeaderNameId: env.SAML_TRUSTED_HEADER_NAMEID || 'x-sso-nameid',
+    samlTrustedProxySecret: trimOrNull(env.SAML_TRUSTED_PROXY_SECRET),
   },
   agent: {
-    registrationToken: requiredEnv('AGENT_REGISTRATION_TOKEN'),
-    requestSigningRequired: process.env.AGENT_REQUEST_SIGNING_REQUIRED === 'true',
-    requestSigningMaxSkewSeconds: parseInt(process.env.AGENT_REQUEST_SIGNING_MAX_SKEW_SECONDS || '300', 10),
-  },
-  responseApprovals: {
-    requireJustificationForHighRisk: process.env.RESPONSE_APPROVAL_REQUIRE_JUSTIFICATION_FOR_HIGH_RISK !== 'false',
-    minJustificationLength: parseInt(process.env.RESPONSE_APPROVAL_MIN_JUSTIFICATION_LENGTH || '8', 10),
-  },
-  notifications: {
-    inApp: process.env.NOTIFICATIONS_IN_APP !== 'false',
-  },
-  audit: {
-    archivePath: envOrNull('AUDIT_ARCHIVE_PATH'),
-    archiveHmacKey: envOrNull('AUDIT_ARCHIVE_HMAC_KEY'),
-    /** NDJSON spill file when DB audit insert fails (SOC evidence recovery). */
-    failureLogPath: envOrNull('AUDIT_FAILURE_LOG_PATH'),
-  },
-  redis: {
-    url: envOrNull('REDIS_URL'),
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379', 10),
-    password: process.env.REDIS_PASSWORD || undefined,
-  },
-  kafka: {
-    brokers: (process.env.KAFKA_BROKERS || 'localhost:9092')
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean),
-    clientId: process.env.KAFKA_CLIENT_ID || 'ironshield-edr',
-    enabled: process.env.KAFKA_ENABLED === 'true',
-    topics: {
-      rawEndpoint: process.env.KAFKA_TOPIC_RAW_ENDPOINT || 'xdr.raw.endpoint',
-      rawWeb: process.env.KAFKA_TOPIC_RAW_WEB || 'xdr.raw.web',
-      rawAuth: process.env.KAFKA_TOPIC_RAW_AUTH || 'xdr.raw.auth',
-      rawZeek: process.env.KAFKA_TOPIC_RAW_ZEEK || 'xdr.raw.zeek',
-      normalized: process.env.KAFKA_TOPIC_NORMALIZED || 'xdr.normalized',
-      detections: process.env.KAFKA_TOPIC_DETECTIONS || 'xdr.detections',
-    },
-    groupId: process.env.KAFKA_GROUP_ID || 'ironshield-workers',
+    registrationToken: env.AGENT_REGISTRATION_TOKEN,
+    requestSigningRequired:
+      derivedEnv === 'production'
+        ? env.AGENT_REQUEST_SIGNING_REQUIRED !== 'false'
+        : env.AGENT_REQUEST_SIGNING_REQUIRED === 'true',
+    requestSigningMaxSkewSeconds: env.AGENT_REQUEST_SIGNING_MAX_SKEW_SECONDS ?? 300,
+    nonceStore: env.AGENT_NONCE_STORE === 'memory' ? 'memory' : 'mysql',
   },
   ingest: {
-    key: envOrNull('XDR_INGEST_KEY'),
+    key: trimOrNull(env.XDR_INGEST_KEY),
+    queueFirst: env.INGEST_QUEUE_FIRST !== 'false',
+  },
+  responseApprovals: {
+    requireJustificationForHighRisk: env.RESPONSE_APPROVAL_REQUIRE_JUSTIFICATION_FOR_HIGH_RISK !== 'false',
+    minJustificationLength: env.RESPONSE_APPROVAL_MIN_JUSTIFICATION_LENGTH ?? 8,
+  },
+  notifications: {
+    inApp: env.NOTIFICATIONS_IN_APP !== 'false',
+  },
+  audit: {
+    archivePath: trimOrNull(env.AUDIT_ARCHIVE_PATH),
+    archiveHmacKey: trimOrNull(env.AUDIT_ARCHIVE_HMAC_KEY),
+    failureLogPath: trimOrNull(env.AUDIT_FAILURE_LOG_PATH),
+  },
+  redis: {
+    url: trimOrNull(env.REDIS_URL),
+    host: env.REDIS_HOST || 'localhost',
+    port: env.REDIS_PORT ?? 6379,
+    password: env.REDIS_PASSWORD || undefined,
+  },
+  kafka: {
+    brokers: splitCsv(env.KAFKA_BROKERS || 'localhost:9092'),
+    clientId: env.KAFKA_CLIENT_ID || 'ironshield-edr',
+    enabled: env.KAFKA_ENABLED === 'true',
+    topics: {
+      rawEndpoint: env.KAFKA_TOPIC_RAW_ENDPOINT || 'xdr.raw.endpoint',
+      rawWeb: env.KAFKA_TOPIC_RAW_WEB || 'xdr.raw.web',
+      rawAuth: env.KAFKA_TOPIC_RAW_AUTH || 'xdr.raw.auth',
+      rawZeek: env.KAFKA_TOPIC_RAW_ZEEK || 'xdr.raw.zeek',
+      normalized: env.KAFKA_TOPIC_NORMALIZED || 'xdr.normalized',
+      detections: env.KAFKA_TOPIC_DETECTIONS || 'xdr.detections',
+    },
+    groupId: env.KAFKA_GROUP_ID || 'ironshield-workers',
   },
 };

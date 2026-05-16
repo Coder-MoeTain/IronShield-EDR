@@ -7,6 +7,7 @@ const {
   evaluateCreation,
   evaluateDecision,
 } = require('./ResponseApprovalPolicyService');
+const ResponseCommandSigner = require('./ResponseCommandSigner');
 
 /** Ensure parameters is a plain object for JSON API (mysql2 may return JSON column as string). */
 function normalizeActionRow(row) {
@@ -96,11 +97,21 @@ async function getPendingForAgent(agentKey) {
      WHERE endpoint_id = ?
        AND status IN ('pending', 'sent')
        AND approval_status IN ('auto', 'approved')
+       AND (expires_at IS NULL OR expires_at > NOW())
      ORDER BY created_at ASC`,
     [endpoint.id]
   );
 
-  return actions;
+  return actions.map((row) => {
+    const normalized = normalizeActionRow(row);
+    const sig = ResponseCommandSigner.signAction(normalized, agentKey);
+    if (sig) {
+      normalized.command_signature = sig.command_signature;
+      normalized.command_expires_at = sig.command_expires_at;
+      normalized.command_payload_version = sig.command_payload_version;
+    }
+    return normalized;
+  });
 }
 
 async function listPendingApprovals(tenantId = null, limit = 200) {

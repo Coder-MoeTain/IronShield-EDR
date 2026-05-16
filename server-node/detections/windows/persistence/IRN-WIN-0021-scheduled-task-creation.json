@@ -1,0 +1,36 @@
+{
+  "id": "IRN-WIN-0021",
+  "name": "Scheduled Task Creation",
+  "description": "Scheduled Task Creation (defensive detection).",
+  "status": "stable",
+  "severity": "medium",
+  "risk_score": 55,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Persistence"
+    ],
+    "techniques": [
+      "T1053.005"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "schtasks.exe"
+      },
+      {
+        "field": "command_line",
+        "op": "contains",
+        "value": "create"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

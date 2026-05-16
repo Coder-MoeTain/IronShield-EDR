@@ -1,0 +1,31 @@
+{
+  "id": "IRN-WIN-0060",
+  "name": "Network Discovery via nltest",
+  "description": "Network Discovery via nltest (defensive detection).",
+  "status": "stable",
+  "severity": "medium",
+  "risk_score": 45,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Discovery"
+    ],
+    "techniques": [
+      "T1018"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "nltest.exe"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

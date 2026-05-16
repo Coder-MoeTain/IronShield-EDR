@@ -1,0 +1,78 @@
+#!/usr/bin/env node
+/**
+ * Generates IRN-WIN detection-as-code JSON files (defensive patterns only).
+ */
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = path.join(__dirname, '../detections/windows');
+
+const RULES = [
+  ['persistence', 'IRN-WIN-0020', 'Run Key Persistence', 'high', 65, 'Persistence', 'T1547.001', 'process_create', 'reg.exe', 'add'],
+  ['persistence', 'IRN-WIN-0021', 'Scheduled Task Creation', 'medium', 55, 'Persistence', 'T1053.005', 'process_create', 'schtasks.exe', 'create'],
+  ['privilege_escalation', 'IRN-WIN-0030', 'UAC Bypass via Fodhelper', 'high', 70, 'Privilege Escalation', 'T1548.002', 'process_create', 'fodhelper.exe', null],
+  ['privilege_escalation', 'IRN-WIN-0031', 'Runas Elevated Execution', 'medium', 50, 'Privilege Escalation', 'T1134', 'process_create', 'runas.exe', null],
+  ['defense_evasion', 'IRN-WIN-0040', 'Disable Windows Defender', 'critical', 85, 'Defense Evasion', 'T1562.001', 'process_create', 'powershell.exe', 'DisableRealtimeMonitoring'],
+  ['defense_evasion', 'IRN-WIN-0041', 'Clear Security Event Log', 'high', 75, 'Defense Evasion', 'T1070.001', 'process_create', 'wevtutil.exe', 'cl'],
+  ['defense_evasion', 'IRN-WIN-0042', 'Suspicious WMIC Process', 'medium', 55, 'Defense Evasion', 'T1047', 'process_create', 'wmic.exe', 'process'],
+  ['credential_access', 'IRN-WIN-0050', 'LSASS Memory Access Tool', 'critical', 90, 'Credential Access', 'T1003.001', 'process_create', 'procdump.exe', 'lsass'],
+  ['credential_access', 'IRN-WIN-0051', 'Mimikatz Name Indicator', 'critical', 95, 'Credential Access', 'T1003', 'process_create', 'mimikatz', null],
+  ['discovery', 'IRN-WIN-0060', 'Network Discovery via nltest', 'medium', 45, 'Discovery', 'T1018', 'process_create', 'nltest.exe', null],
+  ['discovery', 'IRN-WIN-0061', 'AD Recon with dsquery', 'medium', 50, 'Discovery', 'T1087.002', 'process_create', 'dsquery.exe', null],
+  ['discovery', 'IRN-WIN-0062', 'Port Scan with Test-NetConnection', 'low', 40, 'Discovery', 'T1046', 'process_create', 'powershell.exe', 'Test-NetConnection'],
+  ['lateral_movement', 'IRN-WIN-0070', 'Remote Service via PsExec', 'high', 75, 'Lateral Movement', 'T1021.002', 'process_create', 'psexec.exe', null],
+  ['lateral_movement', 'IRN-WIN-0071', 'WMI Remote Process', 'high', 70, 'Lateral Movement', 'T1021.003', 'process_create', 'wmic.exe', '/node:'],
+  ['collection', 'IRN-WIN-0080', 'Archive Sensitive Data', 'medium', 55, 'Collection', 'T1560.001', 'process_create', 'rar.exe', 'a '],
+  ['collection', 'IRN-WIN-0081', '7zip Archive Creation', 'low', 40, 'Collection', 'T1560', 'process_create', '7z.exe', null],
+  ['command_and_control', 'IRN-WIN-0090', 'Suspicious Bitsadmin Download', 'high', 70, 'Command and Control', 'T1197', 'process_create', 'bitsadmin.exe', 'transfer'],
+  ['command_and_control', 'IRN-WIN-0091', 'Curl Download to Temp', 'medium', 55, 'Command and Control', 'T1105', 'process_create', 'curl.exe', 'http'],
+  ['execution', 'IRN-WIN-0011', 'Mshta Script Execution', 'high', 72, 'Execution', 'T1218.005', 'process_create', 'mshta.exe', 'http'],
+  ['execution', 'IRN-WIN-0012', 'Regsvr32 Squiblydoo', 'high', 78, 'Execution', 'T1218.010', 'process_create', 'regsvr32.exe', 'scrobj'],
+  ['execution', 'IRN-WIN-0013', 'Rundll32 No DLL', 'medium', 58, 'Execution', 'T1218.011', 'process_create', 'rundll32.exe', null],
+  ['execution', 'IRN-WIN-0014', 'Wscript Script Host', 'medium', 52, 'Execution', 'T1059.005', 'process_create', 'wscript.exe', null],
+  ['execution', 'IRN-WIN-0015', 'Cscript Script Host', 'medium', 52, 'Execution', 'T1059.005', 'process_create', 'cscript.exe', null],
+  ['initial_access', 'IRN-WIN-0100', 'Office Spawning PowerShell', 'high', 80, 'Initial Access', 'T1566.001', 'process_create', 'powershell.exe', null, 'winword.exe'],
+  ['impact', 'IRN-WIN-0110', 'Vssadmin Delete Shadows', 'critical', 90, 'Impact', 'T1490', 'process_create', 'vssadmin.exe', 'delete shadows'],
+  ['impact', 'IRN-WIN-0111', 'Bcdedit Recovery Disabled', 'critical', 88, 'Impact', 'T1490', 'process_create', 'bcdedit.exe', 'recoveryenabled'],
+  ['defense_evasion', 'IRN-WIN-0043', 'Certutil Decode File', 'high', 68, 'Defense Evasion', 'T1140', 'process_create', 'certutil.exe', '-decode'],
+  ['execution', 'IRN-WIN-0016', 'Cmd from Script Interpreter', 'medium', 50, 'Execution', 'T1059.003', 'process_create', 'cmd.exe', '/c'],
+];
+
+function buildRule([folder, id, name, severity, risk, tactic, tech, eventType, proc, cmdExtra, parent]) {
+  const logicAll = [
+    { field: 'process_name', op: 'contains', value: proc },
+  ];
+  if (cmdExtra) {
+    logicAll.push({ field: 'command_line', op: 'contains', value: cmdExtra });
+  }
+  if (parent) {
+    logicAll.push({ field: 'parent_process_name', op: 'contains', value: parent });
+  }
+  return {
+    id,
+    name,
+    description: `${name} (defensive detection).`,
+    status: 'stable',
+    severity,
+    risk_score: risk,
+    platform: 'windows',
+    event_types: [eventType],
+    mitre: { tactics: [tactic], techniques: [tech] },
+    logic: { all: logicAll },
+    author: 'IronShield',
+    version: '1.0.0',
+  };
+}
+
+let written = 0;
+for (const def of RULES) {
+  const rule = buildRule(def);
+  const dir = path.join(ROOT, def[0]);
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, `${rule.id}-${rule.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}.json`);
+  if (!fs.existsSync(file)) {
+    fs.writeFileSync(file, `${JSON.stringify(rule, null, 2)}\n`, 'utf8');
+    written += 1;
+  }
+}
+console.log(`Detection pack: ${written} new rule file(s) under ${ROOT}`);

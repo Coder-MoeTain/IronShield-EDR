@@ -1,0 +1,31 @@
+{
+  "id": "IRN-WIN-0013",
+  "name": "Rundll32 No DLL",
+  "description": "Rundll32 No DLL (defensive detection).",
+  "status": "stable",
+  "severity": "medium",
+  "risk_score": 58,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Execution"
+    ],
+    "techniques": [
+      "T1218.011"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "rundll32.exe"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

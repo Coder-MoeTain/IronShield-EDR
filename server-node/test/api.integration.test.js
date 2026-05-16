@@ -26,7 +26,15 @@ test('GET /api/agent/ping is unauthenticated', async () => {
 
 test('POST /api/agent/heartbeat without agent key returns 401', async () => {
   const res = await request(app).post('/api/agent/heartbeat').send({ hostname: 'x' }).expect(401);
-  assert.ok(String(res.body?.error || '').toLowerCase().includes('agent') || res.status === 401);
+  const msg = res.body?.error?.message || res.body?.error || '';
+  assert.ok(String(msg).toLowerCase().includes('agent') || res.status === 401);
+  assert.equal(res.body.success, false);
+});
+
+test('GET /api/v1/agent/ping mirrors legacy /api/agent/ping', async () => {
+  const legacy = await request(app).get('/api/agent/ping');
+  const v1 = await request(app).get('/api/v1/agent/ping');
+  assert.equal(v1.status, legacy.status);
 });
 
 test('GET /api/admin/endpoints without JWT returns 401', async () => {
@@ -43,5 +51,7 @@ test('GET /api/admin/platform/protection-capabilities without JWT returns 401', 
 
 test('unmatched /api/foo returns 404 JSON', async () => {
   const res = await request(app).get('/api/nonexistent-route-phase1').expect(404);
-  assert.equal(res.body.error, 'Not found');
+  assert.equal(res.body.success, false);
+  assert.equal(res.body.error.code, 'NOT_FOUND');
+  assert.equal(res.body.error.message, 'Not found');
 });

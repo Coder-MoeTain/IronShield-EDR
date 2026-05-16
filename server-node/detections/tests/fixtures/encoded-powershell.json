@@ -1,0 +1,7 @@
+{
+  "endpoint_id": 1,
+  "event_type": "process_start",
+  "timestamp": "2026-05-16T12:00:00.000Z",
+  "process_name": "powershell.exe",
+  "command_line": "powershell.exe -nop -enc JABzAD0ATgBlAHcALQBPAGoA"
+}

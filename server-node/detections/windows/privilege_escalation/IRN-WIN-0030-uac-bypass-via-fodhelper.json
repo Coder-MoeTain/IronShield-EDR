@@ -1,0 +1,31 @@
+{
+  "id": "IRN-WIN-0030",
+  "name": "UAC Bypass via Fodhelper",
+  "description": "UAC Bypass via Fodhelper (defensive detection).",
+  "status": "stable",
+  "severity": "high",
+  "risk_score": 70,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Privilege Escalation"
+    ],
+    "techniques": [
+      "T1548.002"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "fodhelper.exe"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

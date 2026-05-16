@@ -1,0 +1,31 @@
+{
+  "id": "IRN-WIN-0014",
+  "name": "Wscript Script Host",
+  "description": "Wscript Script Host (defensive detection).",
+  "status": "stable",
+  "severity": "medium",
+  "risk_score": 52,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Execution"
+    ],
+    "techniques": [
+      "T1059.005"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "wscript.exe"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

@@ -87,26 +87,40 @@ async function recordQualityEvent(alertId, payload = {}, actor = null, tenantId 
   }
 }
 
+async function insertAlertRow(a) {
+  const baseParams = [
+    a.endpoint_id,
+    a.rule_id,
+    a.title,
+    a.description,
+    a.severity,
+    a.confidence,
+    a.mitre_tactic,
+    a.mitre_technique,
+    a.source_event_ids,
+    a.first_seen,
+    a.last_seen,
+  ];
+  try {
+    return await db.execute(
+      `INSERT INTO alerts (endpoint_id, rule_id, title, description, severity, confidence, mitre_tactic, mitre_technique, source_event_ids, first_seen, last_seen, risk_score, evidence_summary)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [...baseParams, a.risk_score ?? null, a.evidence_summary ?? null]
+    );
+  } catch (err) {
+    if (err.code !== 'ER_BAD_FIELD_ERROR') throw err;
+    return db.execute(
+      `INSERT INTO alerts (endpoint_id, rule_id, title, description, severity, confidence, mitre_tactic, mitre_technique, source_event_ids, first_seen, last_seen)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      baseParams
+    );
+  }
+}
+
 async function createFromDetection(alerts) {
   const endpointIds = new Set();
   for (const a of alerts) {
-    const result = await db.execute(
-      `INSERT INTO alerts (endpoint_id, rule_id, title, description, severity, confidence, mitre_tactic, mitre_technique, source_event_ids, first_seen, last_seen)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        a.endpoint_id,
-        a.rule_id,
-        a.title,
-        a.description,
-        a.severity,
-        a.confidence,
-        a.mitre_tactic,
-        a.mitre_technique,
-        a.source_event_ids,
-        a.first_seen,
-        a.last_seen,
-      ]
-    );
+    const result = await insertAlertRow(a);
     endpointIds.add(a.endpoint_id);
     const alertId = result?.insertId;
     if (alertId) {
@@ -121,6 +135,8 @@ async function createFromDetection(alerts) {
           ep
         );
         await SiemPushService.emit('ironshield.alert', { alert_id: alertId, alert: { id: alertId, ...a }, endpoint: ep });
+        const IntegrationService = require('./IntegrationService');
+        await IntegrationService.exportAlert({ id: alertId, ...a }, ep, ep?.tenant_id ?? null);
       } catch (_) {
         // Non-fatal
       }
@@ -231,17 +247,34 @@ async function list(filters = {}) {
 }
 
 async function getById(id) {
-  return db.queryOne(
+  const row = await db.queryOne(
     `SELECT a.*, e.hostname, e.ip_address,
-      ROUND(LEAST(100, GREATEST(0,
+      COALESCE(a.risk_score, ROUND(LEAST(100, GREATEST(0,
         (CASE a.severity WHEN 'critical' THEN 95 WHEN 'high' THEN 75 WHEN 'medium' THEN 50 WHEN 'low' THEN 25 ELSE 15 END)
         * COALESCE(a.confidence, 0.5)
-      ))) AS risk_score
+      )))) AS risk_score
      FROM alerts a
      JOIN endpoints e ON e.id = a.endpoint_id
      WHERE a.id = ?`,
     [id]
   );
+  if (!row) return null;
+  let evidence = null;
+  try {
+    evidence = typeof row.evidence_summary === 'string' ? JSON.parse(row.evidence_summary) : row.evidence_summary;
+  } catch {
+    evidence = row.evidence_summary;
+  }
+  row.why_fired = {
+    rule_id: evidence?.rule_id || row.rule_id,
+    summary: row.description,
+    evidence: evidence?.evidence || evidence,
+    mitre_tactic: row.mitre_tactic,
+    mitre_technique: row.mitre_technique,
+    severity: row.severity,
+    risk_score: row.risk_score,
+  };
+  return row;
 }
 
 async function updateStatus(id, status, assignedTo = null) {

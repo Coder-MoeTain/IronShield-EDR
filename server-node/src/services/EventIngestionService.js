@@ -83,7 +83,29 @@ async function processUnprocessed(endpointId, limit = 100) {
         }
       }
     }
-    const alerts = await DetectionEngineService.evaluateAndAlert(norm);
+    const dbAlerts = await DetectionEngineService.evaluateAndAlert(norm);
+    let codeAlerts = [];
+    try {
+      const DetectionCodeEngine = require('./DetectionCodeEngine');
+      codeAlerts = DetectionCodeEngine.evaluate(norm).map((h) => ({
+        endpoint_id: norm.endpoint_id,
+        rule_id: null,
+        title: h.title,
+        description: h.description,
+        severity: h.severity,
+        confidence: h.confidence,
+        mitre_tactic: h.mitre_tactic,
+        mitre_technique: h.mitre_technique,
+        risk_score: h.risk_score,
+        evidence_summary: JSON.stringify({ rule_id: h.rule_id, evidence: h.evidence }),
+        source_event_ids: JSON.stringify([norm.raw_event_id]),
+        first_seen: norm.timestamp,
+        last_seen: norm.timestamp,
+      }));
+    } catch (e) {
+      logger.warn({ err: e.message }, 'Detection-as-code evaluation skipped');
+    }
+    const alerts = [...dbAlerts, ...codeAlerts];
     if (alerts.length > 0) {
       await AlertService.createFromDetection(alerts);
     }
@@ -185,7 +207,8 @@ async function ingestBatch(endpointId, events, opts = {}) {
     }
   }
 
-  if (QueueService.isEnabled()) {
+  const useQueue = QueueService.isEnabled() && config.ingest?.queueFirst !== false;
+  if (useQueue) {
     await QueueService.addProcessJob(endpointId, Math.min(result.affectedRows, 100));
   } else {
     try {

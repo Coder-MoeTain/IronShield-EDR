@@ -33,6 +33,7 @@ CREATE TABLE admin_users (
 CREATE TABLE endpoints (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   agent_key VARCHAR(64) NOT NULL UNIQUE,
+  tenant_id INT UNSIGNED NULL,
   hostname VARCHAR(255) NOT NULL,
   os_version VARCHAR(128),
   logged_in_user VARCHAR(255),

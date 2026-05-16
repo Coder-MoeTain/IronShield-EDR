@@ -1,0 +1,36 @@
+{
+  "id": "IRN-WIN-0110",
+  "name": "Vssadmin Delete Shadows",
+  "description": "Vssadmin Delete Shadows (defensive detection).",
+  "status": "stable",
+  "severity": "critical",
+  "risk_score": 90,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Impact"
+    ],
+    "techniques": [
+      "T1490"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "vssadmin.exe"
+      },
+      {
+        "field": "command_line",
+        "op": "contains",
+        "value": "delete shadows"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

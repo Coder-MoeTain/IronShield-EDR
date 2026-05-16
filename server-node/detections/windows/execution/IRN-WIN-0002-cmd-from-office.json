@@ -1,0 +1,17 @@
+{
+  "id": "IRN-WIN-0002",
+  "name": "Command Shell Spawned From Office Process",
+  "description": "Detects cmd.exe or powershell.exe child of Office applications.",
+  "status": "stable",
+  "severity": "high",
+  "risk_score": 75,
+  "platform": "windows",
+  "event_types": ["process_start"],
+  "mitre": { "tactics": ["Execution"], "techniques": ["T1059.003"] },
+  "conditions": {
+    "child_process": ["cmd.exe", "powershell.exe"],
+    "parent_process": ["WINWORD", "EXCEL", "POWERPNT", "OUTLOOK"]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

@@ -37,5 +37,7 @@ test('requireTenantContext blocks non-super_admin when tenantId missing', async 
   });
   assert.equal(called, false);
   assert.equal(res.statusCode, 403);
+  assert.equal(res.body.success, false);
+  assert.equal(res.body.error.code, 'TENANT_CONTEXT_REQUIRED');
 });
 

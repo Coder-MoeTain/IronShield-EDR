@@ -64,6 +64,12 @@ const XdrDetections = lazy(() => import('./pages/XdrDetections'));
 const XdrRealtime = lazy(() => import('./pages/XdrRealtime'));
 const ResponseApprovals = lazy(() => import('./pages/ResponseApprovals'));
 const RbacManagement = lazy(() => import('./pages/RbacManagement'));
+const SocTriageQueue = lazy(() => import('./pages/SocTriageQueue'));
+const MitreCoverage = lazy(() => import('./pages/MitreCoverage'));
+const SystemHealth = lazy(() => import('./pages/SystemHealth'));
+const HostTimeline = lazy(() => import('./pages/HostTimeline'));
+const Integrations = lazy(() => import('./pages/Integrations'));
+const Reports = lazy(() => import('./pages/Reports'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 function RouteFallback() {
@@ -130,6 +136,11 @@ export default function App() {
                   <Route path="raw-events/:id" element={<EventDetail />} />
                   <Route path="alerts" element={<Alerts />} />
                   <Route path="alerts/:id" element={<AlertDetail />} />
+                  <Route path="soc/triage" element={<SocTriageQueue />} />
+                  <Route path="mitre" element={<MitreCoverage />} />
+                  <Route path="system/health" element={<SystemHealth />} />
+                  <Route path="hosts/:endpointId/timeline" element={<HostTimeline />} />
+                  <Route path="host-timeline" element={<HostTimeline />} />
                   <Route path="detection-rules" element={<DetectionRules />} />
                   <Route path="detection-rules/new" element={<DetectionRuleEditor />} />
                   <Route path="detection-rules/:id/edit" element={<DetectionRuleEditor />} />
@@ -166,6 +177,22 @@ export default function App() {
                     element={
                       <SocRouteGuard allow={canSeeEnterpriseSettings}>
                         <EnterpriseSettings />
+                      </SocRouteGuard>
+                    }
+                  />
+                  <Route
+                    path="integrations"
+                    element={
+                      <SocRouteGuard allow={canSeeEnterpriseSettings}>
+                        <Integrations />
+                      </SocRouteGuard>
+                    }
+                  />
+                  <Route
+                    path="reports"
+                    element={
+                      <SocRouteGuard allow={canSeeEnterpriseSettings}>
+                        <Reports />
                       </SocRouteGuard>
                     }
                   />

@@ -1,0 +1,36 @@
+{
+  "id": "IRN-WIN-0012",
+  "name": "Regsvr32 Squiblydoo",
+  "description": "Regsvr32 Squiblydoo (defensive detection).",
+  "status": "stable",
+  "severity": "high",
+  "risk_score": 78,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Execution"
+    ],
+    "techniques": [
+      "T1218.010"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "regsvr32.exe"
+      },
+      {
+        "field": "command_line",
+        "op": "contains",
+        "value": "scrobj"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

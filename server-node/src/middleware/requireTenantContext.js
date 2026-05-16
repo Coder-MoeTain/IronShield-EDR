@@ -1,13 +1,32 @@
 /**
  * Enterprise guard: require tenant context for non-super_admin users.
- * Prevents accidental "tenantId = null => all tenants" behavior.
  */
+const { ERROR_CODES, sendErrorFromReq } = require('../utils/apiResponse');
+const { ROLES } = require('../constants/permissions');
+
 function requireTenantContext(req, res, next) {
-  if (!req.user) return res.status(401).json({ error: 'Authentication required' });
-  if (req.user.role === 'super_admin') return next();
-  if (req.tenantId == null) return res.status(403).json({ error: 'Tenant context required' });
+  if (!req.user) {
+    return sendErrorFromReq(
+      res,
+      req,
+      ERROR_CODES.AUTHENTICATION_REQUIRED,
+      'Authentication required',
+      401
+    );
+  }
+  if (req.user.role === ROLES.SUPER_ADMIN || req.user.role === 'super_admin') {
+    return next();
+  }
+  if (req.tenantId == null) {
+    return sendErrorFromReq(
+      res,
+      req,
+      ERROR_CODES.TENANT_CONTEXT_REQUIRED,
+      'Tenant context required',
+      403
+    );
+  }
   return next();
 }
 
 module.exports = { requireTenantContext };
-

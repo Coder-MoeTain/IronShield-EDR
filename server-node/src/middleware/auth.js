@@ -5,9 +5,10 @@ const config = require('../config');
 const logger = require('../utils/logger');
 const metrics = require('../utils/metrics');
 const { verifyWithRotation } = require('../utils/jwtVerify');
+const { ERROR_CODES, sendErrorFromReq } = require('../utils/apiResponse');
 const crypto = require('crypto');
 
-const signedAgentRequestNonceCache = new Map();
+const AgentNonceService = require('../services/AgentNonceService');
 
 function timingSafeEqualHex(a, b) {
   const aa = Buffer.from(String(a || ''), 'hex');
@@ -24,13 +25,7 @@ function hmacSha256Hex(secret, payload) {
   return crypto.createHmac('sha256', String(secret)).update(payload, 'utf8').digest('hex');
 }
 
-function pruneExpiredNonces(nowMs) {
-  for (const [key, expiresAt] of signedAgentRequestNonceCache.entries()) {
-    if (expiresAt <= nowMs) signedAgentRequestNonceCache.delete(key);
-  }
-}
-
-function verifySignedAgentRequest(req, agentKey, endpointId) {
+async function verifySignedAgentRequest(req, agentKey, endpointId) {
   const ts = req.headers['x-agent-timestamp'];
   const nonce = req.headers['x-agent-nonce'];
   const signature = req.headers['x-agent-signature'];
@@ -61,14 +56,12 @@ function verifySignedAgentRequest(req, agentKey, endpointId) {
     return { ok: false, reason: 'bad_signature' };
   }
 
-  const nowMs = Date.now();
-  pruneExpiredNonces(nowMs);
-  const replayKey = `${endpointId}:${tsNum}:${nonce}`;
-  if (signedAgentRequestNonceCache.has(replayKey)) {
-    return { ok: false, reason: 'replay' };
+  const expiresAt = new Date((tsNum + maxSkew) * 1000);
+  const reserved = await AgentNonceService.reserve(endpointId, `${tsNum}:${nonce}`, expiresAt);
+  if (!reserved.ok) {
+    return { ok: false, reason: reserved.reason || 'replay' };
   }
-  signedAgentRequestNonceCache.set(replayKey, nowMs + (maxSkew * 1000));
-  return { ok: true, mode: 'signed' };
+  return { ok: true, mode: 'signed', nonce_store: reserved.store };
 }
 
 /**
@@ -79,7 +72,7 @@ async function authAdmin(req, res, next) {
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
   if (!token) {
-    return res.status(401).json({ error: 'Authentication required' });
+    return sendErrorFromReq(res, req, ERROR_CODES.AUTHENTICATION_REQUIRED, 'Authentication required', 401);
   }
 
   try {
@@ -90,12 +83,12 @@ async function authAdmin(req, res, next) {
       [decoded.userId]
     );
     if (!row || !row.is_active) {
-      return res.status(401).json({ error: 'Account inactive' });
+      return sendErrorFromReq(res, req, ERROR_CODES.AUTHENTICATION_REQUIRED, 'Account inactive', 401);
     }
     const tokenSv = Number(decoded.sv || 1);
     const currentSv = Number(row.session_version || 1);
     if (tokenSv !== currentSv) {
-      return res.status(401).json({ error: 'Session revoked' });
+      return sendErrorFromReq(res, req, ERROR_CODES.AUTHENTICATION_REQUIRED, 'Session revoked', 401);
     }
     req.user = { ...decoded, tenantId: decoded.tenantId ?? null };
     return next();
@@ -106,7 +99,7 @@ async function authAdmin(req, res, next) {
     } else {
       logger.warn({ err: err.message, name: err.name }, 'Invalid JWT');
     }
-    return res.status(401).json({ error: 'Invalid or expired token' });
+    return sendErrorFromReq(res, req, ERROR_CODES.AUTHENTICATION_REQUIRED, 'Invalid or expired token', 401);
   }
 }
 
@@ -117,7 +110,7 @@ function authAgent(req, res, next) {
   const agentKey = req.headers['x-agent-key'] || req.headers['authorization']?.replace('Bearer ', '');
 
   if (!agentKey) {
-    return res.status(401).json({ error: 'Agent key required' });
+    return sendErrorFromReq(res, req, ERROR_CODES.AUTHENTICATION_REQUIRED, 'Agent key required', 401);
   }
 
   req.agentKey = agentKey;
@@ -134,14 +127,14 @@ async function authAgentValidated(req, res, next) {
     const ok = req.client?.authorized === true;
     if (!ok) {
       metrics.agentAuthFailuresTotal.inc({ reason: 'mtls' });
-      return res.status(401).json({ error: 'mTLS required' });
+      return sendErrorFromReq(res, req, ERROR_CODES.AUTHENTICATION_REQUIRED, 'mTLS required', 401);
     }
   }
 
   const agentKey = req.headers['x-agent-key'] || req.headers['authorization']?.replace('Bearer ', '');
   if (!agentKey) {
     metrics.agentAuthFailuresTotal.inc({ reason: 'missing' });
-    return res.status(401).json({ error: 'Agent key required' });
+    return sendErrorFromReq(res, req, ERROR_CODES.AUTHENTICATION_REQUIRED, 'Agent key required', 401);
   }
 
   try {
@@ -152,29 +145,31 @@ async function authAgentValidated(req, res, next) {
     );
     if (!row) {
       metrics.agentAuthFailuresTotal.inc({ reason: 'unknown' });
-      return res.status(401).json({ error: 'Unknown agent key' });
+      return sendErrorFromReq(res, req, ERROR_CODES.AUTHENTICATION_REQUIRED, 'Unknown agent key', 401);
     }
     if (row.agent_key_revoked_at) {
       metrics.agentAuthFailuresTotal.inc({ reason: 'revoked' });
-      return res.status(401).json({ error: 'Agent key revoked' });
+      return sendErrorFromReq(res, req, ERROR_CODES.AUTHENTICATION_REQUIRED, 'Agent key revoked', 401);
     }
     if (row.agent_key_expires_at && new Date(row.agent_key_expires_at).getTime() < Date.now()) {
       metrics.agentAuthFailuresTotal.inc({ reason: 'expired' });
-      return res.status(401).json({ error: 'Agent key expired' });
+      return sendErrorFromReq(res, req, ERROR_CODES.AUTHENTICATION_REQUIRED, 'Agent key expired', 401);
     }
 
     req.agentKey = String(agentKey);
     req.endpointId = row.id;
     req.tenantId = row.tenant_id ?? null;
-    const signatureCheck = verifySignedAgentRequest(req, req.agentKey, req.endpointId);
+    const signatureCheck = await verifySignedAgentRequest(req, req.agentKey, req.endpointId);
     if (!signatureCheck.ok) {
       metrics.agentAuthFailuresTotal.inc({ reason: signatureCheck.reason });
-      return res.status(401).json({ error: 'Invalid agent request signature', reason: signatureCheck.reason });
+      return sendErrorFromReq(res, req, ERROR_CODES.AUTHENTICATION_REQUIRED, 'Invalid agent request signature', 401, {
+        reason: signatureCheck.reason,
+      });
     }
     return next();
   } catch (err) {
     logger.error({ err: err.message }, 'Agent auth lookup failed');
-    return res.status(503).json({ error: 'Auth unavailable' });
+    return sendErrorFromReq(res, req, ERROR_CODES.INTERNAL_ERROR, 'Auth unavailable', 503);
   }
 }
 

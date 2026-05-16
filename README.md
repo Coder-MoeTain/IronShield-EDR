@@ -41,6 +41,9 @@
   <a href="docs/detection-upgrade-plan.md">Detection upgrade plan</a> •
   <a href="docs/crowdstrike-network-activity.md">Network activity (Falcon-style)</a> •
   <a href="docs/enterprise-hardening.md">Enterprise hardening</a> •
+  <a href="docs/UPGRADE_AUDIT.md">Enterprise upgrade (Phases 1–9)</a> •
+  <a href="docs/ARCHITECTURE.md">Architecture</a> •
+  <a href="docs/SECURITY_MODEL.md">Security model</a> •
   <a href="docs/security/README.md">Security assurance (threat model, controls)</a>
 </p>
 
@@ -50,11 +53,28 @@
 
 | When | What |
 |:-----|:-----|
+| **May 2026** | **Enterprise upgrade (Phases 1–9)** — Foundation hardening, formal migrations, agent trust (DPAPI, signed requests, signed response commands), detection-as-code (**31** IRN-WIN rules), SOC triage/MITRE/health UI, integrations & reports, `docker-compose.dev.yml` / `docker-compose.prod.yml`. Full checklist: [UPGRADE_AUDIT.md](docs/UPGRADE_AUDIT.md). |
 | **Mar 2026** | **Host detail UX** — `/endpoints/:id` uses a tabbed console layout (**Overview**, **Sensor & policies**, **Inventory**, **Response**): KPI strip, consolidated system/health/resource cards, trimmed operational copy, and removal of the legacy one-click demo remediation block. |
 | **Mar 2026** | **README screenshots** — Real UI captures live in [`docs/images/`](docs/images/) (PNG). Regenerate with Playwright after UI changes (see [Screenshots](#screenshots)). |
 | **Mar 2026** | **XDR UI + integrations** — XDR pages for `xdr_events` and `xdr_detections`, live **Realtime** feed (`/ws`), host/network bandwidth (RX/TX Mbps), and Enterprise settings for **3rd‑party IP blacklist feeds** → IOC watchlist (`/api/admin/xdr/ip-feeds`). |
 | **Mar 2025** | **Network activity (Falcon-style)** — Explore page: KPI strip (`GET /api/admin/network/summary`), time window + endpoint filters, **Exclude localhost**, remote IP / process search, **Scope** badges, tabs (Connections, Outgoing IPs, Traffic by endpoint, Network logs). Docs: [crowdstrike-network-activity.md](docs/crowdstrike-network-activity.md). |
 | **Earlier** | Falcon parity phases (sensor telemetry, tenants, NGAV, EDR policy, policy compliance, host timeline), **Detection rules** (Custom IOA), **RTR**, **Threat graph**, **Hunting**, **IOC** watchlist — see [falcon-parity-features.md](docs/falcon-parity-features.md). |
+
+### Enterprise upgrade (Phases 1–9)
+
+Phased upgrade toward production-grade enterprise EDR (defensive only). Baseline audit: [docs/UPGRADE_AUDIT.md](docs/UPGRADE_AUDIT.md).
+
+| Phase | Delivered |
+|:------|:----------|
+| **1 — Foundation** | Zod env validation, standard API envelope (`success` / `data` / `error` / `requestId`), enterprise permission matrix, `/api/v1` route alias |
+| **2 — Data layer** | `npm run migrate` / `migrate:status` / `migrate:rollback` / `seed`, `tenant_id` on events/alerts, `agent_nonces`, tenant isolation tests |
+| **3 — Agent trust** | Windows DPAPI for agent keys, single-use enrollment tokens, HMAC request signing + MySQL nonces, **signed response commands** (agent verifies before execute), [mTLS enrollment guide](docs/security/agent-mtls-enrollment.md) |
+| **4 — Telemetry** | Canonical event schema (Zod), `event_id` idempotency, queue-first ingest (`INGEST_QUEUE_FIRST`, Redis worker) |
+| **5 — Detection** | `server-node/detections/` (IRN-WIN-* JSON rules), `npm run detections:validate` / `detections:test`, MITRE coverage API + dashboard (`/mitre`) |
+| **6 — SOC workflows** | Alert `risk_score` / `evidence_summary` / **why fired**, response lifecycle fields, integration export on new alerts |
+| **7 — Dashboard** | Triage queue (`/soc/triage`), host timeline (`/hosts/:id/timeline`), system health, integrations & reports pages, demo banner (`VITE_DEMO_MODE=true`) |
+| **8 — Integrations** | Webhook + Splunk HEC providers, report jobs (JSON/HTML) with audit + download |
+| **9 — DevSecOps** | [docker-compose.dev.yml](docker-compose.dev.yml) / [docker-compose.prod.yml](docker-compose.prod.yml), [deployment docs](docs/deployment/local.md), [ARCHITECTURE.md](docs/ARCHITECTURE.md), [SECURITY_MODEL.md](docs/SECURITY_MODEL.md) |
 
 ---
 
@@ -115,7 +135,7 @@ Vector assets (`assets/banner.svg`, `assets/screenshot-*.svg`) remain available 
 ### Core Capabilities
 
 - **Endpoint Monitoring** — Process events, Windows Event Log, network connections, file hashing
-- **Detection Engine** — JSON/Sigma-style rules with MITRE ATT&CK mapping
+- **Detection Engine** — DB-backed rules plus **detection-as-code** (`server-node/detections/windows/`, IRN-WIN-* pack) with MITRE ATT&CK mapping
 - **Response Actions** — Kill process, triage collection, host isolation (policy)
 - **Real Time Response (RTR)** — Remote shell sessions + command queueing, with allowlists and audit trail
 - **MSSP Operations** — Per-client overview (endpoints, alerts, investigations) for internal SOC workflows
@@ -138,10 +158,26 @@ Vector assets (`assets/banner.svg`, `assets/screenshot-*.svg`) remain available 
 - **Global Search** — Search across endpoints, alerts, events, hashes
 - **AV Dashboard** — Detections, quarantine, policies, signatures, file reputation
 - **XDR pages** — XDR events, XDR detections, and a Realtime console (WebSocket)
+- **SOC triage queue** — `/soc/triage` (open alerts by risk)
+- **MITRE coverage** — `/mitre` matrix from DB + code rules
+- **System health** — `/system/health` (API, readiness, queue, endpoints)
+- **Integrations & reports** — `/integrations`, `/reports` (webhook, Splunk HEC, SOC summaries)
+- **Alert “why fired”** — Evidence and risk on alert detail
 
 ---
 
 ## 🚀 Quick Start
+
+**Recommended (Docker, queue-first):**
+
+```bash
+cp .env.example .env   # set JWT_SECRET, MYSQL_*, AGENT_REGISTRATION_TOKEN
+docker compose -f docker-compose.dev.yml up --build
+docker exec -it edr-backend-dev npm run migrate
+docker exec -it edr-backend-dev npm run seed
+```
+
+See [docs/deployment/local.md](docs/deployment/local.md) and [docs/deployment/production.md](docs/deployment/production.md).
 
 ### 1. Database
 
@@ -155,7 +191,7 @@ docker run -d --name edr-mysql \
   -p 3306:3306 \
   mysql:8.0
 
-# Apply schema
+# Apply schema (fresh install) — then use the migration runner for upgrades:
 mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/schema.sql
 mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/schema-phase3.sql
 mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/schema-phase4.sql
@@ -194,11 +230,11 @@ mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/schema-antivirus.sql
 # cd server-node && npm run migrate-capabilities-v2
 ```
 
-Or use **Docker Compose**:
+Or use **Docker Compose** (full stack):
 
 ```bash
-docker-compose up -d mysql
-# Wait for MySQL to be ready, then schema is auto-applied
+docker compose -f docker-compose.dev.yml up -d    # dev: API + MySQL + Redis + worker
+docker compose -f docker-compose.prod.yml up -d # prod-oriented env defaults
 ```
 
 ### 2. Backend
@@ -210,8 +246,12 @@ cp .env.example .env
 # AGENT_REGISTRATION_TOKEN is break-glass only; prefer per-tenant enrollment tokens.
 
 npm install
-ADMIN_PASSWORD="use-a-long-unique-password-here" npm run create-admin
+npm run migrate          # formal migration runner (replaces ad-hoc migrate-* for upgrades)
+npm run migrate:status
+ADMIN_PASSWORD="use-a-long-unique-password-here" npm run seed   # or: npm run create-admin
 npm start
+# Optional: separate terminal for queue worker
+npm run worker
 ```
 
 Optional backend environment (see `server-node` / deployment):
@@ -221,8 +261,22 @@ Optional backend environment (see `server-node` / deployment):
 | `CORRELATION_INTERVAL_MS` | How often to run alert correlation (default `300000` = 5 min). |
 | `ENABLE_TENANT_RATE_LIMIT` | Set `true` to cap requests per tenant. |
 | `TENANT_RPM` | Requests per minute per tenant when rate limit is enabled (default `600`). |
+| `INGEST_QUEUE_FIRST` | When `true` (default in compose), normalize/detect via Redis worker after ingest. |
+| `AGENT_REQUEST_SIGNING_REQUIRED` | HMAC agent headers; defaults **on** in production. |
+| `AGENT_NONCE_STORE` | `mysql` (default) or `memory` for dev single-node. |
+| `REDIS_URL` | Enables BullMQ ingestion worker (`npm run worker`). |
 
 Backend runs on **http://localhost:3001** (terminate TLS at a reverse proxy for enterprise use)
+
+**Validation:**
+
+```bash
+cd server-node
+npm test
+npm run detections:validate
+npm run detections:test
+npm run audit:verify
+```
 
 ### 3. Dashboard
 
@@ -285,6 +339,8 @@ Create `config.json` in the agent directory (or copy `config.example.json` and f
 
 `ScriptAllowlistSha256` is optional: when non-empty, `run_script` only executes if the file’s SHA-256 (hex) matches an entry (in addition to path prefix checks). See `docs/agent-service-hardening.md`.
 
+After registration, the agent stores the key via **DPAPI** (`AgentKeyProtected`) instead of plaintext `AgentKey` when supported on Windows.
+
 **Legacy service install:**
 
 ```powershell
@@ -308,24 +364,20 @@ Start-Service EDR.Agent
 </p>
 
 ```
-┌─────────────────┐     HTTPS      ┌─────────────────┐
-│  Windows Agent  │ ──────────────►│  Node.js API   │
-│  (C# Service)   │                │  (Express)     │
-└─────────────────┘                └────────┬──────┘
-        │                                   │
-        │ Telemetry                         ▼
-        │ - Process events             ┌──────────┐
-        │ - Windows Event Log          │  MySQL   │
-        │ - Heartbeats                 └──────────┘
-        │                                   │
-        │ Commands (Phase 2)                 ▼
-        │ - Kill process              ┌──────────┐
-        │ - Collect triage             │ Dashboard│
-        └─────────────────────────────│  (React) │
-                                      └──────────┘
+┌─────────────────┐     HTTPS (+ optional mTLS)   ┌─────────────────────────────┐
+│  Windows Agent  │ ───────────────────────────►│  Node.js API (Express)      │
+│  (C# / DPAPI)   │   signed requests + key     │  /api  +  /api/v1           │
+└────────┬────────┘                             └──────────┬──────────────────┘
+         │                                                  │
+         │  events (event_id dedupe)                        ├──► MySQL
+         │                                                  ├──► Redis → worker (normalize + detect)
+         │  signed response commands                      └──► React SOC dashboard
+         └──────────────────────────────────────────────────────────►
 ```
 
-**Roadmap & Falcon-style parity:** See [docs/crowdstrike-parity-roadmap.md](docs/crowdstrike-parity-roadmap.md) for a detailed capability analysis and prioritized upgrades (detection, response, RTR-style gaps, MSSP).
+**Docs:** [ARCHITECTURE.md](docs/ARCHITECTURE.md) (telemetry pipeline, detection-as-code) · [SECURITY_MODEL.md](docs/SECURITY_MODEL.md) (trust boundaries) · [UPGRADE_AUDIT.md](docs/UPGRADE_AUDIT.md) (phase checklist)
+
+**Roadmap & Falcon-style parity:** See [docs/crowdstrike-parity-roadmap.md](docs/crowdstrike-parity-roadmap.md) for capability analysis beyond the Phases 1–9 upgrade.
 
 ---
 
@@ -339,7 +391,7 @@ Start-Service EDR.Agent
 | POST | `/api/agent/heartbeat` | Agent key | Send heartbeat |
 | POST | `/api/agent/events/batch` | Agent key | Upload event batch (supports `batch_id` idempotency) |
 | POST | `/api/agent/key/rotate` | Agent key | Rotate agent key |
-| GET | `/api/agent/actions/pending` | Agent key | Get pending response actions |
+| GET | `/api/agent/actions/pending` | Agent key | Get pending response actions (HMAC-signed when enabled) |
 | POST | `/api/agent/actions/:id/result` | Agent key | Submit action result |
 | GET | `/api/agent/av/policy` | Agent key | Get AV scan policy |
 | GET | `/api/agent/av/signatures/download` | Agent key | Download signatures |
@@ -353,6 +405,11 @@ Start-Service EDR.Agent
 | GET | `/api/admin/dashboard/summary` | Dashboard stats |
 | GET | `/api/admin/endpoints` | List endpoints |
 | GET | `/api/admin/alerts` | List alerts |
+| GET | `/api/admin/alerts/:id` | Alert detail (includes `why_fired`, `risk_score`) |
+| GET | `/api/admin/mitre/coverage` | MITRE ATT&CK coverage matrix |
+| GET | `/api/admin/system/health` | API / queue / endpoint health |
+| GET/POST | `/api/admin/integrations` | SIEM/webhook integrations |
+| GET/POST | `/api/admin/reports` | SOC report jobs (JSON/HTML) |
 | POST | `/api/admin/endpoints/:id/actions` | Create response action |
 | POST | `/api/admin/endpoints/:id/agent-key/revoke` | Revoke endpoint agent key |
 | POST | `/api/admin/endpoints/:id/agent-key/rotate` | Rotate endpoint agent key |
@@ -379,11 +436,16 @@ See [docs/antivirus-setup.md](docs/antivirus-setup.md) and [docs/antivirus-archi
 
 ## ⚠️ Security Notes
 
-- Provide a strong `JWT_SECRET` and store it in a secrets manager
-- Prefer per-tenant enrollment tokens; keep `AGENT_REGISTRATION_TOKEN` for break-glass only
-- Deploy behind HTTPS (reverse proxy or TLS-terminated service)
-- Agent runs as LocalSystem by default; consider dedicated service account
-- Response actions (e.g. kill process) require trusted server and secure channel
+- Provide a strong `JWT_SECRET` (≥32 chars in production) and store secrets in a secrets manager
+- Prefer **single-use enrollment tokens**; keep `AGENT_REGISTRATION_TOKEN` for break-glass only
+- Deploy behind HTTPS; optional **mTLS** for agents — [agent-mtls-enrollment.md](docs/security/agent-mtls-enrollment.md)
+- Enable **agent request signing** in production (`AGENT_REQUEST_SIGNING_REQUIRED`; on by default when `NODE_ENV=production`)
+- Agent keys at rest: **DPAPI** (`AgentKeyProtected` in `config.json`) on Windows
+- Response commands are **HMAC-signed**; the agent verifies before execution
+- Run `npm run audit:verify` or `GET /api/admin/audit-logs/verify` for audit hash-chain checks
+- Agent runs as LocalSystem by default; consider a dedicated service account
+
+See [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md) and [docs/enterprise-hardening.md](docs/enterprise-hardening.md).
 
 ---
 

@@ -3,6 +3,11 @@
  */
 const db = require('../utils/db');
 const logger = require('../utils/logger');
+const { ERROR_CODES, sendErrorFromReq } = require('../utils/apiResponse');
+const {
+  ROLE_PERMISSION_DEFAULTS,
+  hasAnyPermission,
+} = require('../constants/permissions');
 
 const LEGACY_ROLE_PERMISSIONS = {
   super_admin: ['*'],
@@ -15,8 +20,6 @@ async function getUserPermissions(userId, role, tenantId = null) {
   if (!userId) return [];
   if (role === 'super_admin') return ['*'];
 
-  // If tenantId is set, use tenant-bound roles first; otherwise fall back to global roles (tenant_id IS NULL).
-  // Note: schema uses (user_id, role_id) as PK; tenant_id may be null. We treat null tenant as "global role".
   try {
     const rows = await db.query(
       `
@@ -36,32 +39,52 @@ async function getUserPermissions(userId, role, tenantId = null) {
     logger.warn({ userId, role, tenantId, err: err.message }, 'RBAC tables missing; using legacy role fallback');
   }
 
-  return LEGACY_ROLE_PERMISSIONS[String(role || '').toLowerCase()] || [];
+  const roleKey = String(role || '').toLowerCase();
+  const enterpriseDefaults = ROLE_PERMISSION_DEFAULTS[roleKey];
+  const legacy = LEGACY_ROLE_PERMISSIONS[roleKey] || [];
+  if (enterpriseDefaults?.length) {
+    return [...new Set([...enterpriseDefaults, ...legacy])];
+  }
+
+  return legacy;
 }
 
 function requirePermission(permission) {
   return async (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return sendErrorFromReq(
+        res,
+        req,
+        ERROR_CODES.AUTHENTICATION_REQUIRED,
+        'Authentication required',
+        401
+      );
     }
     const perms = await getUserPermissions(req.user.userId, req.user.role, req.tenantId ?? req.user.tenantId ?? null);
-    if (perms.includes('*') || perms.includes(permission)) {
+    if (hasAnyPermission(perms, [permission])) {
       return next();
     }
     logger.warn({ userId: req.user.userId, permission }, 'Permission denied');
-    return res.status(403).json({ error: 'Insufficient permissions' });
+    return sendErrorFromReq(res, req, ERROR_CODES.PERMISSION_DENIED, 'Insufficient permissions', 403);
   };
 }
 
 function requireAnyPermission(...permissions) {
   return async (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return sendErrorFromReq(
+        res,
+        req,
+        ERROR_CODES.AUTHENTICATION_REQUIRED,
+        'Authentication required',
+        401
+      );
     }
     const perms = await getUserPermissions(req.user.userId, req.user.role, req.tenantId ?? req.user.tenantId ?? null);
-    if (perms.includes('*')) return next();
-    if (permissions.some((p) => perms.includes(p))) return next();
-    return res.status(403).json({ error: 'Insufficient permissions' });
+    if (hasAnyPermission(perms, permissions)) {
+      return next();
+    }
+    return sendErrorFromReq(res, req, ERROR_CODES.PERMISSION_DENIED, 'Insufficient permissions', 403);
   };
 }
 

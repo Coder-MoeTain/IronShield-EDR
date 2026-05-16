@@ -1,0 +1,25 @@
+{
+  "id": "IRN-WIN-0001",
+  "name": "Suspicious Encoded PowerShell Command",
+  "description": "Detects PowerShell launched with encoded command arguments.",
+  "status": "stable",
+  "severity": "high",
+  "risk_score": 70,
+  "platform": "windows",
+  "event_types": ["process_start", "process_create"],
+  "mitre": { "tactics": ["Execution", "Defense Evasion"], "techniques": ["T1059.001"] },
+  "logic": {
+    "all": [
+      { "field": "process_name", "op": "contains", "value": "powershell" },
+      {
+        "any": [
+          { "field": "command_line", "op": "contains", "value": "-enc" },
+          { "field": "command_line", "op": "contains", "value": "-encodedcommand" },
+          { "field": "command_line", "op": "contains", "value": "FromBase64String" }
+        ]
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

@@ -1,0 +1,31 @@
+{
+  "id": "IRN-WIN-0081",
+  "name": "7zip Archive Creation",
+  "description": "7zip Archive Creation (defensive detection).",
+  "status": "stable",
+  "severity": "low",
+  "risk_score": 40,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Collection"
+    ],
+    "techniques": [
+      "T1560"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "7z.exe"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

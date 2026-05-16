@@ -7,6 +7,7 @@ const config = require('../config');
 const logger = require('../utils/logger');
 const TenantService = require('./TenantService');
 const EnrollmentTokenService = require('./EnrollmentTokenService');
+const AuditLogService = require('./AuditLogService');
 
 /**
  * Register a new endpoint agent
@@ -95,6 +96,32 @@ async function register(payload, registrationToken) {
   }
 
   const endpointId = result.insertId;
+
+  if (enrollment?.tokenId) {
+    if (enrollment.singleUse) {
+      await EnrollmentTokenService.consumeToken(enrollment.tokenId);
+    } else {
+      await EnrollmentTokenService.touchLastUsed(enrollment.tokenId);
+    }
+  }
+
+  try {
+    await AuditLogService.log({
+      username: 'agent',
+      action: 'agent.enrollment',
+      resourceType: 'endpoint',
+      resourceId: String(endpointId),
+      details: {
+        hostname,
+        tenant_id: defaultTenantId,
+        enrollment_token_id: enrollment?.tokenId ?? null,
+        platform_break_glass: platformOk && !enrollment,
+      },
+    });
+  } catch {
+    /* audit best-effort */
+  }
+
   logger.info({ endpointId, hostname }, 'Agent registered');
 
   return { agentKey, endpointId };

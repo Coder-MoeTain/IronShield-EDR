@@ -48,19 +48,41 @@ async function revoke(tenantId, id) {
 
 async function resolveToken(token) {
   const tokenHash = sha256Hex(token);
-  const row = await db.queryOne(
-    `SELECT id, tenant_id, expires_at, revoked_at
-     FROM tenant_enrollment_tokens
-     WHERE token_hash = ?
-     LIMIT 1`,
-    [tokenHash]
-  );
+  let row;
+  try {
+    row = await db.queryOne(
+      `SELECT id, tenant_id, expires_at, revoked_at, single_use, consumed_at
+       FROM tenant_enrollment_tokens
+       WHERE token_hash = ?
+       LIMIT 1`,
+      [tokenHash]
+    );
+  } catch {
+    row = await db.queryOne(
+      `SELECT id, tenant_id, expires_at, revoked_at
+       FROM tenant_enrollment_tokens
+       WHERE token_hash = ?
+       LIMIT 1`,
+      [tokenHash]
+    );
+  }
   if (!row) return null;
   if (row.revoked_at) return null;
   if (row.expires_at && new Date(row.expires_at).getTime() < Date.now()) return null;
-  await db.execute('UPDATE tenant_enrollment_tokens SET last_used_at = NOW() WHERE id = ?', [row.id]);
-  return { tenantId: row.tenant_id, tokenId: row.id };
+  if (row.single_use && row.consumed_at) return null;
+  return { tenantId: row.tenant_id, tokenId: row.id, singleUse: !!row.single_use };
 }
 
-module.exports = { create, list, revoke, resolveToken };
+async function consumeToken(tokenId) {
+  await db.execute(
+    'UPDATE tenant_enrollment_tokens SET consumed_at = NOW(), last_used_at = NOW() WHERE id = ?',
+    [tokenId]
+  );
+}
+
+async function touchLastUsed(tokenId) {
+  await db.execute('UPDATE tenant_enrollment_tokens SET last_used_at = NOW() WHERE id = ?', [tokenId]);
+}
+
+module.exports = { create, list, revoke, resolveToken, consumeToken, touchLastUsed };
 

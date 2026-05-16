@@ -1,0 +1,31 @@
+{
+  "id": "IRN-WIN-0031",
+  "name": "Runas Elevated Execution",
+  "description": "Runas Elevated Execution (defensive detection).",
+  "status": "stable",
+  "severity": "medium",
+  "risk_score": 50,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Privilege Escalation"
+    ],
+    "techniques": [
+      "T1134"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "runas.exe"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

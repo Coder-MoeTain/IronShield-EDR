@@ -8,6 +8,7 @@ import SessionExpiryBanner from './SessionExpiryBanner';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
 import TenantSwitcher from './TenantSwitcher';
 import ThemeToggle from './ThemeToggle';
+import MockModeBanner from './MockModeBanner';
 import { useProfessionalView } from './ProfessionalViewToggle';
 import {
   IconActivity,
@@ -55,6 +56,7 @@ const MENU_ITEMS = [
     Icon: IconGraph,
     children: [
       { to: '/analytics-detections', Icon: IconGraph, label: 'Detection analytics' },
+      { to: '/mitre', Icon: IconGraph, label: 'MITRE coverage' },
       { to: '/threat-graph', Icon: IconGraph, label: 'Threat graph' },
       { to: '/agent-network-map', Icon: IconNetwork, label: 'Agent network map' },
     ],
@@ -89,6 +91,7 @@ const MENU_ITEMS = [
     children: [
       { to: '/investigations', Icon: IconRespond, label: 'Investigations' },
       { to: '/incidents', Icon: IconRespond, label: 'Incidents' },
+      { to: '/soc/triage', Icon: IconRespond, label: 'Triage queue' },
       { to: '/triage', Icon: IconRespond, label: 'Triage' },
       { to: '/respond/approvals', Icon: IconRespond, label: 'Approvals' },
       { to: '/rtr', Icon: IconTerminal, label: 'RTR' },
@@ -108,6 +111,9 @@ const MENU_ITEMS = [
     Icon: IconEnterprise,
     children: [
       { to: '/enterprise', Icon: IconEnterprise, label: 'Settings' },
+      { to: '/integrations', Icon: IconEnterprise, label: 'Integrations' },
+      { to: '/reports', Icon: IconEnterprise, label: 'Reports' },
+      { to: '/system/health', Icon: IconEnterprise, label: 'System health' },
       { to: '/tenants', Icon: IconEnterprise, label: 'Tenants' },
       { to: '/mssp', Icon: IconEnterprise, label: 'MSSP console' },
       { to: '/rbac', Icon: IconConfig, label: 'RBAC' },
@@ -258,6 +264,7 @@ export default function Layout() {
           <ThemeToggle />
         </div>
         <SessionExpiryBanner />
+        <MockModeBanner />
         <div className={styles.content} data-workspace>
           <RouteErrorBoundary key={location.pathname}>
             <Outlet />

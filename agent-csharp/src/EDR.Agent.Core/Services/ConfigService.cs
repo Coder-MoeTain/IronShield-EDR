@@ -1,5 +1,6 @@
 using System.Text.Json;
 using EDR.Agent.Core.Models;
+using EDR.Agent.Core.Security;
 
 namespace EDR.Agent.Core.Services;
 
@@ -79,15 +80,32 @@ public class ConfigService
             Console.WriteLine("[Config] Missing ServerUrl. Set EDR_SERVER_URL or create config.json (see config.example.json).");
         }
 
+        HydrateSecretsFromProtectedFields();
+
         return Config;
+    }
+
+    void HydrateSecretsFromProtectedFields()
+    {
+        if (string.IsNullOrEmpty(Config.AgentKey) && !string.IsNullOrEmpty(Config.AgentKeyProtected))
+        {
+            Config.AgentKey = SecretProtector.Unprotect(Config.AgentKeyProtected);
+        }
+        if (!string.IsNullOrEmpty(Config.RegistrationToken) && Config.RegistrationToken.StartsWith("dpapi:", StringComparison.OrdinalIgnoreCase))
+        {
+            Config.RegistrationToken = SecretProtector.Unprotect(Config.RegistrationToken["dpapi:".Length..]) ?? "";
+        }
     }
 
     /// <summary>
     /// Persist agent key after registration.
     /// </summary>
-    public void SaveAgentKey(string agentKey)
+    public void SaveAgentKey(string agentKey, long? endpointId = null)
     {
         Config.AgentKey = agentKey;
+        Config.AgentKeyProtected = SecretProtector.Protect(agentKey);
+        if (endpointId.HasValue && endpointId.Value > 0)
+            Config.EndpointId = endpointId;
         SaveConfig();
     }
 
@@ -97,6 +115,7 @@ public class ConfigService
     public void ClearAgentKey()
     {
         Config.AgentKey = null;
+        Config.AgentKeyProtected = null;
         SaveConfig();
     }
 
@@ -105,7 +124,35 @@ public class ConfigService
         var path = Path.Combine(AppContext.BaseDirectory, "config.json");
         try
         {
-            var json = JsonSerializer.Serialize(Config, JsonOptions);
+            var toSave = new AgentConfig
+            {
+                ServerUrl = Config.ServerUrl,
+                RequireHttps = Config.RequireHttps,
+                PinnedServerCertThumbprints = Config.PinnedServerCertThumbprints,
+                ClientCertificatePfxPath = Config.ClientCertificatePfxPath,
+                ClientCertificatePfxPassword = Config.ClientCertificatePfxPassword,
+                RegistrationToken = Config.RegistrationToken,
+                TenantSlug = Config.TenantSlug,
+                AgentKeyProtected = Config.AgentKeyProtected ?? SecretProtector.Protect(Config.AgentKey),
+                EndpointId = Config.EndpointId,
+                HeartbeatIntervalMinutes = Config.HeartbeatIntervalMinutes,
+                EventBatchIntervalSeconds = Config.EventBatchIntervalSeconds,
+                CommandPollIntervalSeconds = Config.CommandPollIntervalSeconds,
+                MaxEventsPerBatch = Config.MaxEventsPerBatch,
+                MaxRetries = Config.MaxRetries,
+                LocalQueuePath = Config.LocalQueuePath,
+                MaxWindowsEventLogEventsPerPoll = Config.MaxWindowsEventLogEventsPerPoll,
+                MaxSysmonEventsPerPoll = Config.MaxSysmonEventsPerPoll,
+                ScriptAllowlistPrefixes = Config.ScriptAllowlistPrefixes,
+                ScriptAllowlistSha256 = Config.ScriptAllowlistSha256,
+                VerifyAgentUpdates = Config.VerifyAgentUpdates,
+                AgentUpdatePublicKeyPem = Config.AgentUpdatePublicKeyPem,
+                AutoInstallUpdates = Config.AutoInstallUpdates,
+                UpdaterExecutablePath = Config.UpdaterExecutablePath,
+                UpdateTargetPath = Config.UpdateTargetPath,
+                WebUrlProtectionEnabled = Config.WebUrlProtectionEnabled,
+            };
+            var json = JsonSerializer.Serialize(toSave, JsonOptions);
             File.WriteAllText(path, json);
         }
         catch (Exception ex)

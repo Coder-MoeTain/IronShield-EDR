@@ -12,6 +12,7 @@ const config = require('./config');
 const logger = require('./utils/logger');
 const errorHandler = require('./middleware/errorHandler');
 const { requestIdMiddleware } = require('./middleware/requestId');
+const { ERROR_CODES, sendErrorFromReq } = require('./utils/apiResponse');
 const healthChecks = require('./utils/healthChecks');
 const pkg = require('../package.json');
 const promClient = require('prom-client');
@@ -22,6 +23,8 @@ const authRoutes = require('./routes/authRoutes');
 const ingestRoutes = require('./routes/ingestRoutes');
 
 const app = express();
+
+const API_PREFIXES = ['/api', '/api/v1'];
 
 app.use(requestIdMiddleware);
 
@@ -64,31 +67,37 @@ app.use(express.json({
   },
 }));
 
+function rateLimitHandler(req, res) {
+  return sendErrorFromReq(res, req, ERROR_CODES.RATE_LIMITED, 'Too many requests', 429);
+}
+
 const agentLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 120,
-  message: { error: 'Too many requests' },
+  handler: rateLimitHandler,
 });
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
-  message: { error: 'Too many login attempts' },
+  handler: rateLimitHandler,
 });
 const adminLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 600,
-  message: { error: 'Too many requests' },
+  handler: rateLimitHandler,
 });
 const ingestLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 1200,
-  message: { error: 'Too many requests' },
+  handler: rateLimitHandler,
 });
 
-app.use('/api/agent', agentLimiter);
-app.use('/api/auth', authLimiter);
-app.use('/api/admin', adminLimiter);
-app.use('/api/ingest', ingestLimiter);
+for (const prefix of API_PREFIXES) {
+  app.use(`${prefix}/agent`, agentLimiter);
+  app.use(`${prefix}/auth`, authLimiter);
+  app.use(`${prefix}/admin`, adminLimiter);
+  app.use(`${prefix}/ingest`, ingestLimiter);
+}
 
 app.get('/health', (req, res) =>
   res.json({
@@ -156,7 +165,9 @@ if (config.metrics?.enabled) {
     const tok = config.metrics?.token;
     if (tok) {
       const provided = req.headers['x-metrics-token'] || req.query.token;
-      if (String(provided || '') !== String(tok)) return res.status(401).json({ error: 'Unauthorized' });
+      if (String(provided || '') !== String(tok)) {
+        return sendErrorFromReq(res, req, ERROR_CODES.AUTHENTICATION_REQUIRED, 'Unauthorized', 401);
+      }
     }
     const metricsUtil = require('./utils/metrics');
     await metricsUtil.refreshSocReadinessGauges();
@@ -165,14 +176,21 @@ if (config.metrics?.enabled) {
   });
 }
 
-app.use('/api/auth', authRoutes);
-app.use('/api/agent', agentRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/ingest', ingestRoutes);
+function mountApiRoutes(basePath) {
+  app.use(`${basePath}/auth`, authRoutes);
+  app.use(`${basePath}/agent`, agentRoutes);
+  app.use(`${basePath}/admin`, adminRoutes);
+  app.use(`${basePath}/ingest`, ingestRoutes);
+}
 
-/** OpenAPI 3 contract (Phase 1); file lives in server-node/openapi/ */
+for (const prefix of API_PREFIXES) {
+  mountApiRoutes(prefix);
+}
+
+/** OpenAPI 3 contract; served on legacy and v1 paths. */
 const OPENAPI_SPEC_PATH = path.resolve(__dirname, '..', 'openapi', 'openapi.json');
-app.get('/api/openapi.json', (req, res) => {
+
+function serveOpenApi(req, res) {
   try {
     const raw = fs.readFileSync(OPENAPI_SPEC_PATH, 'utf8');
     const spec = JSON.parse(raw);
@@ -181,11 +199,22 @@ app.get('/api/openapi.json', (req, res) => {
     res.json(spec);
   } catch (e) {
     logger.error({ err: e.message }, 'OpenAPI spec read failed');
-    res.status(500).json({ error: 'OpenAPI specification unavailable' });
+    return sendErrorFromReq(
+      res,
+      req,
+      ERROR_CODES.INTERNAL_ERROR,
+      'OpenAPI specification unavailable',
+      500
+    );
   }
-});
+}
 
-app.use('/api', (req, res) => res.status(404).json({ error: 'Not found', path: req.path }));
+app.get('/api/openapi.json', serveOpenApi);
+app.get('/api/v1/openapi.json', serveOpenApi);
+
+app.use(['/api', '/api/v1'], (req, res) =>
+  sendErrorFromReq(res, req, ERROR_CODES.NOT_FOUND, 'Not found', 404, { path: req.path })
+);
 
 app.use(express.static('public'));
 const dashboardIndexPath = path.resolve(process.cwd(), 'public', 'index.html');
@@ -197,4 +226,4 @@ app.get(/^\/(?!api(?:\/|$)).*/, (req, res, next) => {
 
 app.use(errorHandler);
 
-module.exports = { app };
+module.exports = { app, API_PREFIXES };

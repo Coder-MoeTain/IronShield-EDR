@@ -1,0 +1,36 @@
+{
+  "id": "IRN-WIN-0080",
+  "name": "Archive Sensitive Data",
+  "description": "Archive Sensitive Data (defensive detection).",
+  "status": "stable",
+  "severity": "medium",
+  "risk_score": 55,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Collection"
+    ],
+    "techniques": [
+      "T1560.001"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "rar.exe"
+      },
+      {
+        "field": "command_line",
+        "op": "contains",
+        "value": "a "
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

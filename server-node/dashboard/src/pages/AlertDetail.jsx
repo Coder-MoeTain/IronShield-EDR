@@ -241,6 +241,26 @@ export default function AlertDetail() {
         <RunbookWorkflowPanel endpointId={alert.endpoint_id} hostname={alert.hostname} />
       )}
 
+      {alert.why_fired && (
+        <div className={styles.card} style={{ marginBottom: '1rem' }}>
+          <h3>Why this fired</h3>
+          <dl>
+            <dt>Rule</dt>
+            <dd>{alert.why_fired.rule_name || alert.why_fired.rule_id || '—'}</dd>
+            <dt>Risk score</dt>
+            <dd>{alert.why_fired.risk_score ?? alert.risk_score ?? '—'}</dd>
+            <dt>Evidence</dt>
+            <dd>
+              <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.85rem' }}>
+                {typeof alert.why_fired.evidence === 'object'
+                  ? JSON.stringify(alert.why_fired.evidence, null, 2)
+                  : String(alert.why_fired.evidence || '—')}
+              </pre>
+            </dd>
+          </dl>
+        </div>
+      )}
+
       <div className={styles.grid}>
         <div className={styles.card}>
           <h3>Details</h3>

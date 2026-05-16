@@ -1,0 +1,36 @@
+{
+  "id": "IRN-WIN-0016",
+  "name": "Cmd from Script Interpreter",
+  "description": "Cmd from Script Interpreter (defensive detection).",
+  "status": "stable",
+  "severity": "medium",
+  "risk_score": 50,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Execution"
+    ],
+    "techniques": [
+      "T1059.003"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "cmd.exe"
+      },
+      {
+        "field": "command_line",
+        "op": "contains",
+        "value": "/c"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}
