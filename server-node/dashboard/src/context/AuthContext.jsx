@@ -215,7 +215,7 @@ export function AuthProvider({ children }) {
         try {
           let res = await doFetch();
 
-          if (res.status === 401 && /\/api\/admin\b/.test(path) && !admin401Redirecting) {
+          if (res.status === 401 && /\/api\/(admin|console)\b/.test(path) && !admin401Redirecting) {
             const refreshed = await tryRefresh();
             if (refreshed) {
               res = await doFetch();

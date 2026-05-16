@@ -21,6 +21,7 @@ const agentRoutes = require('./routes/agentRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const authRoutes = require('./routes/authRoutes');
 const ingestRoutes = require('./routes/ingestRoutes');
+const consoleRoutes = require('./routes/consoleRoutes');
 
 const app = express();
 
@@ -97,6 +98,7 @@ for (const prefix of API_PREFIXES) {
   app.use(`${prefix}/auth`, authLimiter);
   app.use(`${prefix}/admin`, adminLimiter);
   app.use(`${prefix}/ingest`, ingestLimiter);
+  app.use(`${prefix}/console`, adminLimiter);
 }
 
 app.get('/health', (req, res) =>
@@ -181,6 +183,7 @@ function mountApiRoutes(basePath) {
   app.use(`${basePath}/agent`, agentRoutes);
   app.use(`${basePath}/admin`, adminRoutes);
   app.use(`${basePath}/ingest`, ingestRoutes);
+  app.use(`${basePath}/console`, consoleRoutes);
 }
 
 for (const prefix of API_PREFIXES) {

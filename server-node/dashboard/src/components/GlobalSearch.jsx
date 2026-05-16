@@ -31,7 +31,7 @@ export default function GlobalSearch() {
       out.push({
         category: 'Alerts',
         key: `al-${a.id}`,
-        path: `/alerts/${a.id}`,
+        path: `/detections/alerts/${a.id}`,
         label: a.title || 'Alert',
         sub: a.hostname || '',
       });

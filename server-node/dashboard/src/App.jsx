@@ -6,70 +6,35 @@ import { ConfirmProvider } from './context/ConfirmContext';
 import AppErrorBoundary from './components/AppErrorBoundary';
 import SocRouteGuard from './components/SocRouteGuard';
 import Layout from './components/Layout';
+import RedirectPreserve from './components/RedirectPreserve';
+import {
+  LegacyAlertRedirect,
+  LegacyCaseRedirect,
+  LegacyIncidentRedirect,
+  LegacyMalwareAlertRedirect,
+} from './components/LegacyRedirects';
 import Login from './pages/Login';
 import { canSeeEnterpriseSettings, canSeeMsspAndTenants, canSeeRbacAdmin } from './utils/socRoles';
 import { isJwtExpired } from './utils/jwt';
 
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Endpoints = lazy(() => import('./pages/Endpoints'));
-const EndpointDetail = lazy(() => import('./pages/EndpointDetail'));
-const Events = lazy(() => import('./pages/Events'));
-const NormalizedEvents = lazy(() => import('./pages/NormalizedEvents'));
-const RawEvents = lazy(() => import('./pages/RawEvents'));
+const OverviewPage = lazy(() => import('./features/overview/OverviewPage'));
+const EndpointsPage = lazy(() => import('./features/endpoints/EndpointsPage'));
+const EndpointDetailPage = lazy(() => import('./features/endpoints/EndpointDetailPage'));
+const DetectionsPage = lazy(() => import('./features/detections/DetectionsPage'));
+const AlertDetailPage = lazy(() => import('./features/detections/AlertDetailPage'));
+const InvestigationPage = lazy(() => import('./features/investigation/InvestigationPage'));
+const InvestigationDetailPage = lazy(() => import('./features/investigation/InvestigationDetailPage'));
+const ResponsePage = lazy(() => import('./features/response/ResponsePage'));
+const HuntingPage = lazy(() => import('./features/hunting/HuntingPage'));
+const ProtectionPage = lazy(() => import('./features/protection/ProtectionPage'));
+const AdminPage = lazy(() => import('./features/admin/AdminPage'));
+
+const DetectionRuleEditor = lazy(() => import('./pages/DetectionRuleEditor'));
+const DetectionRuleDetail = lazy(() => import('./pages/DetectionRuleDetail'));
 const EventDetail = lazy(() => import('./pages/EventDetail'));
 const NormalizedEventDetail = lazy(() => import('./pages/NormalizedEventDetail'));
-const Alerts = lazy(() => import('./pages/Alerts'));
-const AlertDetail = lazy(() => import('./pages/AlertDetail'));
-const DetectionRules = lazy(() => import('./pages/DetectionRules'));
-const DetectionRuleDetail = lazy(() => import('./pages/DetectionRuleDetail'));
-const DetectionRuleEditor = lazy(() => import('./pages/DetectionRuleEditor'));
-const AuditLogs = lazy(() => import('./pages/AuditLogs'));
-const Investigations = lazy(() => import('./pages/Investigations'));
-const InvestigationDetail = lazy(() => import('./pages/InvestigationDetail'));
-const Incidents = lazy(() => import('./pages/Incidents'));
-const IncidentDetail = lazy(() => import('./pages/IncidentDetail'));
-const Risk = lazy(() => import('./pages/Risk'));
-const IOCs = lazy(() => import('./pages/IOCs'));
-const WebUrlProtection = lazy(() => import('./pages/WebUrlProtection'));
-const Policies = lazy(() => import('./pages/Policies'));
-const Triage = lazy(() => import('./pages/Triage'));
-const ProcessTree = lazy(() => import('./pages/ProcessTree'));
-const ProcessMonitor = lazy(() => import('./pages/ProcessMonitor'));
-const Network = lazy(() => import('./pages/Network'));
-const AvOverview = lazy(() => import('./pages/AvOverview'));
-const AvDetections = lazy(() => import('./pages/AvDetections'));
 const AvDetectionDetail = lazy(() => import('./pages/AvDetectionDetail'));
-const AvQuarantine = lazy(() => import('./pages/AvQuarantine'));
-const AvScanTasks = lazy(() => import('./pages/AvScanTasks'));
-const AvPolicies = lazy(() => import('./pages/AvPolicies'));
-const AvSignatures = lazy(() => import('./pages/AvSignatures'));
-const AvMalwareAlerts = lazy(() => import('./pages/AvMalwareAlerts'));
-const AvMalwareAlertDetail = lazy(() => import('./pages/AvMalwareAlertDetail'));
-const AvFileReputation = lazy(() => import('./pages/AvFileReputation'));
-const ProtectionCapabilities = lazy(() => import('./pages/ProtectionCapabilities'));
-const EnterpriseSettings = lazy(() => import('./pages/EnterpriseSettings'));
-const TenantManagement = lazy(() => import('./pages/TenantManagement'));
-const MsspConsole = lazy(() => import('./pages/MsspConsole'));
-const HostGroups = lazy(() => import('./pages/HostGroups'));
-const SensorHealth = lazy(() => import('./pages/SensorHealth'));
-const Hunting = lazy(() => import('./pages/Hunting'));
-const RtrConsole = lazy(() => import('./pages/RtrConsole'));
-const ThreatGraph = lazy(() => import('./pages/ThreatGraph'));
-const AgentNetworkMap = lazy(() => import('./pages/AgentNetworkMap'));
-const AnalyticsDetections = lazy(() => import('./pages/AnalyticsDetections'));
 const FalconRoadmapPage = lazy(() => import('./pages/FalconRoadmapPage'));
-const XdrOverview = lazy(() => import('./pages/XdrOverview'));
-const XdrEvents = lazy(() => import('./pages/XdrEvents'));
-const XdrDetections = lazy(() => import('./pages/XdrDetections'));
-const XdrRealtime = lazy(() => import('./pages/XdrRealtime'));
-const ResponseApprovals = lazy(() => import('./pages/ResponseApprovals'));
-const RbacManagement = lazy(() => import('./pages/RbacManagement'));
-const SocTriageQueue = lazy(() => import('./pages/SocTriageQueue'));
-const MitreCoverage = lazy(() => import('./pages/MitreCoverage'));
-const SystemHealth = lazy(() => import('./pages/SystemHealth'));
-const HostTimeline = lazy(() => import('./pages/HostTimeline'));
-const Integrations = lazy(() => import('./pages/Integrations'));
-const Reports = lazy(() => import('./pages/Reports'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 function RouteFallback() {
@@ -113,113 +78,92 @@ export default function App() {
                     </PrivateRoute>
                   }
                 >
-                  <Route index element={<Dashboard />} />
-                  <Route path="dashboard" element={<Navigate to="/" replace />} />
-                  <Route path="endpoints" element={<Endpoints />} />
-                  <Route path="host-groups" element={<HostGroups />} />
-                  <Route path="sensor-health" element={<SensorHealth />} />
-                  <Route path="hunting" element={<Hunting />} />
-                  <Route path="rtr" element={<RtrConsole />} />
-                  <Route path="threat-graph" element={<ThreatGraph />} />
-                  <Route path="agent-network-map" element={<AgentNetworkMap />} />
-                  <Route path="analytics-detections" element={<AnalyticsDetections />} />
-                  <Route path="falcon/:area" element={<FalconRoadmapPage />} />
-                  <Route path="xdr" element={<XdrOverview />} />
-                  <Route path="xdr/events" element={<XdrEvents />} />
-                  <Route path="xdr/detections" element={<XdrDetections />} />
-                  <Route path="xdr/realtime" element={<XdrRealtime />} />
-                  <Route path="endpoints/:id" element={<EndpointDetail />} />
-                  <Route path="events" element={<Events />} />
-                  <Route path="normalized-events" element={<NormalizedEvents />} />
-                  <Route path="normalized-events/:id" element={<NormalizedEventDetail />} />
-                  <Route path="raw-events" element={<RawEvents />} />
+                  <Route index element={<Navigate to="/overview" replace />} />
+                  <Route path="overview" element={<OverviewPage />} />
+                  <Route path="endpoints" element={<EndpointsPage />} />
+                  <Route path="endpoints/:id" element={<EndpointDetailPage />} />
+                  <Route path="detections" element={<DetectionsPage />} />
+                  <Route path="detections/alerts/:id" element={<AlertDetailPage />} />
+                  <Route path="detections/rules/new" element={<DetectionRuleEditor />} />
+                  <Route path="detections/rules/:id/edit" element={<DetectionRuleEditor />} />
+                  <Route path="detections/rules/:id" element={<DetectionRuleDetail />} />
+                  <Route path="investigation" element={<InvestigationPage />} />
+                  <Route path="investigation/incidents/:id" element={<InvestigationDetailPage />} />
+                  <Route path="investigation/cases/:id" element={<InvestigationDetailPage />} />
+                  <Route path="investigation/:id" element={<InvestigationDetailPage />} />
+                  <Route path="response" element={<ResponsePage />} />
+                  <Route path="hunting" element={<HuntingPage />} />
+                  <Route path="protection" element={<ProtectionPage />} />
+                  <Route
+                    path="admin"
+                    element={
+                      <SocRouteGuard allow={(u) => canSeeEnterpriseSettings(u) || canSeeMsspAndTenants(u) || canSeeRbacAdmin(u) || u?.role === 'viewer'}>
+                        <AdminPage />
+                      </SocRouteGuard>
+                    }
+                  />
+
+                  {/* Legacy redirects → compact console */}
+                  <Route path="dashboard" element={<Navigate to="/overview" replace />} />
+                  <Route path="alerts" element={<RedirectPreserve to="/detections" defaultTab="alerts" />} />
+                  <Route path="alerts/:id" element={<LegacyAlertRedirect />} />
+                  <Route path="triage" element={<RedirectPreserve to="/detections" defaultTab="triage" />} />
+                  <Route path="soc/triage" element={<RedirectPreserve to="/detections" defaultTab="triage" />} />
+                  <Route path="detection-rules" element={<RedirectPreserve to="/detections" defaultTab="rules" />} />
+                  <Route path="detection-rules/new" element={<Navigate to="/detections/rules/new" replace />} />
+                  <Route path="detection-rules/:id/edit" element={<Navigate to="/detections/rules/:id/edit" replace />} />
+                  <Route path="detection-rules/:id" element={<Navigate to="/detections/rules/:id" replace />} />
+                  <Route path="mitre" element={<RedirectPreserve to="/detections" defaultTab="mitre" />} />
+                  <Route path="suppressions" element={<RedirectPreserve to="/detections" defaultTab="suppressions" />} />
+                  <Route path="events" element={<RedirectPreserve to="/hunting" defaultTab="events" />} />
+                  <Route path="raw-events" element={<RedirectPreserve to="/hunting" defaultTab="raw" />} />
                   <Route path="raw-events/:id" element={<EventDetail />} />
-                  <Route path="alerts" element={<Alerts />} />
-                  <Route path="alerts/:id" element={<AlertDetail />} />
-                  <Route path="soc/triage" element={<SocTriageQueue />} />
-                  <Route path="mitre" element={<MitreCoverage />} />
-                  <Route path="system/health" element={<SystemHealth />} />
-                  <Route path="hosts/:endpointId/timeline" element={<HostTimeline />} />
-                  <Route path="host-timeline" element={<HostTimeline />} />
-                  <Route path="detection-rules" element={<DetectionRules />} />
-                  <Route path="detection-rules/new" element={<DetectionRuleEditor />} />
-                  <Route path="detection-rules/:id/edit" element={<DetectionRuleEditor />} />
-                  <Route path="detection-rules/:id" element={<DetectionRuleDetail />} />
-                  <Route path="suppressions" element={<Navigate to="/detection-rules?tab=suppressions" replace />} />
-                  <Route path="playbooks" element={<Navigate to="/triage?tab=playbooks" replace />} />
-                  <Route path="audit-logs" element={<AuditLogs />} />
-                  <Route path="investigations" element={<Investigations />} />
-                  <Route path="investigations/:id" element={<InvestigationDetail />} />
-                  <Route path="incidents" element={<Incidents />} />
-                  <Route path="incidents/:id" element={<IncidentDetail />} />
-                  <Route path="risk" element={<Risk />} />
-                  <Route path="web-url-protection" element={<WebUrlProtection />} />
-                  <Route path="iocs" element={<IOCs />} />
-                  <Route path="policies" element={<Policies />} />
-                  <Route path="triage" element={<Triage />} />
-                  <Route path="endpoints/:endpointId/process-tree" element={<ProcessTree />} />
-                  <Route path="process-monitor" element={<ProcessMonitor />} />
-                  <Route path="network" element={<Network />} />
-                  <Route path="respond/approvals" element={<ResponseApprovals />} />
-                  <Route path="protection" element={<ProtectionCapabilities />} />
-                  <Route path="av" element={<AvOverview />} />
-                  <Route path="av/detections" element={<AvDetections />} />
+                  <Route path="normalized-events" element={<RedirectPreserve to="/hunting" defaultTab="normalized" />} />
+                  <Route path="normalized-events/:id" element={<NormalizedEventDetail />} />
+                  <Route path="xdr" element={<RedirectPreserve to="/overview" defaultTab="soc" />} />
+                  <Route path="xdr/events" element={<RedirectPreserve to="/hunting" defaultTab="xdr-events" />} />
+                  <Route path="xdr/detections" element={<RedirectPreserve to="/detections" defaultTab="xdr" />} />
+                  <Route path="xdr/realtime" element={<RedirectPreserve to="/hunting" defaultTab="realtime" />} />
+                  <Route path="network" element={<RedirectPreserve to="/hunting" defaultTab="network" />} />
+                  <Route path="iocs" element={<RedirectPreserve to="/hunting" defaultTab="iocs" />} />
+                  <Route path="process-monitor" element={<RedirectPreserve to="/endpoints" defaultView="processes" />} />
+                  <Route path="endpoints/:endpointId/process-tree" element={<RedirectPreserve to="/endpoints" defaultView="process-tree" />} />
+                  <Route path="host-timeline" element={<RedirectPreserve to="/endpoints" defaultView="timeline" />} />
+                  <Route path="hosts/:endpointId/timeline" element={<RedirectPreserve to="/endpoints" defaultView="timeline" />} />
+                  <Route path="host-groups" element={<RedirectPreserve to="/endpoints" defaultTab="groups" />} />
+                  <Route path="sensor-health" element={<RedirectPreserve to="/overview" defaultTab="agent-health" />} />
+                  <Route path="av" element={<Navigate to="/protection" replace />} />
+                  <Route path="av/detections" element={<RedirectPreserve to="/protection" defaultTab="detections" />} />
                   <Route path="av/detections/:id" element={<AvDetectionDetail />} />
-                  <Route path="av/quarantine" element={<AvQuarantine />} />
-                  <Route path="av/scan-tasks" element={<AvScanTasks />} />
-                  <Route path="av/policies" element={<AvPolicies />} />
-                  <Route path="av/signatures" element={<AvSignatures />} />
-                  <Route path="av/reputation" element={<AvFileReputation />} />
-                  <Route path="av/malware-alerts" element={<AvMalwareAlerts />} />
-                  <Route path="av/malware-alerts/:id" element={<AvMalwareAlertDetail />} />
-                  <Route
-                    path="enterprise"
-                    element={
-                      <SocRouteGuard allow={canSeeEnterpriseSettings}>
-                        <EnterpriseSettings />
-                      </SocRouteGuard>
-                    }
-                  />
-                  <Route
-                    path="integrations"
-                    element={
-                      <SocRouteGuard allow={canSeeEnterpriseSettings}>
-                        <Integrations />
-                      </SocRouteGuard>
-                    }
-                  />
-                  <Route
-                    path="reports"
-                    element={
-                      <SocRouteGuard allow={canSeeEnterpriseSettings}>
-                        <Reports />
-                      </SocRouteGuard>
-                    }
-                  />
-                  <Route
-                    path="tenants"
-                    element={
-                      <SocRouteGuard allow={canSeeMsspAndTenants}>
-                        <TenantManagement />
-                      </SocRouteGuard>
-                    }
-                  />
-                  <Route
-                    path="mssp"
-                    element={
-                      <SocRouteGuard allow={canSeeMsspAndTenants}>
-                        <MsspConsole />
-                      </SocRouteGuard>
-                    }
-                  />
-                  <Route
-                    path="rbac"
-                    element={
-                      <SocRouteGuard allow={canSeeRbacAdmin}>
-                        <RbacManagement />
-                      </SocRouteGuard>
-                    }
-                  />
+                  <Route path="av/quarantine" element={<RedirectPreserve to="/protection" defaultTab="quarantine" />} />
+                  <Route path="av/scan-tasks" element={<RedirectPreserve to="/protection" defaultTab="scans" />} />
+                  <Route path="av/policies" element={<RedirectPreserve to="/protection" defaultTab="policies" />} />
+                  <Route path="av/signatures" element={<RedirectPreserve to="/protection" defaultTab="signatures" />} />
+                  <Route path="av/reputation" element={<RedirectPreserve to="/protection" defaultTab="reputation" />} />
+                  <Route path="av/malware-alerts" element={<RedirectPreserve to="/detections" defaultTab="alerts" />} />
+                  <Route path="av/malware-alerts/:id" element={<LegacyMalwareAlertRedirect />} />
+                  <Route path="incidents" element={<RedirectPreserve to="/investigation" defaultTab="incidents" />} />
+                  <Route path="incidents/:id" element={<LegacyIncidentRedirect />} />
+                  <Route path="investigations" element={<RedirectPreserve to="/investigation" defaultTab="cases" />} />
+                  <Route path="investigations/:id" element={<LegacyCaseRedirect />} />
+                  <Route path="threat-graph" element={<RedirectPreserve to="/investigation" defaultTab="graph" />} />
+                  <Route path="respond/approvals" element={<RedirectPreserve to="/response" defaultTab="approvals" />} />
+                  <Route path="rtr" element={<RedirectPreserve to="/response" defaultTab="rtr" />} />
+                  <Route path="playbooks" element={<RedirectPreserve to="/response" defaultTab="playbooks" />} />
+                  <Route path="enterprise" element={<RedirectPreserve to="/admin" defaultTab="settings" />} />
+                  <Route path="tenants" element={<RedirectPreserve to="/admin" defaultTab="tenants" />} />
+                  <Route path="mssp" element={<RedirectPreserve to="/overview" defaultTab="tenant" />} />
+                  <Route path="rbac" element={<RedirectPreserve to="/admin" defaultTab="rbac" />} />
+                  <Route path="audit-logs" element={<RedirectPreserve to="/admin" defaultTab="audit" />} />
+                  <Route path="reports" element={<RedirectPreserve to="/admin" defaultTab="reports" />} />
+                  <Route path="integrations" element={<RedirectPreserve to="/admin" defaultTab="integrations" />} />
+                  <Route path="system/health" element={<RedirectPreserve to="/admin" defaultTab="system-health" />} />
+                  <Route path="analytics-detections" element={<RedirectPreserve to="/detections" defaultTab="analytics" />} />
+                  <Route path="risk" element={<RedirectPreserve to="/overview" defaultTab="executive" />} />
+                  <Route path="web-url-protection" element={<RedirectPreserve to="/hunting" defaultTab="web" />} />
+                  <Route path="policies" element={<RedirectPreserve to="/protection" defaultTab="policies" />} />
+                  <Route path="agent-network-map" element={<RedirectPreserve to="/endpoints" defaultTab="map" />} />
+                  <Route path="falcon/:area" element={<FalconRoadmapPage />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
               </Routes>

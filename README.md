@@ -53,6 +53,7 @@
 
 | When | What |
 |:-----|:-----|
+| **May 2026** | **Compact EDR/XDR console** — Eight-page SOC navigation (`/overview`, `/endpoints`, `/detections`, `/investigation`, `/response`, `/hunting`, `/protection`, `/admin`) with tabbed modules, legacy URL redirects, UI modes (Simple / Advanced / Admin), and BFF endpoints `GET /api/v1/console/*`. |
 | **May 2026** | **Production hardening (pilot-ready)** — `/api/v1`, agent key hashing, Redis nonces, cert binding, **52** IRN-WIN rules, ESLint in CI, [api.md](docs/api.md) rewrite. See [enterprise-hardening.md](docs/enterprise-hardening.md). |
 | **May 2026** | **Enterprise upgrade (Phases 1–9)** — Foundation hardening, formal migrations, agent trust (DPAPI, signed requests, signed response commands), detection-as-code (**31** IRN-WIN rules), SOC triage/MITRE/health UI, integrations & reports, `docker-compose.dev.yml` / `docker-compose.prod.yml`. Full checklist: [UPGRADE_AUDIT.md](docs/UPGRADE_AUDIT.md). |
 | **Mar 2026** | **Host detail UX** — `/endpoints/:id` uses a tabbed console layout (**Overview**, **Sensor & policies**, **Inventory**, **Response**): KPI strip, consolidated system/health/resource cards, trimmed operational copy, and removal of the legacy one-click demo remediation block. |
@@ -81,7 +82,7 @@ Phased upgrade toward production-grade enterprise EDR (defensive only). Baseline
 
 ## 📋 Overview
 
-IronShield is a **full EDR** stack: self-hosted **endpoint visibility**, **NGAV-style prevention**, **rule- and IOC-based detection**, **alerts and investigations**, **remote response (RTR-style)**, optional **XDR-style** correlation (`xdr_events` / `xdr_detections`), and **enterprise controls** (RBAC, multi-tenant, audit). Deploy the **Windows agent** on endpoints, ingest events through the API, and operate from the SOC dashboard.
+IronShield is a **full EDR** stack: self-hosted **endpoint visibility**, **NGAV-style prevention**, **rule- and IOC-based detection**, **alerts and investigations**, **remote response (RTR-style)**, optional **XDR-style** correlation (`xdr_events` / `xdr_detections`), and **enterprise controls** (RBAC, multi-tenant, audit). Deploy the **Windows agent** on endpoints, ingest events through the API, and operate from the compact **8-page SOC console** (legacy routes such as `/alerts` redirect to `/detections?tab=alerts`).
 
 **What “full EDR” means here:** prevention + detection + response + case workflows in one product—not only log shipping. OS coverage is **Windows-first** for the agent; other platforms are not the focus of this repository.
 

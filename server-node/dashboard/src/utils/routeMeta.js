@@ -2,7 +2,18 @@
  * Route labels for document title and breadcrumbs (SOC console IA).
  */
 
-const APP = 'IronShield Full EDR';
+const APP = 'IronShield EDR / XDR';
+
+const CONSOLE = {
+  overview: { label: 'Overview', path: '/overview' },
+  endpoints: { label: 'Endpoints', path: '/endpoints' },
+  detections: { label: 'Detections', path: '/detections' },
+  investigation: { label: 'Investigation', path: '/investigation' },
+  response: { label: 'Response', path: '/response' },
+  hunting: { label: 'Threat Hunting', path: '/hunting' },
+  protection: { label: 'Protection', path: '/protection' },
+  admin: { label: 'Administration', path: '/admin' },
+};
 
 const TOP = {
   endpoints: { label: 'Hosts', path: '/endpoints' },
@@ -68,13 +79,33 @@ function isNumericId(s) {
 export function getBreadcrumbs(pathname) {
   const path = pathname || '/';
   if (path === '/' || path === '') {
-    return [{ label: 'Dashboard', to: '/' }];
+    return [{ label: 'Overview', to: '/overview' }];
   }
 
   const segments = path.split('/').filter(Boolean);
-  const crumbs = [{ label: 'Dashboard', to: '/' }];
+  const crumbs = [{ label: 'Overview', to: '/overview' }];
 
   const [a0, a1, a2] = segments;
+
+  if (CONSOLE[a0]) {
+    const meta = CONSOLE[a0];
+    crumbs.push({ label: meta.label, to: meta.path });
+    if (a0 === 'detections' && a1 === 'alerts' && a2 && isNumericId(a2)) {
+      crumbs.push({ label: `Alert #${a2}`, to: path });
+      return crumbs;
+    }
+    if (a0 === 'endpoints' && a1 && isNumericId(a1)) {
+      crumbs.push({ label: `Host #${a1}`, to: path });
+      return crumbs;
+    }
+    if (a0 === 'investigation' && a1 && isNumericId(a1)) {
+      crumbs.push({ label: `Record #${a1}`, to: path });
+      return crumbs;
+    }
+    if (segments.length === 1) return crumbs;
+    crumbs.push({ label: a1?.replace(/-/g, ' ') || 'Detail', to: path });
+    return crumbs;
+  }
 
   if (a0 === 'xdr' && !a1) {
     crumbs.push({ label: 'XDR', to: '/xdr' });

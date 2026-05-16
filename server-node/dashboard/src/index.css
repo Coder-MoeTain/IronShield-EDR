@@ -797,3 +797,116 @@ textarea {
 [data-theme='light'] [data-workspace] {
   background: linear-gradient(180deg, var(--workspace-tint) 0%, transparent 32%);
 }
+
+/* Compact console */
+.console-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.console-kpi {
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+.console-kpi-label {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.console-kpi-value {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-top: 0.2rem;
+}
+
+.console-kpi-ok { color: var(--accent-green, #3dd68c); }
+.console-kpi-bad { color: var(--accent-red, #f87171); }
+.console-kpi-warn { color: var(--accent-amber, #fbbf24); }
+
+.console-tab-panel[data-embedded] .ui-page-header {
+  display: none;
+}
+
+.console-tab-panel[data-embedded] .ui-page {
+  padding-top: 0;
+}
+
+.console-tab-badge {
+  margin-left: 0.35rem;
+  font-size: 0.68rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+}
+
+.console-status {
+  display: inline-flex;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.console-status-ok { background: rgba(61, 214, 140, 0.15); color: #3dd68c; }
+.console-status-bad { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+.console-status-warn { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+.console-status-muted { background: var(--bg-tertiary); color: var(--text-muted); }
+
+.console-entity-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.console-entity-type {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.console-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.console-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-left: 2px solid var(--border);
+}
+
+.console-timeline-item {
+  position: relative;
+  padding: 0 0 1rem 1rem;
+  margin-left: 0.5rem;
+}
+
+.console-timeline-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.console-error {
+  padding: 1.25rem;
+  text-align: center;
+}

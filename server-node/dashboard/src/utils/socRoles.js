@@ -28,6 +28,12 @@ export function isReadOnlyViewer(user) {
   return user?.role === 'viewer';
 }
 
+/** Auditor / read-only SOC role — limited nav */
+export function isAuditorRole(user) {
+  const r = (user?.role || '').toLowerCase();
+  return r === 'auditor' || r === 'read_only';
+}
+
 /** Filter Enterprise nav children by role */
 export function filterEnterpriseNavChildren(children, user) {
   if (!Array.isArray(children)) return children;
