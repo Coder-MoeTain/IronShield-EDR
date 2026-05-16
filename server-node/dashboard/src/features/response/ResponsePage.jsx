@@ -6,11 +6,11 @@ import EmbeddedPanel from '../../components/EmbeddedPanel';
 import { useConsoleTab } from '../../utils/consoleTabs';
 import { isReadOnlyViewer } from '../../utils/socRoles';
 
-const ResponseApprovals = lazy(() => import('../../pages/ResponseApprovals'));
-const RtrConsole = lazy(() => import('../../pages/RtrConsole'));
-const Playbooks = lazy(() => import('../../pages/Playbooks'));
-const Triage = lazy(() => import('../../pages/Triage'));
-const AvQuarantine = lazy(() => import('../../pages/AvQuarantine'));
+const ResponseApprovals = lazy(() => import('./tabs/ResponseApprovalsTab'));
+const RtrConsole = lazy(() => import('./tabs/RtrConsoleTab'));
+const Playbooks = lazy(() => import('./tabs/PlaybooksTab'));
+const Triage = lazy(() => import('./tabs/TriageTab'));
+const AvQuarantine = lazy(() => import('./tabs/AvQuarantineTab'));
 
 const TABS = [
   { id: 'approvals', label: 'Pending Approvals' },

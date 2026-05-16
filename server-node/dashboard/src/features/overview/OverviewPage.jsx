@@ -5,15 +5,16 @@ import ConsolePage from '../../components/ConsolePage';
 import TabNav from '../../components/TabNav';
 import EmbeddedPanel from '../../components/EmbeddedPanel';
 import KpiStrip from '../../components/KpiStrip';
+import ProductionReadinessPanel from '../../components/ProductionReadinessPanel';
 import { useConsoleTab } from '../../utils/consoleTabs';
 import { apiPath } from '../../utils/apiPath';
 
-const Dashboard = lazy(() => import('../../pages/Dashboard'));
-const SensorHealth = lazy(() => import('../../pages/SensorHealth'));
-const SystemHealth = lazy(() => import('../../pages/SystemHealth'));
-const MsspConsole = lazy(() => import('../../pages/MsspConsole'));
-const XdrOverview = lazy(() => import('../../pages/XdrOverview'));
-const AnalyticsDetections = lazy(() => import('../../pages/AnalyticsDetections'));
+const Dashboard = lazy(() => import('./tabs/DashboardTab'));
+const SensorHealth = lazy(() => import('./tabs/SensorHealthTab'));
+const SystemHealth = lazy(() => import('./tabs/SystemHealthTab'));
+const MsspConsole = lazy(() => import('./tabs/MsspConsoleTab'));
+const XdrOverview = lazy(() => import('./tabs/XdrOverviewTab'));
+const AnalyticsDetections = lazy(() => import('./tabs/AnalyticsDetectionsTab'));
 
 const TABS = [
   { id: 'executive', label: 'Executive Summary' },
@@ -61,6 +62,7 @@ export default function OverviewPage() {
       tabs={<TabNav tabs={TABS} activeTab={tab} onChange={setTab} ariaLabel="Overview sections" />}
     >
       {kpiItems.length > 0 ? <KpiStrip items={kpiItems} /> : null}
+      <ProductionReadinessPanel compact />
       {tab === 'executive' && (
         <EmbeddedPanel label="Executive summary">
           <Dashboard />

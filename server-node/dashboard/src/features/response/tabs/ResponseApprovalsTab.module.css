@@ -1,0 +1,82 @@
+.container {
+  display: grid;
+  gap: 12px;
+}
+
+.msg {
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.msgError {
+  border-color: rgba(255, 120, 120, 0.35);
+  background: rgba(90, 0, 0, 0.25);
+}
+
+.tableWrap {
+  overflow: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 980px;
+}
+
+.table th,
+.table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  vertical-align: top;
+}
+
+.actionType {
+  font-weight: 600;
+}
+
+.paramsCell {
+  width: 320px;
+}
+
+.paramsSummary {
+  cursor: pointer;
+  user-select: none;
+}
+
+.params {
+  margin: 8px 0 0;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+.statusPill {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.empty {
+  padding: 14px 12px;
+  opacity: 0.8;
+}
+

@@ -1,0 +1,39 @@
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { apiPath } from '../utils/apiPath';
+import LoadingState from './LoadingState';
+
+export default function ProductionReadinessPanel({ compact = false }) {
+  const { api } = useAuth();
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    api(apiPath('/api/admin/platform/production-readiness'))
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setData)
+      .catch(() => setData(null));
+  }, [api]);
+
+  if (!data) return compact ? null : <LoadingState label="Production readiness" />;
+
+  const score = data.score ?? 0;
+  const tone = score >= 80 ? 'ok' : score >= 50 ? 'warn' : 'bad';
+
+  return (
+    <section className={`console-readiness console-readiness-${tone}`} aria-label="Production readiness">
+      <div className="console-readiness-header">
+        <h3>Production readiness</h3>
+        <span className={`console-readiness-score console-kpi-${tone}`}>{score}/100</span>
+      </div>
+      {!compact ? (
+        <ul className="console-readiness-checks">
+          {(data.checks || []).map((c) => (
+            <li key={c.id} className={c.ok ? 'ok' : 'fail'}>
+              <span>{c.ok ? '✓' : '○'}</span> {c.label}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+}

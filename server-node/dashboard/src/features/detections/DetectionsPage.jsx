@@ -4,14 +4,15 @@ import TabNav from '../../components/TabNav';
 import EmbeddedPanel from '../../components/EmbeddedPanel';
 import { useConsoleTab } from '../../utils/consoleTabs';
 
-const SocTriageQueue = lazy(() => import('../../pages/SocTriageQueue'));
-const Alerts = lazy(() => import('../../pages/Alerts'));
-const DetectionRules = lazy(() => import('../../pages/DetectionRules'));
-const MitreCoverage = lazy(() => import('../../pages/MitreCoverage'));
-const XdrDetections = lazy(() => import('../../pages/XdrDetections'));
-const AvMalwareAlerts = lazy(() => import('../../pages/AvMalwareAlerts'));
-const AnalyticsDetections = lazy(() => import('../../pages/AnalyticsDetections'));
-const Suppressions = lazy(() => import('../../pages/Suppressions'));
+const SocTriageQueue = lazy(() => import('./tabs/SocTriageQueueTab'));
+const Alerts = lazy(() => import('./tabs/AlertsTab'));
+const DetectionRules = lazy(() => import('./tabs/DetectionRulesTab'));
+const MitreCoverage = lazy(() => import('./tabs/MitreCoverageTab'));
+const XdrDetections = lazy(() => import('./tabs/XdrDetectionsTab'));
+const AvMalwareAlerts = lazy(() => import('./tabs/AvMalwareAlertsTab'));
+const AnalyticsDetections = lazy(() => import('../overview/tabs/AnalyticsDetectionsTab'));
+const Suppressions = lazy(() => import('./tabs/SuppressionsTab'));
+const DetectionQualityTab = lazy(() => import('./tabs/DetectionQualityTab'));
 
 const TABS = [
   { id: 'triage', label: 'Triage Queue' },
@@ -21,6 +22,7 @@ const TABS = [
   { id: 'xdr', label: 'XDR Detections' },
   { id: 'suppressions', label: 'Suppressions' },
   { id: 'analytics', label: 'Detection Analytics' },
+  { id: 'quality', label: 'Quality' },
 ];
 
 const VALID = TABS.map((t) => t.id);
@@ -68,6 +70,11 @@ export default function DetectionsPage() {
       {tab === 'analytics' && (
         <EmbeddedPanel label="Detection analytics">
           <AnalyticsDetections />
+        </EmbeddedPanel>
+      )}
+      {tab === 'quality' && (
+        <EmbeddedPanel label="Detection quality">
+          <DetectionQualityTab />
         </EmbeddedPanel>
       )}
     </ConsolePage>

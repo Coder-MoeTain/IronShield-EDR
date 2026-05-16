@@ -4,15 +4,15 @@ import TabNav from '../../components/TabNav';
 import EmbeddedPanel from '../../components/EmbeddedPanel';
 import { useConsoleTab } from '../../utils/consoleTabs';
 
-const AvOverview = lazy(() => import('../../pages/AvOverview'));
-const AvDetections = lazy(() => import('../../pages/AvDetections'));
-const AvQuarantine = lazy(() => import('../../pages/AvQuarantine'));
-const AvScanTasks = lazy(() => import('../../pages/AvScanTasks'));
-const AvPolicies = lazy(() => import('../../pages/AvPolicies'));
-const AvSignatures = lazy(() => import('../../pages/AvSignatures'));
-const AvFileReputation = lazy(() => import('../../pages/AvFileReputation'));
-const WebUrlProtection = lazy(() => import('../../pages/WebUrlProtection'));
-const ProtectionCapabilities = lazy(() => import('../../pages/ProtectionCapabilities'));
+const AvOverview = lazy(() => import('./tabs/AvOverviewTab'));
+const AvDetections = lazy(() => import('./tabs/AvDetectionsTab'));
+const AvQuarantine = lazy(() => import('../response/tabs/AvQuarantineTab'));
+const AvScanTasks = lazy(() => import('./tabs/AvScanTasksTab'));
+const AvPolicies = lazy(() => import('./tabs/AvPoliciesTab'));
+const AvSignatures = lazy(() => import('./tabs/AvSignaturesTab'));
+const AvFileReputation = lazy(() => import('./tabs/AvFileReputationTab'));
+const WebUrlProtection = lazy(() => import('../hunting/tabs/WebUrlProtectionTab'));
+const ProtectionCapabilities = lazy(() => import('./tabs/ProtectionCapabilitiesTab'));
 const TABS = [
   { id: 'overview', label: 'Protection Overview' },
   { id: 'detections', label: 'Malware Detections' },

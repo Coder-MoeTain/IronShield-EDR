@@ -4,15 +4,15 @@ import TabNav from '../../components/TabNav';
 import EmbeddedPanel from '../../components/EmbeddedPanel';
 import { useConsoleTab } from '../../utils/consoleTabs';
 
-const Hunting = lazy(() => import('../../pages/Hunting'));
-const Events = lazy(() => import('../../pages/Events'));
-const RawEvents = lazy(() => import('../../pages/RawEvents'));
-const NormalizedEvents = lazy(() => import('../../pages/NormalizedEvents'));
-const XdrEvents = lazy(() => import('../../pages/XdrEvents'));
-const XdrRealtime = lazy(() => import('../../pages/XdrRealtime'));
-const Network = lazy(() => import('../../pages/Network'));
-const IOCs = lazy(() => import('../../pages/IOCs'));
-const WebUrlProtection = lazy(() => import('../../pages/WebUrlProtection'));
+const Hunting = lazy(() => import('./tabs/HuntingTab'));
+const Events = lazy(() => import('./tabs/EventsTab'));
+const RawEvents = lazy(() => import('./tabs/RawEventsTab'));
+const NormalizedEvents = lazy(() => import('./tabs/NormalizedEventsTab'));
+const XdrEvents = lazy(() => import('./tabs/XdrEventsTab'));
+const XdrRealtime = lazy(() => import('./tabs/XdrRealtimeTab'));
+const Network = lazy(() => import('../endpoints/tabs/NetworkTab'));
+const IOCs = lazy(() => import('./tabs/IOCsTab'));
+const WebUrlProtection = lazy(() => import('./tabs/WebUrlProtectionTab'));
 
 const TABS = [
   { id: 'search', label: 'Search' },

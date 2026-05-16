@@ -5,14 +5,14 @@ import TabNav from '../../components/TabNav';
 import EmbeddedPanel from '../../components/EmbeddedPanel';
 import { useConsoleTab } from '../../utils/consoleTabs';
 
-const Endpoints = lazy(() => import('../../pages/Endpoints'));
-const HostGroups = lazy(() => import('../../pages/HostGroups'));
-const HostTimeline = lazy(() => import('../../pages/HostTimeline'));
-const ProcessMonitor = lazy(() => import('../../pages/ProcessMonitor'));
-const ProcessTree = lazy(() => import('../../pages/ProcessTree'));
-const Network = lazy(() => import('../../pages/Network'));
-const AgentNetworkMap = lazy(() => import('../../pages/AgentNetworkMap'));
-const SensorHealth = lazy(() => import('../../pages/SensorHealth'));
+const Endpoints = lazy(() => import('./tabs/EndpointsTab'));
+const HostGroups = lazy(() => import('./tabs/HostGroupsTab'));
+const HostTimeline = lazy(() => import('./tabs/HostTimelineTab'));
+const ProcessMonitor = lazy(() => import('./tabs/ProcessMonitorTab'));
+const ProcessTree = lazy(() => import('./tabs/ProcessTreeTab'));
+const Network = lazy(() => import('./tabs/NetworkTab'));
+const AgentNetworkMap = lazy(() => import('./tabs/AgentNetworkMapTab'));
+const SensorHealth = lazy(() => import('../overview/tabs/SensorHealthTab'));
 
 const TABS = [
   { id: 'list', label: 'All Endpoints' },

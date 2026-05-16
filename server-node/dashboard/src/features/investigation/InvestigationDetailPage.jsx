@@ -2,8 +2,8 @@ import React, { lazy } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import EmbeddedPanel from '../../components/EmbeddedPanel';
 
-const IncidentDetail = lazy(() => import('../../pages/IncidentDetail'));
-const InvestigationDetail = lazy(() => import('../../pages/InvestigationDetail'));
+const IncidentDetail = lazy(() => import('./tabs/IncidentDetailTab'));
+const InvestigationDetail = lazy(() => import('./tabs/InvestigationDetailTab'));
 
 export default function InvestigationDetailPage() {
   const { id } = useParams();

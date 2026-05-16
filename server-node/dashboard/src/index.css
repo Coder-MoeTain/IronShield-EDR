@@ -910,3 +910,45 @@ textarea {
   padding: 1.25rem;
   text-align: center;
 }
+
+.console-readiness {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.15rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+.console-readiness-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.console-readiness-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.console-readiness-score {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.console-readiness-checks {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.console-readiness-checks .ok {
+  color: var(--accent-green, #3dd68c);
+}
+
+.console-readiness-checks .fail {
+  color: var(--text-muted);
+}

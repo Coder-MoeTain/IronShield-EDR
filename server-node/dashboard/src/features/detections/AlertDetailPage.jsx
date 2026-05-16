@@ -2,7 +2,7 @@ import React, { lazy } from 'react';
 import { useParams } from 'react-router-dom';
 import EmbeddedPanel from '../../components/EmbeddedPanel';
 
-const AlertDetail = lazy(() => import('../../pages/AlertDetail'));
+const AlertDetail = lazy(() => import('./tabs/AlertDetailTab'));
 const AvMalwareAlertDetail = lazy(() => import('../../pages/AvMalwareAlertDetail'));
 
 /** Full-page alert detail (alerts and AV malware alerts). */

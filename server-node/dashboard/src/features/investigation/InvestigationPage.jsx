@@ -4,11 +4,11 @@ import TabNav from '../../components/TabNav';
 import EmbeddedPanel from '../../components/EmbeddedPanel';
 import { useConsoleTab } from '../../utils/consoleTabs';
 
-const Incidents = lazy(() => import('../../pages/Incidents'));
-const Investigations = lazy(() => import('../../pages/Investigations'));
-const HostTimeline = lazy(() => import('../../pages/HostTimeline'));
-const ThreatGraph = lazy(() => import('../../pages/ThreatGraph'));
-const Reports = lazy(() => import('../../pages/Reports'));
+const Incidents = lazy(() => import('./tabs/IncidentsTab'));
+const Investigations = lazy(() => import('./tabs/InvestigationsTab'));
+const HostTimeline = lazy(() => import('../endpoints/tabs/HostTimelineTab'));
+const ThreatGraph = lazy(() => import('./tabs/ThreatGraphTab'));
+const Reports = lazy(() => import('./tabs/ReportsTab'));
 
 const TABS = [
   { id: 'incidents', label: 'Incidents' },

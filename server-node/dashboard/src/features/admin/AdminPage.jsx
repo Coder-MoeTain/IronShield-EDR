@@ -6,15 +6,16 @@ import SocRouteGuard from '../../components/SocRouteGuard';
 import { useConsoleTab } from '../../utils/consoleTabs';
 import { canSeeEnterpriseSettings, canSeeMsspAndTenants, canSeeRbacAdmin } from '../../utils/socRoles';
 import { useAuth } from '../../context/AuthContext';
+import ProductionReadinessPanel from '../../components/ProductionReadinessPanel';
 
-const EnterpriseSettings = lazy(() => import('../../pages/EnterpriseSettings'));
-const TenantManagement = lazy(() => import('../../pages/TenantManagement'));
-const RbacManagement = lazy(() => import('../../pages/RbacManagement'));
-const AuditLogs = lazy(() => import('../../pages/AuditLogs'));
-const Reports = lazy(() => import('../../pages/Reports'));
-const Integrations = lazy(() => import('../../pages/Integrations'));
-const SystemHealth = lazy(() => import('../../pages/SystemHealth'));
-const FalconRoadmapPage = lazy(() => import('../../pages/FalconRoadmapPage'));
+const EnterpriseSettings = lazy(() => import('./tabs/EnterpriseSettingsTab'));
+const TenantManagement = lazy(() => import('./tabs/TenantManagementTab'));
+const RbacManagement = lazy(() => import('./tabs/RbacManagementTab'));
+const AuditLogs = lazy(() => import('./tabs/AuditLogsTab'));
+const Reports = lazy(() => import('../investigation/tabs/ReportsTab'));
+const Integrations = lazy(() => import('./tabs/IntegrationsTab'));
+const SystemHealth = lazy(() => import('../overview/tabs/SystemHealthTab'));
+const FalconRoadmapPage = lazy(() => import('./tabs/FalconRoadmapPageTab'));
 
 const ALL_TABS = [
   { id: 'settings', label: 'Settings', guard: canSeeEnterpriseSettings },
@@ -41,6 +42,7 @@ export default function AdminPage() {
       description="Users, tenants, RBAC, integrations, audit logs, reports, and platform health."
       tabs={<TabNav tabs={visibleTabs} activeTab={tab} onChange={setTab} ariaLabel="Administration sections" />}
     >
+      {(tab === 'system-health' || tab === 'settings') && <ProductionReadinessPanel />}
       {tab === 'settings' && (
         <SocRouteGuard allow={canSeeEnterpriseSettings}>
           <EmbeddedPanel label="Settings">

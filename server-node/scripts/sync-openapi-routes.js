@@ -15,6 +15,7 @@ const routeFiles = [
   'src/routes/adminRoutes.js',
   'src/routes/authRoutes.js',
   'src/routes/ingestRoutes.js',
+  'src/routes/consoleRoutes.js',
 ];
 
 const methodMap = { get: 'get', post: 'post', put: 'put', patch: 'patch', delete: 'delete' };

@@ -5,12 +5,12 @@ import TabNav from '../../components/TabNav';
 import EmbeddedPanel from '../../components/EmbeddedPanel';
 import { useConsoleTab } from '../../utils/consoleTabs';
 
-const EndpointDetail = lazy(() => import('../../pages/EndpointDetail'));
-const HostTimeline = lazy(() => import('../../pages/HostTimeline'));
-const ProcessMonitor = lazy(() => import('../../pages/ProcessMonitor'));
-const ProcessTree = lazy(() => import('../../pages/ProcessTree'));
-const Network = lazy(() => import('../../pages/Network'));
-const ResponseApprovals = lazy(() => import('../../pages/ResponseApprovals'));
+const EndpointDetail = lazy(() => import('./tabs/EndpointDetailTab'));
+const HostTimeline = lazy(() => import('./tabs/HostTimelineTab'));
+const ProcessMonitor = lazy(() => import('./tabs/ProcessMonitorTab'));
+const ProcessTree = lazy(() => import('./tabs/ProcessTreeTab'));
+const Network = lazy(() => import('./tabs/NetworkTab'));
+const ResponseApprovals = lazy(() => import('../response/tabs/ResponseApprovalsTab'));
 
 const TABS = [
   { id: 'overview', label: 'Overview' },

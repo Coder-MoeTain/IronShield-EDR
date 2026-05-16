@@ -5,11 +5,11 @@ const db = require('../../utils/db');
 
 async function globalSearch(query, limit = 50) {
   if (!query || String(query).trim().length < 2) {
-    return { endpoints: [], alerts: [], events: [], hashes: [] };
+    return { endpoints: [], alerts: [], events: [], hashes: [], incidents: [], iocs: [], domains: [] };
   }
 
   const q = `%${String(query).trim()}%`;
-  const results = { endpoints: [], alerts: [], events: [], hashes: [] };
+  const results = { endpoints: [], alerts: [], events: [], hashes: [], incidents: [], iocs: [], domains: [] };
 
   results.endpoints = await db.query(
     `SELECT id, hostname, ip_address, status, last_heartbeat_at FROM endpoints
@@ -40,7 +40,28 @@ async function globalSearch(query, limit = 50) {
      WHERE file_hash_sha256 LIKE ?
      LIMIT ?`,
     [q, limit]
-  );
+  ).catch(() => []);
+
+  results.incidents = await db.query(
+    `SELECT id, title, status, severity, created_at FROM incidents
+     WHERE title LIKE ? OR description LIKE ?
+     ORDER BY created_at DESC LIMIT ?`,
+    [q, q, limit]
+  ).catch(() => []);
+
+  results.iocs = await db.query(
+    `SELECT id, ioc_type as type, value, severity FROM iocs
+     WHERE value LIKE ? OR description LIKE ?
+     LIMIT ?`,
+    [q, q, limit]
+  ).catch(() => []);
+
+  results.domains = await db.query(
+    `SELECT id, domain, action FROM web_url_blocks
+     WHERE domain LIKE ?
+     LIMIT ?`,
+    [q, limit]
+  ).catch(() => []);
 
   return results;
 }

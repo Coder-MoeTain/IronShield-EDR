@@ -1,20 +1,19 @@
 /**
- * Compact 8-page console navigation, UI modes, and role visibility.
+ * Compact 8-page console navigation filtered by workspace mode and RBAC.
  */
 import {
   canSeeEnterpriseSettings,
   canSeeMsspAndTenants,
   canSeeRbacAdmin,
+  isAuditorRole,
   isReadOnlyViewer,
 } from './socRoles';
+import { WORKSPACE_MODES, readWorkspaceMode, resolveWorkspaceMode } from './workspaceMode';
 
-export const CONSOLE_UI_MODES = Object.freeze({
-  SIMPLE: 'simple',
-  ADVANCED: 'advanced',
-  ADMIN: 'admin',
-});
+/** @deprecated use WORKSPACE_MODES */
+export const CONSOLE_UI_MODES = WORKSPACE_MODES;
 
-const STORAGE_KEY = 'ironshield-console-ui-mode';
+const STORAGE_KEY = 'ironshield-workspace-mode';
 
 export const CONSOLE_NAV_ITEMS = [
   { path: '/overview', label: 'Overview', end: true },
@@ -28,26 +27,20 @@ export const CONSOLE_NAV_ITEMS = [
 ];
 
 export function readConsoleUiMode() {
-  try {
-    const v = localStorage.getItem(STORAGE_KEY);
-    if (v && Object.values(CONSOLE_UI_MODES).includes(v)) return v;
-  } catch {
-    /* ignore */
-  }
-  return CONSOLE_UI_MODES.ADVANCED;
+  return readWorkspaceMode();
 }
 
 export function writeConsoleUiMode(mode) {
   try {
     localStorage.setItem(STORAGE_KEY, mode);
+    window.dispatchEvent(new CustomEvent('ironshield-workspace-mode', { detail: mode }));
   } catch {
     /* ignore */
   }
 }
 
 export function isAuditorUser(user) {
-  const r = (user?.role || '').toLowerCase();
-  return r === 'auditor' || r === 'read_only';
+  return isAuditorRole(user);
 }
 
 export function canSeeAdminNav(user) {
@@ -58,39 +51,30 @@ export function canSeeAdminNav(user) {
 }
 
 export function canSeeResponseNav(user, permissions = []) {
-  if (isAuditorUser(user)) return false;
-  if (isReadOnlyViewer(user)) return false;
+  if (isAuditorUser(user) || isReadOnlyViewer(user)) return false;
   if (permissions.includes('*')) return true;
   return (
     permissions.includes('response:view') ||
     permissions.includes('response:request') ||
     permissions.includes('actions:write') ||
-    user?.role === 'analyst' ||
-    user?.role === 'admin' ||
-    user?.role === 'super_admin' ||
-    user?.role === 'soc_manager' ||
-    user?.role === 'senior_analyst'
+    ['analyst', 'admin', 'super_admin', 'soc_manager', 'senior_analyst', 'tenant_admin'].includes(
+      user?.role
+    )
   );
 }
 
-/** Paths visible in Simple mode */
 const SIMPLE_PATHS = new Set(['/overview', '/endpoints', '/detections', '/investigation', '/protection']);
-
-/** Paths visible in Admin mode */
 const ADMIN_PATHS = new Set(['/overview', '/admin']);
+const MSSP_PATHS = new Set(['/overview', '/endpoints', '/detections', '/investigation', '/admin']);
 
-/**
- * @param {object} user
- * @param {string[]} [permissions]
- * @param {string} [uiMode]
- */
-export function getConsoleNavItems(user, permissions = [], uiMode = readConsoleUiMode()) {
-  const mode = uiMode || CONSOLE_UI_MODES.ADVANCED;
+export function getConsoleNavItems(user, permissions = [], uiMode = readWorkspaceMode()) {
+  const mode = resolveWorkspaceMode(user, uiMode);
   const auditor = isAuditorUser(user);
 
   return CONSOLE_NAV_ITEMS.filter((item) => {
-    if (mode === CONSOLE_UI_MODES.SIMPLE && !SIMPLE_PATHS.has(item.path)) return false;
-    if (mode === CONSOLE_UI_MODES.ADMIN && !ADMIN_PATHS.has(item.path)) return false;
+    if (mode === WORKSPACE_MODES.SIMPLE && !SIMPLE_PATHS.has(item.path)) return false;
+    if (mode === WORKSPACE_MODES.ADMIN && !ADMIN_PATHS.has(item.path)) return false;
+    if (mode === WORKSPACE_MODES.MSSP && !MSSP_PATHS.has(item.path)) return false;
 
     if (auditor) {
       return item.path === '/overview' || item.path === '/investigation' || item.path === '/admin';
@@ -99,13 +83,11 @@ export function getConsoleNavItems(user, permissions = [], uiMode = readConsoleU
     if (item.requiresAdmin && !canSeeAdminNav(user)) return false;
     if (item.requiresResponse && !canSeeResponseNav(user, permissions)) return false;
 
-    if (item.path === '/protection' && auditor) return false;
-
     return true;
   });
 }
 
-export function getDefaultConsolePath(user, permissions = [], uiMode = readConsoleUiMode()) {
+export function getDefaultConsolePath(user, permissions = [], uiMode = readWorkspaceMode()) {
   const items = getConsoleNavItems(user, permissions, uiMode);
   return items[0]?.path || '/overview';
 }

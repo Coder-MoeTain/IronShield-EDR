@@ -1,0 +1,64 @@
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '../../../context/AuthContext';
+import PageShell from '../../../components/PageShell';
+import { falconSeverityClass } from '../../../utils/falconUi';
+import styles from './AvSignaturesTab.module.css';
+
+export default function AvSignatures() {
+  const { api } = useAuth();
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api('/api/admin/av/signatures')
+      .then((r) => r.json())
+      .then((d) => setItems(Array.isArray(d) ? d : d.signatures || []))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  }, [api]);
+
+  return (
+    <PageShell
+      kicker="Antivirus"
+      title="Signatures"
+      description="Hash and heuristic definitions used for on-endpoint malware detection."
+    >
+      <div className={styles.container}>
+      <div className={styles.tableWrap}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>UUID</th>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Hash</th>
+              <th>Family</th>
+              <th>Severity</th>
+              <th>Enabled</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={7} className={styles.empty}>Loading…</td></tr>
+            ) : items.length === 0 ? (
+              <tr><td colSpan={7} className={styles.empty}>No signatures</td></tr>
+            ) : (
+              items.map((s) => (
+                <tr key={s.id || s.signature_uuid}>
+                  <td className={styles.mono}>{s.signature_uuid ? `${s.signature_uuid.slice(0, 12)}…` : '-'}</td>
+                  <td>{s.name || '-'}</td>
+                  <td>{s.signature_type || '-'}</td>
+                  <td className={styles.mono} title={s.hash_value}>{s.hash_value ? `${s.hash_value.slice(0, 16)}…` : '-'}</td>
+                  <td>{s.family || '-'}</td>
+                  <td><span className={`${styles.badge} ${falconSeverityClass(s.severity)}`}>{s.severity || '-'}</span></td>
+                  <td>{s.enabled ? 'Yes' : 'No'}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      </div>
+    </PageShell>
+  );
+}

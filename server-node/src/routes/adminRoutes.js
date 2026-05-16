@@ -49,6 +49,8 @@ router.get('/av/updates/status', avController.listUpdateStatus);
 
 const platformController = require('../controllers/platformController');
 router.get('/platform/protection-capabilities', platformController.getProtectionCapabilities);
+router.get('/platform/production-readiness', requirePermission('dashboard:view'), platformController.getProductionReadiness);
+router.get('/platform/telemetry-quality', requirePermission('endpoint:view'), platformController.getTelemetryQuality);
 
 router.get('/dashboard/summary', adminController.dashboardSummary);
 router.get('/dashboard/cyber-news', adminController.cyberNews);

@@ -126,10 +126,18 @@ async function insertAlertRow(a) {
 
 async function createFromDetection(alerts) {
   const endpointIds = new Set();
+  const AlertFingerprintService = require('./AlertFingerprintService');
   for (const a of alerts) {
     const result = await insertAlertRow(a);
     endpointIds.add(a.endpoint_id);
     const alertId = result?.insertId;
+    if (alertId) {
+      try {
+        await AlertFingerprintService.processAlert({ ...a, id: alertId });
+      } catch {
+        /* non-fatal */
+      }
+    }
     if (alertId) {
       try {
         const items = AlertEvidenceService.buildFromDetectionBreakdown(
