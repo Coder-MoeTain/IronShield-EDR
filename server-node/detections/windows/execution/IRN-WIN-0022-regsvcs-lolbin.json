@@ -1,0 +1,31 @@
+{
+  "id": "IRN-WIN-0022",
+  "name": "Regsvcs LOLBin",
+  "description": "Regsvcs LOLBin (defensive detection).",
+  "status": "stable",
+  "severity": "medium",
+  "risk_score": 54,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Execution"
+    ],
+    "techniques": [
+      "T1218"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "regsvcs.exe"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

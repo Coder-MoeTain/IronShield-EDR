@@ -1,0 +1,36 @@
+{
+  "id": "IRN-WIN-0065",
+  "name": "Net Group Enumeration",
+  "description": "Net Group Enumeration (defensive detection).",
+  "status": "stable",
+  "severity": "medium",
+  "risk_score": 48,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Discovery"
+    ],
+    "techniques": [
+      "T1069.001"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "net.exe"
+      },
+      {
+        "field": "command_line",
+        "op": "contains",
+        "value": " group"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

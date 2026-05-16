@@ -3,9 +3,13 @@ const config = require('../config');
 const DANGEROUS_ACTIONS = new Set([
   'isolate_host',
   'lift_isolation',
+  'unisolate_host',
   'quarantine_file',
   'block_ip',
   'run_script',
+  'run_approved_script',
+  'rtr_shell',
+  'kill_process',
   'delete_schtask',
   'delete_run_key',
   'delete_path',

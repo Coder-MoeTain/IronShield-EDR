@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { isJwtExpired } from '../utils/jwt';
+import { apiPath } from '../utils/apiPath';
 import { useToast } from './ToastContext';
 
 const AuthContext = createContext(null);
@@ -89,7 +90,7 @@ export function AuthProvider({ children }) {
     if (refreshInFlight) return refreshInFlight;
     refreshInFlight = (async () => {
       try {
-        const r = await fetch('/api/auth/refresh', {
+        const r = await fetch(apiPath('/api/auth/refresh'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refresh_token: rt }),
@@ -146,7 +147,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (!sessionReady || !tokenRef.current) return;
-    fetch('/api/auth/me', {
+    fetch(apiPath('/api/auth/me'), {
       headers: { Authorization: `Bearer ${tokenRef.current}` },
     })
       .then((r) => (r.ok ? r.json() : { permissions: [] }))
@@ -155,7 +156,7 @@ export function AuthProvider({ children }) {
   }, [sessionReady, token]);
 
   const login = async (username, password, mfaCode = null) => {
-    const res = await fetch('/api/auth/login', {
+    const res = await fetch(apiPath('/api/auth/login'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password, mfa_code: mfaCode || undefined }),
@@ -206,7 +207,8 @@ export function AuthProvider({ children }) {
         return headers;
       };
 
-      const doFetch = () => fetch(path, { ...options, headers: buildHeaders() });
+      const resolvedPath = apiPath(path);
+      const doFetch = () => fetch(resolvedPath, { ...options, headers: buildHeaders() });
 
       let attempt = 0;
       while (true) {

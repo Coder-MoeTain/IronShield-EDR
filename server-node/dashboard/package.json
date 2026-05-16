@@ -10,7 +10,9 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install --with-deps chromium",
-    "capture-screenshots": "node scripts/capture-readme-screenshots.mjs"
+    "capture-screenshots": "node scripts/capture-readme-screenshots.mjs",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@tanstack/react-virtual": "^3.13.23",
@@ -23,6 +25,10 @@
     "react-router-dom": "^6.21.1"
   },
   "devDependencies": {
+    "eslint": "^9.17.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.16",
+    "globals": "^15.14.0",
     "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.0.1",

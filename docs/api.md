@@ -1,17 +1,63 @@
 # IronShield EDR API Documentation
 
-Base URL: `http://localhost:3000` (or your server)
+Base URL: `https://your-host` (TLS required in production)
+
+## API versioning
+
+All routes are available under **two prefixes**:
+
+| Prefix | Use |
+|--------|-----|
+| `/api/v1/*` | **Preferred** for new integrations and the SOC dashboard |
+| `/api/*` | Legacy alias (backward compatible) |
+
+OpenAPI contract: `GET /api/openapi.json` and `GET /api/v1/openapi.json`
+
+Example: `POST /api/v1/auth/login` ≡ `POST /api/auth/login`
+
+## Standard response envelope (admin / errors)
+
+Many admin routes return:
+
+```json
+{
+  "success": true,
+  "data": { },
+  "requestId": "uuid"
+}
+```
+
+Errors:
+
+```json
+{
+  "success": false,
+  "error": { "code": "AUTHENTICATION_REQUIRED", "message": "..." },
+  "requestId": "uuid"
+}
+```
+
+## Production agent authentication
+
+| Control | Header / mechanism |
+|---------|-------------------|
+| Agent key | `X-Agent-Key` (raw key shown **once** at registration; server stores `agent_key_hash` only) |
+| Request signing | `X-Agent-Timestamp`, `X-Agent-Nonce`, `X-Agent-Signature`, `X-Agent-Body-Sha256` |
+| mTLS (optional) | Client certificate; fingerprint bound to `endpoints.cert_fingerprint` |
+| Replay protection | Nonce store: Redis (`AGENT_NONCE_STORE=redis`) or MySQL `agent_nonces` |
 
 ---
 
 ## Agent API
 
-### POST /api/agent/register
+Paths below show `/api/v1/agent/...`. Replace with `/api/agent/...` if needed.
 
-Register a new endpoint. Returns agent key for future requests.
+### POST /api/v1/agent/register
+
+Register a new endpoint. Returns agent key **once** for future requests.
 
 **Headers:**
-- `X-Registration-Token`: Bootstrap registration token
+- `X-Registration-Token`: Bootstrap or per-tenant enrollment token
 - `Content-Type`: application/json
 
 **Request:**
@@ -22,7 +68,8 @@ Register a new endpoint. Returns agent key for future requests.
   "logged_in_user": "john",
   "ip_address": "192.168.1.100",
   "mac_address": "00:11:22:33:44:55",
-  "agent_version": "1.0.0"
+  "agent_version": "1.0.0",
+  "tenant_slug": "acme-corp"
 }
 ```
 
@@ -34,88 +81,28 @@ Register a new endpoint. Returns agent key for future requests.
 }
 ```
 
-**Errors:**
-- 403: Invalid registration token
-- 400: Hostname required
+Store the key securely on the agent (Windows DPAPI). It cannot be retrieved again from the server.
+
+**Errors:** 403 invalid token · 400 validation
 
 ---
 
-### GET /api/agent/update/check
+### POST /api/v1/agent/heartbeat
 
-Check for agent updates (targeted by tenant + rollout ring).
+**Headers:** `X-Agent-Key` (+ signing headers when `AGENT_REQUEST_SIGNING_REQUIRED=true`)
 
-**Headers:** `X-Agent-Key`, optional `X-Agent-Version`
+**Response (200):** `{ "endpointId": 1 }`
 
-**Query:**
-- `version`: current agent version
+---
 
-**Response (200):**
-```json
-{
-  "update_available": true,
-  "version": "1.2.3",
-  "download_url": "https://...",
-  "checksum_sha256": "64-hex",
-  "signature_base64": "base64-or-null",
-  "ring": "stable",
-  "health_gate": null
-}
-```
+### POST /api/v1/agent/events/batch
 
-### POST /api/agent/key/rotate
-
-Rotate agent key (server issues a new key; old key becomes invalid).
-
-**Headers:** `X-Agent-Key`
-
-**Response (200):**
-```json
-{
-  "agent_key": "64-char-hex-string"
-}
-```
-
-### POST /api/agent/heartbeat
-
-Send heartbeat. Requires agent key.
-
-**Headers:**
-- `X-Agent-Key`: Agent key from registration
-- `Content-Type`: application/json
+Upload telemetry (idempotent via `event_id` and optional `batch_id`).
 
 **Request:**
 ```json
 {
-  "hostname": "WORKSTATION01",
-  "os_version": "Windows 10",
-  "logged_in_user": "john",
-  "ip_address": "192.168.1.100",
-  "mac_address": "00:11:22:33:44:55",
-  "agent_version": "1.0.0"
-}
-```
-
-**Response (200):**
-```json
-{
-  "endpointId": 1
-}
-```
-
----
-
-### POST /api/agent/events/batch
-
-Upload batch of telemetry events.
-
-**Headers:**
-- `X-Agent-Key`: Agent key
-- `Content-Type`: application/json
-
-**Request:**
-```json
-{
-  "batch_id": "unique-batch-id-for-idempotency",
+  "batch_id": "unique-batch-id",
   "events": [
     {
       "event_id": "proc_123_2024-01-15T10:00:00Z",
@@ -125,305 +112,174 @@ Upload batch of telemetry events.
       "event_type": "process_create",
       "process_name": "notepad.exe",
       "process_id": 1234,
+      "command_line": "notepad.exe",
       "username": "john"
     }
   ]
 }
 ```
 
-**Response (200):**
-```json
-{
-  "inserted": 1
-}
-```
-
-If `batch_id` is re-sent for the same endpoint, the server responds with:
-
-```json
-{
-  "inserted": 0,
-  "deduped": true
-}
-```
+**Response:** `{ "inserted": 1 }` or `{ "inserted": 0, "deduped": true }`
 
 ---
 
-### POST /api/agent/key/rotate
+### GET /api/v1/agent/actions/pending
 
-Rotate agent key (server issues a new key; old key becomes invalid).
-
-**Headers:** `X-Agent-Key`
-
-**Response (200):**
-```json
-{
-  "agent_key": "64-char-hex-string"
-}
-```
+Pending response actions. When signing is enabled, each action includes `command_signature` and `command_expires_at`.
 
 ---
 
-### GET /api/agent/actions/pending
+### POST /api/v1/agent/actions/:id/result
 
-Get pending response actions for the agent.
-
-**Headers:** `X-Agent-Key`
-
-**Response (200):**
-```json
-{
-  "actions": [
-    {
-      "id": 1,
-      "action_type": "kill_process",
-      "parameters": { "process_id": 1234 },
-      "status": "pending"
-    }
-  ]
-}
-```
+Submit action outcome. Body: `{ "success": true, "message": "...", "result": {} }`
 
 ---
 
-### POST /api/agent/actions/:id/result
+### POST /api/v1/agent/key/rotate
 
-Submit result of a response action.
-
-**Request:**
-```json
-{
-  "success": true,
-  "message": "Process terminated",
-  "result": null
-}
-```
-
-For `collect_triage`, `result` contains processes, services, startup entries.
+**Response:** `{ "agent_key": "new-64-char-hex" }`
 
 ---
 
-## Admin API (JWT Required)
+### GET /api/v1/agent/update/check
 
-All admin endpoints require: `Authorization: Bearer <token>`
-
-### POST /api/auth/login
-
-**Request:**
-```json
-{
-  "username": "admin",
-  "password": "ChangeMe123!",
-  "mfa_code": "123456"
-}
-```
-
-**Response:**
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIs...",
-  "user": {
-    "id": 1,
-    "username": "admin",
-    "role": "super_admin"
-  }
-}
-```
-
-If MFA is required and `mfa_code` is missing/invalid:
-```json
-{
-  "error": "MFA required",
-  "mfa_required": true
-}
-```
-
-### SSO federation
-
-- `GET /api/auth/sso/oidc/start` - starts OIDC redirect flow.
-- `GET /api/auth/sso/oidc/callback` - OIDC callback, issues local JWT session.
-- `POST /api/auth/sso/saml/acs` - SAML ACS proxy endpoint (trusted gateway mode).
-
-### MFA management
-
-- `GET /api/auth/mfa/status`
-- `POST /api/auth/mfa/setup`
-- `POST /api/auth/mfa/enable` with `{ "code": "123456" }`
-- `POST /api/auth/mfa/disable` with `{ "code": "123456" }`
+Agent update channel (version, download URL, checksum, signature).
 
 ---
 
-### GET /api/admin/dashboard/summary
+## Admin API (JWT)
 
-**Response:**
-```json
-{
-  "endpoints": { "total": 5, "online": 3, "offline": 2 },
-  "eventsToday": 1250,
-  "newAlerts": 2
-}
-```
+All admin routes: `Authorization: Bearer <token>`
 
----
+Tenant scoping: super_admin may send `X-Tenant-Id: <id>`.
 
-### GET /api/admin/endpoints
+### Auth
 
-**Query params:** hostname, status, limit, offset
-
-**Response:** Array of endpoint objects
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/v1/auth/login` | Username/password (+ optional MFA) |
+| POST | `/api/v1/auth/refresh` | Refresh access token |
+| GET | `/api/v1/auth/me` | Current user + permissions |
+| GET | `/api/v1/auth/sso/oidc/start` | OIDC redirect |
+| GET | `/api/v1/auth/sso/oidc/callback` | OIDC callback |
+| POST | `/api/v1/auth/mfa/setup` | MFA enrollment |
 
 ---
 
-### GET /api/admin/endpoints/:id
+### SOC core
 
-**Response:** Single endpoint with full details
-
----
-
-### GET /api/admin/events
-
-**Query params:** endpointId, hostname, eventType, username, processName, dateFrom, dateTo, limit, offset
-
-**Response:**
-```json
-{
-  "events": [...],
-  "total": 500
-}
-```
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/admin/dashboard/summary` | KPI summary |
+| GET | `/api/v1/admin/endpoints` | List endpoints |
+| GET | `/api/v1/admin/endpoints/:id` | Endpoint detail (trust: cert fingerprint, key age) |
+| GET | `/api/v1/admin/endpoints/:id/process-timeline` | Host timeline |
+| GET | `/api/v1/admin/alerts` | List alerts |
+| GET | `/api/v1/admin/alerts/:id` | Alert detail incl. `why_fired`, `detection_score_breakdown` |
+| PATCH | `/api/v1/admin/alerts/:id` | Status, assignment, disposition |
+| GET | `/api/v1/admin/incidents` | Incidents |
+| GET | `/api/v1/admin/investigations` | Investigations |
 
 ---
 
-### GET /api/admin/alerts
+### Detection & MITRE
 
-**Query params:** `endpointId`, `severity`, `status`, `assigned_to`, `assigned_team`, `dateFrom`, `dateTo`, `limit`, `offset`
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/admin/detection-rules` | DB-backed rules |
+| GET | `/api/v1/admin/mitre/coverage` | MITRE ATT&CK coverage matrix |
+| GET | `/api/v1/admin/analytics/rare-paths` | Rare process paths |
 
-**Response:**
-```json
-{
-  "alerts": [ /* ... */ ],
-  "summary": { "new": 0, "investigating": 0, "total": 0 }
-}
-```
+Detection-as-code rules ship in `server-node/detections/` (validated via `npm run detections:validate`).
 
 ---
 
-### PATCH /api/admin/alerts/:id
+### Response & approvals
 
-Partial update (requires `alerts:write` or `*`). Fields: `status`, `assigned_to`, `assigned_team`, `due_at` (ISO datetime), `sla_minutes`, or **`suppression_reason`** (non-empty string sets status to `false_positive`, records `suppressed_by` / `suppressed_at`).
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/v1/admin/endpoints/:id/actions` | Create response action |
+| GET | `/api/v1/admin/response-actions/approvals/pending` | Pending approvals |
+| POST | `/api/v1/admin/response-actions/:id/approve` | Approve (two-person rule) |
+| POST | `/api/v1/admin/response-actions/:id/deny` | Deny |
 
----
-
-### POST /api/admin/alerts/:id/status
-
-Legacy status update (still supported).
-
-**Request:**
-```json
-{
-  "status": "investigating",
-  "assigned_to": "analyst1"
-}
-```
+See [response-actions.md](response-actions.md).
 
 ---
 
-### GET /api/admin/saved-views
+### Enterprise & operations
 
-**Query params:** `page` (e.g. `detections`) — user-scoped saved filter presets.
-
-### POST /api/admin/saved-views
-
-**Request:** `{ "name": "My triage", "page": "detections", "filters": { "status": "new", "severity": "high" } }`
-
-### DELETE /api/admin/saved-views/:id
-
----
-
-### GET /api/admin/export/siem-alerts
-
-NDJSON stream of alerts for SIEM pipelines (requires `audit:read` or `*`). Optional query: `since` (ISO or MySQL datetime).
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/admin/system/health` | DB, Redis, queue, endpoints |
+| GET | `/api/v1/admin/integrations` | Webhook / Splunk HEC integrations |
+| POST | `/api/v1/admin/integrations` | Create integration |
+| GET | `/api/v1/admin/reports` | Report jobs |
+| POST | `/api/v1/admin/reports` | Generate report (JSON/HTML) |
+| GET | `/api/v1/admin/audit-logs` | Audit trail |
+| GET | `/api/v1/admin/audit-logs/verify` | Hash-chain verification |
+| GET | `/api/v1/admin/mssp/overview` | MSSP tenant overview |
 
 ---
 
-### GET /api/admin/analytics/rare-paths
+### Network & hunting
 
-Rare process paths for an endpoint (anomaly-style signal). **Query:** `endpointId` (required), `days`, `limit`, `maxCount`.
-
----
-
-### POST /api/admin/endpoints/:id/actions
-
-Create response action.
-
-**Request:**
-```json
-{
-  "action_type": "kill_process",
-  "parameters": { "process_id": 1234 }
-}
-```
-
-Action types include: `kill_process`, `request_heartbeat`, `isolate_host`, `lift_isolation`, `mark_investigating`, `collect_triage`, `quarantine_file`, `block_ip`, `block_hash`, `run_script`
-
-### PATCH /api/admin/endpoints/:id
-
-Update endpoint metadata. **Body:** `{ "host_group_id": <number> | null }` (requires `migrate-cs-parity`).
-
-### GET /api/admin/host-groups
-
-List host (sensor) groups for the tenant.
-
-### POST /api/admin/host-groups
-
-**Body:** `{ "name": "...", "description": "..." }`
-
-### PATCH /api/admin/host-groups/:id
-
-### DELETE /api/admin/host-groups/:id
-
-### GET /api/admin/hunt-queries
-
-Saved threat-hunt definitions (`schema-phase4`).
-
-### POST /api/admin/hunt-queries
-
-**Body:** `{ "name": "...", "query_params": { "eventType": "", "hostname": "", "processName": "", "commandLine": "", "dnsQuery": "", "dateFrom": "", "dateTo": "", "limit": 50 } }`
-
-### DELETE /api/admin/hunt-queries/:id
-
-### POST /api/admin/hunt-queries/:id/run
-
-Execute a saved hunt; stores a row in `hunt_results`.
-
-### POST /api/admin/hunt-queries/run-adhoc
-
-**Body:** same shape as `query_params` above — run without saving.
-
-### GET /api/admin/sensors/health
-
-Aggregated sensor connectivity and agent version distribution.
-
-### MSSP operations
-
-- `GET /api/admin/mssp/overview` — Internal MSSP overview: per-tenant endpoint counts, online endpoints, open alerts, and open investigations. Scoped by tenant context (`X-Tenant-Id` for super_admin); global list when unscoped.
-
-**Response (201):**
-```json
-{
-  "id": 1
-}
-```
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/admin/network/summary` | Network KPIs |
+| GET | `/api/v1/admin/network/connections` | Connections |
+| GET | `/api/v1/admin/hunt-queries` | Saved hunts |
+| POST | `/api/v1/admin/hunt-queries/run-adhoc` | Ad-hoc hunt |
 
 ---
 
-## HTTP Status Codes
+### XDR & AV
 
-- 200: Success
-- 201: Created
-- 400: Bad request / validation error
-- 401: Unauthorized (missing or invalid token)
-- 403: Forbidden
-- 404: Not found
-- 429: Rate limited
-- 500: Server error
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/admin/xdr/events` | XDR events |
+| GET | `/api/v1/admin/xdr/detections` | XDR detections |
+| GET | `/api/v1/admin/av/detections` | AV detections |
+
+---
+
+### Ingest (external)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/v1/ingest/events` | `X-Xdr-Ingest-Key` | External XDR event ingest |
+
+---
+
+## Health & metrics
+
+| Path | Auth | Description |
+|------|------|-------------|
+| `GET /healthz` | None | Liveness |
+| `GET /readyz` | None | Readiness (DB/Redis) |
+| `GET /metrics` | `Authorization: Bearer <METRICS_TOKEN>` | Prometheus metrics |
+
+---
+
+## HTTP status codes
+
+| Code | Meaning |
+|------|---------|
+| 200 | Success |
+| 201 | Created |
+| 400 | Validation error |
+| 401 | Unauthorized |
+| 403 | Forbidden |
+| 404 | Not found |
+| 429 | Rate limited |
+| 500 | Server error |
+
+---
+
+## Related docs
+
+- [detection-engine.md](detection-engine.md)
+- [response-actions.md](response-actions.md)
+- [SECURITY_MODEL.md](SECURITY_MODEL.md)
+- [deployment-production.md](deployment-production.md)
+- OpenAPI: `server-node/openapi/openapi.json`

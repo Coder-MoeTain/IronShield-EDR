@@ -1,35 +1,39 @@
 /**
  * Agent key lifecycle: rotate/revoke/expire
  */
-const crypto = require('crypto');
 const db = require('../utils/db');
-
-function sha256Hex(s) {
-  return crypto.createHash('sha256').update(String(s)).digest('hex');
-}
-
-function newKey() {
-  return crypto.randomBytes(32).toString('hex');
-}
+const { generateRawKey, hashAgentKey } = require('../utils/agentKeyHash');
 
 async function rotate(endpointId) {
   const endpoint = await db.queryOne(
-    'SELECT id, agent_key FROM endpoints WHERE id = ? LIMIT 1',
+    'SELECT id, agent_key_hash FROM endpoints WHERE id = ? LIMIT 1',
     [endpointId]
   );
   if (!endpoint) throw new Error('Endpoint not found');
-  const prevKeyHash = endpoint.agent_key ? sha256Hex(endpoint.agent_key) : null;
-  const agentKey = newKey();
-  await db.execute(
-    `UPDATE endpoints
-     SET agent_key = ?,
-         prev_agent_key_hash = ?,
-         agent_key_created_at = NOW(),
-         agent_key_rotated_at = NOW(),
-         agent_key_revoked_at = NULL
-     WHERE id = ?`,
-    [agentKey, prevKeyHash, endpointId]
-  );
+  const prevKeyHash = endpoint.agent_key_hash || null;
+  const agentKey = generateRawKey();
+  const agentKeyHash = hashAgentKey(agentKey);
+  try {
+    await db.execute(
+      `UPDATE endpoints
+       SET agent_key_hash = ?, agent_key = NULL,
+           prev_agent_key_hash = ?,
+           agent_key_created_at = NOW(),
+           agent_key_rotated_at = NOW(),
+           agent_key_revoked_at = NULL
+       WHERE id = ?`,
+      [agentKeyHash, prevKeyHash, endpointId]
+    );
+  } catch (err) {
+    if (err.code !== 'ER_BAD_FIELD_ERROR') throw err;
+    await db.execute(
+      `UPDATE endpoints
+       SET agent_key = ?, prev_agent_key_hash = ?,
+           agent_key_created_at = NOW(), agent_key_rotated_at = NOW(), agent_key_revoked_at = NULL
+       WHERE id = ?`,
+      [agentKey, prevKeyHash, endpointId]
+    );
+  }
   return { agentKey };
 }
 

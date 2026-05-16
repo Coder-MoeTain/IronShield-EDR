@@ -40,7 +40,8 @@ const envSchema = z
     AGENT_REGISTRATION_TOKEN: z.string().min(1),
     AGENT_REQUEST_SIGNING_REQUIRED: z.enum(['true', 'false']).optional(),
     AGENT_REQUEST_SIGNING_MAX_SKEW_SECONDS: z.coerce.number().int().min(30).max(3600).optional(),
-    AGENT_NONCE_STORE: z.enum(['memory', 'mysql']).optional(),
+    AGENT_NONCE_STORE: z.enum(['memory', 'mysql', 'redis']).optional(),
+    AGENT_KEY_PEPPER: z.string().optional(),
     RESPONSE_COMMAND_HMAC_KEY: z.string().optional(),
     RESPONSE_COMMAND_TTL_SEC: z.coerce.number().int().min(60).max(86400).optional(),
     INGEST_QUEUE_FIRST: z.enum(['true', 'false']).optional(),
@@ -128,6 +129,24 @@ function assertProductionSecrets(env, parsed) {
 
   if (trimOrNull(parsed.METRICS_ENABLED) !== 'false' && !trimOrNull(parsed.METRICS_TOKEN)) {
     throw new Error('METRICS_TOKEN is required in production when metrics are enabled');
+  }
+
+  const pepper = trimOrNull(parsed.AGENT_KEY_PEPPER);
+  if (!pepper || pepper.length < 16) {
+    throw new Error('AGENT_KEY_PEPPER must be at least 16 characters in production');
+  }
+
+  const cors = trimOrNull(parsed.CORS_ORIGINS);
+  if (cors && (cors === '*' || cors.split(',').map((s) => s.trim()).includes('*'))) {
+    throw new Error('CORS_ORIGINS must not be wildcard in production');
+  }
+
+  if (parsed.ENFORCE_TLS_IN_PRODUCTION !== 'false' && parsed.TLS_ENABLED !== 'true') {
+    throw new Error('TLS_ENABLED must be true in production (or set ENFORCE_TLS_IN_PRODUCTION=false)');
+  }
+
+  if (parsed.ENFORCE_AGENT_MTLS_IN_PRODUCTION !== 'false' && parsed.AGENT_MTLS_REQUIRED !== 'true') {
+    throw new Error('AGENT_MTLS_REQUIRED must be true in production (or set ENFORCE_AGENT_MTLS_IN_PRODUCTION=false)');
   }
 }
 

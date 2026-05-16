@@ -9,6 +9,8 @@ const { ERROR_CODES, sendErrorFromReq } = require('../utils/apiResponse');
 const crypto = require('crypto');
 
 const AgentNonceService = require('../services/AgentNonceService');
+const { hashAgentKey } = require('../utils/agentKeyHash');
+const { verifyAgentCertificate } = require('./agentCertBinding');
 
 function timingSafeEqualHex(a, b) {
   const aa = Buffer.from(String(a || ''), 'hex');
@@ -139,10 +141,21 @@ async function authAgentValidated(req, res, next) {
 
   try {
     const db = require('../utils/db');
-    const row = await db.queryOne(
-      'SELECT id, tenant_id, status, agent_key_expires_at, agent_key_revoked_at FROM endpoints WHERE agent_key = ? LIMIT 1',
-      [String(agentKey)]
+    const keyHash = hashAgentKey(agentKey);
+    let row = await db.queryOne(
+      `SELECT id, tenant_id, status, agent_key_expires_at, agent_key_revoked_at,
+              cert_fingerprint, cert_revoked_at
+       FROM endpoints WHERE agent_key_hash = ? LIMIT 1`,
+      [keyHash]
     );
+    if (!row) {
+      row = await db.queryOne(
+        `SELECT id, tenant_id, status, agent_key_expires_at, agent_key_revoked_at,
+                cert_fingerprint, cert_revoked_at
+         FROM endpoints WHERE agent_key = ? LIMIT 1`,
+        [String(agentKey)]
+      );
+    }
     if (!row) {
       metrics.agentAuthFailuresTotal.inc({ reason: 'unknown' });
       return sendErrorFromReq(res, req, ERROR_CODES.AUTHENTICATION_REQUIRED, 'Unknown agent key', 401);
@@ -154,6 +167,14 @@ async function authAgentValidated(req, res, next) {
     if (row.agent_key_expires_at && new Date(row.agent_key_expires_at).getTime() < Date.now()) {
       metrics.agentAuthFailuresTotal.inc({ reason: 'expired' });
       return sendErrorFromReq(res, req, ERROR_CODES.AUTHENTICATION_REQUIRED, 'Agent key expired', 401);
+    }
+
+    const certCheck = await verifyAgentCertificate(req, row);
+    if (!certCheck.ok) {
+      metrics.agentAuthFailuresTotal.inc({ reason: certCheck.reason || 'cert' });
+      return sendErrorFromReq(res, req, ERROR_CODES.AUTHENTICATION_REQUIRED, 'Client certificate rejected', 401, {
+        reason: certCheck.reason,
+      });
     }
 
     req.agentKey = String(agentKey);

@@ -2,6 +2,26 @@
 
 This project includes an enterprise-ready *baseline* of security and reliability controls. Some items are implemented in code; others are deployment controls you must enforce (TLS, secrets, least-privilege DB, etc.).
 
+## Production hardening status (pilot-ready track)
+
+| Capability | Status | Notes |
+|------------|--------|-------|
+| `/api/v1` versioning | **Implemented** | Legacy `/api/*` aliases retained |
+| Zod config validation | **Implemented** | Fails fast in production on weak secrets |
+| Agent key hashing (`agent_key_hash`) | **Implemented** | `AGENT_KEY_PEPPER` required in production |
+| Redis/MySQL nonce replay protection | **Implemented** | `AGENT_NONCE_STORE=redis` preferred |
+| mTLS cert fingerprint binding | **Implemented** | `endpoints.cert_*` columns + audit |
+| DPAPI agent secrets | **Implemented** | `SecretStore` / `AgentKeyProtected` |
+| Detection-as-code (31+ rules) | **Implemented** | `npm run detections:validate\|test` |
+| Alert explainability | **Implemented** | `why_fired`, `detection_score_breakdown` |
+| Signed response commands | **Implemented** | Agent verifies HMAC before execute |
+| High-risk response SoD | **Implemented** | Two-person approval for dangerous actions |
+| SOC dashboard (triage, MITRE, health) | **Implemented** | See README enterprise upgrade |
+| PDF reports / native Elastic exporter | **Planned** | JSON/HTML reports today |
+| Full ESLint in CI | **Implemented** | `npm run lint` (backend + dashboard in CI) |
+| Discovery rule pack (whoami, net, etc.) | **Implemented** | `generate-detection-as-code-pack.js` |
+| API reference (`docs/api.md`) | **Implemented** | `/api/v1` documented |
+
 ## Security hardening
 
 ### Secrets management (Vault / KMS)

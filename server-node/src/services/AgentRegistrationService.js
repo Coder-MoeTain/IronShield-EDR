@@ -1,8 +1,8 @@
 /**
  * Agent registration service
  */
-const crypto = require('crypto');
 const db = require('../utils/db');
+const { generateRawKey, hashAgentKey } = require('../utils/agentKeyHash');
 const config = require('../config');
 const logger = require('../utils/logger');
 const TenantService = require('./TenantService');
@@ -56,16 +56,17 @@ async function register(payload, registrationToken) {
     resolvedTenantId = tid;
   }
 
-  const agentKey = crypto.randomBytes(32).toString('hex');
+  const agentKey = generateRawKey();
+  const agentKeyHash = hashAgentKey(agentKey);
   const defaultTenantId = resolvedTenantId;
 
   let result;
   try {
     result = await db.execute(
-      `INSERT INTO endpoints (agent_key, tenant_id, hostname, os_version, logged_in_user, ip_address, mac_address, agent_version, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'online')`,
+      `INSERT INTO endpoints (agent_key_hash, agent_key, tenant_id, hostname, os_version, logged_in_user, ip_address, mac_address, agent_version, status, agent_key_created_at)
+       VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, 'online', NOW())`,
       [
-        agentKey,
+        agentKeyHash,
         defaultTenantId,
         String(hostname).substring(0, 255),
         os_version ? String(os_version).substring(0, 128) : null,
@@ -76,12 +77,13 @@ async function register(payload, registrationToken) {
       ]
     );
   } catch (err) {
-    if (err.code === 'ER_BAD_FIELD_ERROR' && err.message?.includes('tenant_id')) {
+    if (err.code === 'ER_BAD_FIELD_ERROR') {
       result = await db.execute(
-        `INSERT INTO endpoints (agent_key, hostname, os_version, logged_in_user, ip_address, mac_address, agent_version, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'online')`,
+        `INSERT INTO endpoints (agent_key, tenant_id, hostname, os_version, logged_in_user, ip_address, mac_address, agent_version, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'online')`,
         [
           agentKey,
+          defaultTenantId,
           String(hostname).substring(0, 255),
           os_version ? String(os_version).substring(0, 128) : null,
           logged_in_user ? String(logged_in_user).substring(0, 255) : null,

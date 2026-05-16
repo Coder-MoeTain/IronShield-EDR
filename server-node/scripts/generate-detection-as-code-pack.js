@@ -36,6 +36,33 @@ const RULES = [
   ['impact', 'IRN-WIN-0111', 'Bcdedit Recovery Disabled', 'critical', 88, 'Impact', 'T1490', 'process_create', 'bcdedit.exe', 'recoveryenabled'],
   ['defense_evasion', 'IRN-WIN-0043', 'Certutil Decode File', 'high', 68, 'Defense Evasion', 'T1140', 'process_create', 'certutil.exe', '-decode'],
   ['execution', 'IRN-WIN-0016', 'Cmd from Script Interpreter', 'medium', 50, 'Execution', 'T1059.003', 'process_create', 'cmd.exe', '/c'],
+  // Execution — LOLBin / script from temp
+  ['execution', 'IRN-WIN-0017', 'PowerShell from User Temp Path', 'high', 72, 'Execution', 'T1059.001', 'process_create', 'powershell.exe', '\\temp\\'],
+  ['execution', 'IRN-WIN-0018', 'Cmd from Temp Directory', 'medium', 58, 'Execution', 'T1059.003', 'process_create', 'cmd.exe', '\\temp\\'],
+  ['execution', 'IRN-WIN-0019', 'Forfiles LOLBin Execution', 'medium', 55, 'Execution', 'T1202', 'process_create', 'forfiles.exe', null],
+  ['execution', 'IRN-WIN-0022', 'Regsvcs LOLBin', 'medium', 54, 'Execution', 'T1218', 'process_create', 'regsvcs.exe', null],
+  // Persistence
+  ['persistence', 'IRN-WIN-0023', 'New Service via SC', 'high', 68, 'Persistence', 'T1543.003', 'process_create', 'sc.exe', 'create'],
+  ['persistence', 'IRN-WIN-0024', 'PowerShell New-Service', 'high', 70, 'Persistence', 'T1543.003', 'process_create', 'powershell.exe', 'New-Service'],
+  // Defense evasion
+  ['defense_evasion', 'IRN-WIN-0044', 'Tamper with Defender via Set-MpPreference', 'critical', 88, 'Defense Evasion', 'T1562.001', 'process_create', 'powershell.exe', 'Set-MpPreference'],
+  ['defense_evasion', 'IRN-WIN-0045', 'Attrib Hide File', 'low', 35, 'Defense Evasion', 'T1564.001', 'process_create', 'attrib.exe', '+h'],
+  // Discovery (spec section 8)
+  ['discovery', 'IRN-WIN-0063', 'Whoami Full Output', 'low', 35, 'Discovery', 'T1033', 'process_create', 'whoami.exe', '/all'],
+  ['discovery', 'IRN-WIN-0064', 'Net User Enumeration', 'medium', 48, 'Discovery', 'T1087.001', 'process_create', 'net.exe', ' user'],
+  ['discovery', 'IRN-WIN-0065', 'Net Group Enumeration', 'medium', 48, 'Discovery', 'T1069.001', 'process_create', 'net.exe', ' group'],
+  ['discovery', 'IRN-WIN-0066', 'Ipconfig All Adapters', 'low', 32, 'Discovery', 'T1016', 'process_create', 'ipconfig.exe', '/all'],
+  ['discovery', 'IRN-WIN-0067', 'Systeminfo Recon', 'low', 38, 'Discovery', 'T1082', 'process_create', 'systeminfo.exe', null],
+  ['discovery', 'IRN-WIN-0068', 'Tasklist Process Survey', 'low', 30, 'Discovery', 'T1057', 'process_create', 'tasklist.exe', null],
+  ['discovery', 'IRN-WIN-0069', 'Quser Session Discovery', 'low', 40, 'Discovery', 'T1033', 'process_create', 'quser.exe', null],
+  ['discovery', 'IRN-WIN-0072', 'Net View Share Discovery', 'medium', 45, 'Discovery', 'T1135', 'process_create', 'net.exe', ' view'],
+  // Command and control
+  ['command_and_control', 'IRN-WIN-0092', 'Wget External Download', 'medium', 52, 'Command and Control', 'T1105', 'process_create', 'wget.exe', 'http'],
+  ['command_and_control', 'IRN-WIN-0093', 'PowerShell Download Cradle', 'high', 74, 'Command and Control', 'T1105', 'process_create', 'powershell.exe', 'DownloadString'],
+  ['command_and_control', 'IRN-WIN-0094', 'Invoke-WebRequest Download', 'high', 72, 'Command and Control', 'T1105', 'process_create', 'powershell.exe', 'Invoke-WebRequest'],
+  // Impact
+  ['impact', 'IRN-WIN-0112', 'Wmic Shadow Copy Delete', 'critical', 92, 'Impact', 'T1490', 'process_create', 'wmic.exe', 'shadowcopy delete'],
+  ['impact', 'IRN-WIN-0113', 'Cipher Secure Delete', 'medium', 55, 'Impact', 'T1485', 'process_create', 'cipher.exe', '/w:'],
 ];
 
 function buildRule([folder, id, name, severity, risk, tactic, tech, eventType, proc, cmdExtra, parent]) {

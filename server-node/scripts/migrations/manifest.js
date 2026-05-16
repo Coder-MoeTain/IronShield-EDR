@@ -77,6 +77,11 @@ const manifest = [
     description: 'Phases 3-9: enrollment single-use, alert evidence, integrations, reports',
     module: path.join(__dirname, '20260516200000_phases3_9_schema.js'),
   },
+  {
+    id: '20260517120000_production_hardening',
+    description: 'Production hardening: agent_key_hash, cert binding, alert breakdown',
+    module: path.join(__dirname, '20260517120000_production_hardening.js'),
+  },
 ];
 
 module.exports = { manifest, LEGACY_DIR };

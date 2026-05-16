@@ -255,7 +255,13 @@ async function patch(id, data, tenantId = null) {
 }
 
 async function getByAgentKey(agentKey) {
-  return db.queryOne('SELECT * FROM endpoints WHERE agent_key = ?', [agentKey]);
+  const { hashAgentKey } = require('../utils/agentKeyHash');
+  const h = hashAgentKey(agentKey);
+  let row = await db.queryOne('SELECT * FROM endpoints WHERE agent_key_hash = ? LIMIT 1', [h]);
+  if (!row) {
+    row = await db.queryOne('SELECT * FROM endpoints WHERE agent_key = ? LIMIT 1', [String(agentKey)]);
+  }
+  return row;
 }
 
 async function getMetrics(endpointId, limit = 100) {

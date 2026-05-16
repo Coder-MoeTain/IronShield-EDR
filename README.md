@@ -53,6 +53,7 @@
 
 | When | What |
 |:-----|:-----|
+| **May 2026** | **Production hardening (pilot-ready)** — `/api/v1` versioning, Zod production gates, **agent key hashing** (`AGENT_KEY_PEPPER`), Redis nonce replay, mTLS cert fingerprint binding, alert explainability (`why_fired` / matched fields), expanded high-risk response SoD. See [enterprise-hardening.md](docs/enterprise-hardening.md). |
 | **May 2026** | **Enterprise upgrade (Phases 1–9)** — Foundation hardening, formal migrations, agent trust (DPAPI, signed requests, signed response commands), detection-as-code (**31** IRN-WIN rules), SOC triage/MITRE/health UI, integrations & reports, `docker-compose.dev.yml` / `docker-compose.prod.yml`. Full checklist: [UPGRADE_AUDIT.md](docs/UPGRADE_AUDIT.md). |
 | **Mar 2026** | **Host detail UX** — `/endpoints/:id` uses a tabbed console layout (**Overview**, **Sensor & policies**, **Inventory**, **Response**): KPI strip, consolidated system/health/resource cards, trimmed operational copy, and removal of the legacy one-click demo remediation block. |
 | **Mar 2026** | **README screenshots** — Real UI captures live in [`docs/images/`](docs/images/) (PNG). Regenerate with Playwright after UI changes (see [Screenshots](#screenshots)). |

@@ -23,6 +23,12 @@ jobs:
         run: node -c src/index.js && node -c src/app.js
       - name: OpenAPI contract
         run: npm run test:openapi
+      - name: Lint backend
+        run: npm run lint
+      - name: Detection-as-code validate
+        run: npm run detections:validate
+      - name: Detection-as-code tests
+        run: npm run detections:test
       - name: Tests
         run: npm test
       - name: Security assurance (control mapping + audit + tests)
@@ -72,6 +78,8 @@ jobs:
           cache-dependency-path: server-node/dashboard/package-lock.json
       - name: Install
         run: npm ci
+      - name: Lint dashboard
+        run: npm run lint
       - name: Unit tests (Vitest)
         run: npm run test
       - name: Build

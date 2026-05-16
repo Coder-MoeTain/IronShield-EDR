@@ -11,6 +11,15 @@ const baseEnv = {
   AGENT_REGISTRATION_TOKEN: 'break-glass-token-min-24-chars!!',
 };
 
+const productionExtras = {
+  DB_PASSWORD: 'secret',
+  METRICS_TOKEN: 'metrics-token-32chars-minimum!!',
+  AGENT_KEY_PEPPER: 'production-pepper-32chars-minimum',
+  TLS_ENABLED: 'true',
+  AGENT_MTLS_REQUIRED: 'true',
+  CORS_ORIGINS: 'https://soc.example.com',
+};
+
 test('parseEnv accepts valid development config', () => {
   const p = parseEnv({ ...baseEnv, DB_PASSWORD: 'pw' }, 'development');
   assert.equal(p.DB_HOST, 'localhost');
@@ -28,9 +37,8 @@ test('parseEnv rejects weak JWT in production', () => {
       parseEnv(
         {
           ...baseEnv,
+          ...productionExtras,
           JWT_SECRET: 'change-me',
-          DB_PASSWORD: 'secret',
-          METRICS_TOKEN: 'metrics-tok',
         },
         'production'
       ),
@@ -44,14 +52,33 @@ test('parseEnv rejects short JWT in production', () => {
       parseEnv(
         {
           ...baseEnv,
+          ...productionExtras,
           JWT_SECRET: 'short',
-          DB_PASSWORD: 'secret',
-          METRICS_TOKEN: 'metrics-tok',
         },
         'production'
       ),
     /at least 32/
   );
+});
+
+test('parseEnv rejects wildcard CORS in production', () => {
+  assert.throws(
+    () =>
+      parseEnv(
+        {
+          ...baseEnv,
+          ...productionExtras,
+          CORS_ORIGINS: '*',
+        },
+        'production'
+      ),
+    /CORS/
+  );
+});
+
+test('parseEnv accepts hardened production config', () => {
+  const p = parseEnv({ ...baseEnv, ...productionExtras }, 'production');
+  assert.equal(p.TLS_ENABLED, 'true');
 });
 
 test('CONFIG_SKIP_PRODUCTION_SECRET_CHECK bypasses weak secret check', () => {

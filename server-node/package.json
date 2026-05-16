@@ -60,7 +60,8 @@
     "detections:test": "node scripts/detections-test.js",
     "detections:replay": "node scripts/run-detection-replay.js",
     "audit:verify": "node scripts/audit-verify-cli.js",
-    "lint": "node -e \"console.log('Lint: configure eslint in Phase 9 CI')\"",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "run-retention": "node scripts/run-retention.js",
     "run-agent-batch-dedupe-gc": "node scripts/run-agent-batch-dedupe-gc.js",
     "run-agent-event-idempotency-gc": "node scripts/run-agent-event-idempotency-gc.js",
@@ -69,7 +70,8 @@
     "export-compliance-evidence": "node scripts/export-compliance-evidence.js",
     "security-assurance": "node scripts/security-assurance.js",
     "test": "node scripts/run-node-tests.js",
-    "test:openapi": "node scripts/validate-openapi.js",
+    "sync-openapi": "node scripts/sync-openapi-v1.js",
+    "test:openapi": "node scripts/sync-openapi-v1.js && node scripts/validate-openapi.js",
     "build-dashboard": "cd dashboard && npm install && npm run build"
   },
   "dependencies": {
@@ -95,6 +97,8 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "eslint": "^9.17.0",
+    "globals": "^15.14.0",
     "nodemon": "^3.0.2",
     "supertest": "^7.0.0"
   }

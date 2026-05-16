@@ -83,7 +83,13 @@ module.exports = {
         ? env.AGENT_REQUEST_SIGNING_REQUIRED !== 'false'
         : env.AGENT_REQUEST_SIGNING_REQUIRED === 'true',
     requestSigningMaxSkewSeconds: env.AGENT_REQUEST_SIGNING_MAX_SKEW_SECONDS ?? 300,
-    nonceStore: env.AGENT_NONCE_STORE === 'memory' ? 'memory' : 'mysql',
+    nonceStore:
+      env.AGENT_NONCE_STORE === 'memory'
+        ? 'memory'
+        : env.AGENT_NONCE_STORE === 'redis'
+          ? 'redis'
+          : 'mysql',
+    keyPepper: trimOrNull(env.AGENT_KEY_PEPPER),
   },
   ingest: {
     key: trimOrNull(env.XDR_INGEST_KEY),

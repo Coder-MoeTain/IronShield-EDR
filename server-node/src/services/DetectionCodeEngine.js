@@ -78,6 +78,32 @@ function evalFieldOp({ field, op, value }, norm) {
   }
 }
 
+function collectMatchedFields(logic, norm, path = 'logic', out = []) {
+  if (!logic || typeof logic !== 'object') return out;
+  if (logic.all && Array.isArray(logic.all)) {
+    logic.all.forEach((item, i) => collectMatchedFields(item, norm, `${path}.all[${i}]`, out));
+    return out;
+  }
+  if (logic.any && Array.isArray(logic.any)) {
+    logic.any.forEach((item, i) => collectMatchedFields(item, norm, `${path}.any[${i}]`, out));
+    return out;
+  }
+  if (logic.field && logic.op) {
+    const actual = getField(norm, logic.field);
+    if (evalFieldOp(logic, norm)) {
+      out.push({
+        field: logic.field,
+        op: logic.op,
+        expected: logic.value,
+        actual: actual != null ? String(actual).substring(0, 500) : null,
+        condition_path: path,
+      });
+    }
+    return out;
+  }
+  return out;
+}
+
 function matchesCodeRule(rule, norm) {
   if (rule.event_types?.length) {
     const et = String(norm.event_type || '').toLowerCase();
@@ -96,21 +122,37 @@ function evaluate(norm) {
       continue;
     }
     if (matchesCodeRule(rule, norm)) {
+      const matched = collectMatchedFields(rule.logic, norm);
+      const risk = rule.risk_score || 50;
       hits.push({
         rule_id: rule.id,
         rule_name: rule.name,
         title: rule.name,
         description: rule.description,
         severity: rule.severity || 'medium',
-        confidence: (rule.risk_score || 50) / 100,
+        confidence: rule.confidence != null ? rule.confidence : risk / 100,
         mitre_tactic: rule.mitre?.tactics?.[0],
         mitre_technique: rule.mitre?.techniques?.[0],
-        risk_score: rule.risk_score,
+        risk_score: risk,
         evidence: rule.logic || rule.conditions,
+        detection_score_breakdown: {
+          rule_id: rule.id,
+          rule_name: rule.name,
+          risk_score: risk,
+          confidence: rule.confidence != null ? rule.confidence : risk / 100,
+          severity: rule.severity,
+          matched_fields: matched,
+          mitre: rule.mitre,
+        },
+        evidence_summary: JSON.stringify({
+          rule_id: rule.id,
+          matched_fields: matched,
+          logic: rule.logic,
+        }),
       });
     }
   }
   return hits;
 }
 
-module.exports = { loadRulesFromDisk, evaluate, matchesCodeRule, evalLogic };
+module.exports = { loadRulesFromDisk, evaluate, matchesCodeRule, evalLogic, collectMatchedFields };

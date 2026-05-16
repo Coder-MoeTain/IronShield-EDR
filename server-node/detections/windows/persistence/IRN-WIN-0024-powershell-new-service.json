@@ -1,0 +1,36 @@
+{
+  "id": "IRN-WIN-0024",
+  "name": "PowerShell New-Service",
+  "description": "PowerShell New-Service (defensive detection).",
+  "status": "stable",
+  "severity": "high",
+  "risk_score": 70,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Persistence"
+    ],
+    "techniques": [
+      "T1543.003"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "powershell.exe"
+      },
+      {
+        "field": "command_line",
+        "op": "contains",
+        "value": "New-Service"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

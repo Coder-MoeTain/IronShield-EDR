@@ -102,10 +102,16 @@ async function insertAlertRow(a) {
     a.last_seen,
   ];
   try {
+    const breakdown =
+      a.detection_score_breakdown != null
+        ? typeof a.detection_score_breakdown === 'string'
+          ? a.detection_score_breakdown
+          : JSON.stringify(a.detection_score_breakdown)
+        : null;
     return await db.execute(
-      `INSERT INTO alerts (endpoint_id, rule_id, title, description, severity, confidence, mitre_tactic, mitre_technique, source_event_ids, first_seen, last_seen, risk_score, evidence_summary)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [...baseParams, a.risk_score ?? null, a.evidence_summary ?? null]
+      `INSERT INTO alerts (endpoint_id, rule_id, title, description, severity, confidence, mitre_tactic, mitre_technique, source_event_ids, first_seen, last_seen, risk_score, evidence_summary, detection_score_breakdown)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [...baseParams, a.risk_score ?? null, a.evidence_summary ?? null, breakdown]
     );
   } catch (err) {
     if (err.code !== 'ER_BAD_FIELD_ERROR') throw err;
@@ -265,14 +271,28 @@ async function getById(id) {
   } catch {
     evidence = row.evidence_summary;
   }
+  let breakdown = null;
+  try {
+    breakdown =
+      typeof row.detection_score_breakdown === 'string'
+        ? JSON.parse(row.detection_score_breakdown)
+        : row.detection_score_breakdown;
+  } catch {
+    breakdown = row.detection_score_breakdown;
+  }
   row.why_fired = {
-    rule_id: evidence?.rule_id || row.rule_id,
+    rule_id: breakdown?.rule_id || evidence?.rule_id || row.rule_id,
+    rule_name: breakdown?.rule_name,
     summary: row.description,
-    evidence: evidence?.evidence || evidence,
+    matched_fields: breakdown?.matched_fields || evidence?.matched_fields,
+    condition_paths: breakdown?.matched_fields?.map((m) => m.condition_path),
+    evidence: evidence?.evidence || evidence?.logic || evidence,
     mitre_tactic: row.mitre_tactic,
     mitre_technique: row.mitre_technique,
     severity: row.severity,
     risk_score: row.risk_score,
+    confidence: breakdown?.confidence ?? row.confidence,
+    score_breakdown: breakdown,
   };
   return row;
 }

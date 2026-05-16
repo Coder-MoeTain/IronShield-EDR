@@ -332,6 +332,26 @@ export default function EndpointDetail() {
                 </dd>
                 <dt>OS</dt>
                 <dd>{endpoint.os_version || '—'}</dd>
+                <dt>Agent key</dt>
+                <dd>
+                  {endpoint.agent_key_hash ? 'Hashed (server-side)' : endpoint.agent_key ? 'Legacy plaintext' : '—'}
+                  {endpoint.agent_key_created_at
+                    ? ` · created ${new Date(endpoint.agent_key_created_at).toLocaleDateString()}`
+                    : ''}
+                </dd>
+                <dt>Request signing</dt>
+                <dd>{endpoint.agent_key_revoked_at ? 'Revoked' : 'Expected when production-hardened'}</dd>
+                <dt>mTLS certificate</dt>
+                <dd>
+                  {endpoint.cert_fingerprint ? (
+                    <span className="mono" title={endpoint.cert_subject || ''}>
+                      {String(endpoint.cert_fingerprint).slice(0, 16)}…
+                    </span>
+                  ) : (
+                    'Not bound'
+                  )}
+                  {endpoint.cert_revoked_at ? ' (revoked)' : ''}
+                </dd>
                 <dt>User</dt>
                 <dd>{endpoint.logged_in_user || '—'}</dd>
                 <dt>IP / MAC</dt>

@@ -1,0 +1,31 @@
+{
+  "id": "IRN-WIN-0069",
+  "name": "Quser Session Discovery",
+  "description": "Quser Session Discovery (defensive detection).",
+  "status": "stable",
+  "severity": "low",
+  "risk_score": 40,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Discovery"
+    ],
+    "techniques": [
+      "T1033"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "quser.exe"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

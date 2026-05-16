@@ -1,0 +1,36 @@
+{
+  "id": "IRN-WIN-0094",
+  "name": "Invoke-WebRequest Download",
+  "description": "Invoke-WebRequest Download (defensive detection).",
+  "status": "stable",
+  "severity": "high",
+  "risk_score": 72,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Command and Control"
+    ],
+    "techniques": [
+      "T1105"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "powershell.exe"
+      },
+      {
+        "field": "command_line",
+        "op": "contains",
+        "value": "Invoke-WebRequest"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

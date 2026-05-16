@@ -1,0 +1,36 @@
+{
+  "id": "IRN-WIN-0023",
+  "name": "New Service via SC",
+  "description": "New Service via SC (defensive detection).",
+  "status": "stable",
+  "severity": "high",
+  "risk_score": 68,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Persistence"
+    ],
+    "techniques": [
+      "T1543.003"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "sc.exe"
+      },
+      {
+        "field": "command_line",
+        "op": "contains",
+        "value": "create"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

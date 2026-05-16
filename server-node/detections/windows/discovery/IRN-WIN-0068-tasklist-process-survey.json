@@ -1,0 +1,31 @@
+{
+  "id": "IRN-WIN-0068",
+  "name": "Tasklist Process Survey",
+  "description": "Tasklist Process Survey (defensive detection).",
+  "status": "stable",
+  "severity": "low",
+  "risk_score": 30,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Discovery"
+    ],
+    "techniques": [
+      "T1057"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "tasklist.exe"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}

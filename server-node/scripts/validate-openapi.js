@@ -22,7 +22,17 @@ if (!spec.paths || typeof spec.paths !== 'object') {
   console.error('Missing paths');
   process.exit(1);
 }
-const requiredPaths = ['/healthz', '/api/openapi.json', '/api/agent/ping', '/api/agent/heartbeat', '/api/admin/endpoints'];
+const requiredPaths = [
+  '/healthz',
+  '/api/openapi.json',
+  '/api/v1/openapi.json',
+  '/api/agent/ping',
+  '/api/v1/agent/ping',
+  '/api/agent/heartbeat',
+  '/api/v1/agent/heartbeat',
+  '/api/admin/endpoints',
+  '/api/v1/admin/endpoints',
+];
 for (const p of requiredPaths) {
   if (!spec.paths[p]) {
     console.error('Contract must document path:', p);

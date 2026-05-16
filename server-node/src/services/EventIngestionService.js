@@ -89,7 +89,7 @@ async function processUnprocessed(endpointId, limit = 100) {
       const DetectionCodeEngine = require('./DetectionCodeEngine');
       codeAlerts = DetectionCodeEngine.evaluate(norm).map((h) => ({
         endpoint_id: norm.endpoint_id,
-        rule_id: null,
+        rule_id: h.rule_id,
         title: h.title,
         description: h.description,
         severity: h.severity,
@@ -97,7 +97,8 @@ async function processUnprocessed(endpointId, limit = 100) {
         mitre_tactic: h.mitre_tactic,
         mitre_technique: h.mitre_technique,
         risk_score: h.risk_score,
-        evidence_summary: JSON.stringify({ rule_id: h.rule_id, evidence: h.evidence }),
+        evidence_summary: h.evidence_summary,
+        detection_score_breakdown: h.detection_score_breakdown,
         source_event_ids: JSON.stringify([norm.raw_event_id]),
         first_seen: norm.timestamp,
         last_seen: norm.timestamp,

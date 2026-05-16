@@ -249,6 +249,31 @@ export default function AlertDetail() {
             <dd>{alert.why_fired.rule_name || alert.why_fired.rule_id || '—'}</dd>
             <dt>Risk score</dt>
             <dd>{alert.why_fired.risk_score ?? alert.risk_score ?? '—'}</dd>
+            {alert.why_fired.matched_fields?.length > 0 && (
+              <>
+                <dt>Matched conditions</dt>
+                <dd>
+                  <table className="data-table" style={{ fontSize: '0.85rem' }}>
+                    <thead>
+                      <tr>
+                        <th>Field</th>
+                        <th>Op</th>
+                        <th>Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {alert.why_fired.matched_fields.map((m, i) => (
+                        <tr key={i}>
+                          <td>{m.field}</td>
+                          <td>{m.op}</td>
+                          <td className="mono">{String(m.actual || m.expected || '').slice(0, 120)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </dd>
+              </>
+            )}
             <dt>Evidence</dt>
             <dd>
               <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.85rem' }}>

@@ -1,0 +1,31 @@
+{
+  "id": "IRN-WIN-0067",
+  "name": "Systeminfo Recon",
+  "description": "Systeminfo Recon (defensive detection).",
+  "status": "stable",
+  "severity": "low",
+  "risk_score": 38,
+  "platform": "windows",
+  "event_types": [
+    "process_create"
+  ],
+  "mitre": {
+    "tactics": [
+      "Discovery"
+    ],
+    "techniques": [
+      "T1082"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "field": "process_name",
+        "op": "contains",
+        "value": "systeminfo.exe"
+      }
+    ]
+  },
+  "author": "IronShield",
+  "version": "1.0.0"
+}
