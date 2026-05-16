@@ -53,7 +53,7 @@
 
 | When | What |
 |:-----|:-----|
-| **May 2026** | **Production hardening (pilot-ready)** — `/api/v1` versioning, Zod production gates, **agent key hashing** (`AGENT_KEY_PEPPER`), Redis nonce replay, mTLS cert fingerprint binding, alert explainability (`why_fired` / matched fields), expanded high-risk response SoD. See [enterprise-hardening.md](docs/enterprise-hardening.md). |
+| **May 2026** | **Production hardening (pilot-ready)** — `/api/v1`, agent key hashing, Redis nonces, cert binding, **52** IRN-WIN rules, ESLint in CI, [api.md](docs/api.md) rewrite. See [enterprise-hardening.md](docs/enterprise-hardening.md). |
 | **May 2026** | **Enterprise upgrade (Phases 1–9)** — Foundation hardening, formal migrations, agent trust (DPAPI, signed requests, signed response commands), detection-as-code (**31** IRN-WIN rules), SOC triage/MITRE/health UI, integrations & reports, `docker-compose.dev.yml` / `docker-compose.prod.yml`. Full checklist: [UPGRADE_AUDIT.md](docs/UPGRADE_AUDIT.md). |
 | **Mar 2026** | **Host detail UX** — `/endpoints/:id` uses a tabbed console layout (**Overview**, **Sensor & policies**, **Inventory**, **Response**): KPI strip, consolidated system/health/resource cards, trimmed operational copy, and removal of the legacy one-click demo remediation block. |
 | **Mar 2026** | **README screenshots** — Real UI captures live in [`docs/images/`](docs/images/) (PNG). Regenerate with Playwright after UI changes (see [Screenshots](#screenshots)). |
@@ -71,7 +71,7 @@ Phased upgrade toward production-grade enterprise EDR (defensive only). Baseline
 | **2 — Data layer** | `npm run migrate` / `migrate:status` / `migrate:rollback` / `seed`, `tenant_id` on events/alerts, `agent_nonces`, tenant isolation tests |
 | **3 — Agent trust** | Windows DPAPI for agent keys, single-use enrollment tokens, HMAC request signing + MySQL nonces, **signed response commands** (agent verifies before execute), [mTLS enrollment guide](docs/security/agent-mtls-enrollment.md) |
 | **4 — Telemetry** | Canonical event schema (Zod), `event_id` idempotency, queue-first ingest (`INGEST_QUEUE_FIRST`, Redis worker) |
-| **5 — Detection** | `server-node/detections/` (IRN-WIN-* JSON rules), `npm run detections:validate` / `detections:test`, MITRE coverage API + dashboard (`/mitre`) |
+| **5 — Detection** | `server-node/detections/` (**52** IRN-WIN JSON rules), `detections:validate` / `detections:test`, MITRE coverage API + dashboard (`/mitre`) |
 | **6 — SOC workflows** | Alert `risk_score` / `evidence_summary` / **why fired**, response lifecycle fields, integration export on new alerts |
 | **7 — Dashboard** | Triage queue (`/soc/triage`), host timeline (`/hosts/:id/timeline`), system health, integrations & reports pages, demo banner (`VITE_DEMO_MODE=true`) |
 | **8 — Integrations** | Webhook + Splunk HEC providers, report jobs (JSON/HTML) with audit + download |
@@ -277,6 +277,8 @@ npm test
 npm run detections:validate
 npm run detections:test
 npm run audit:verify
+npm run lint
+cd dashboard && npm run lint
 ```
 
 ### 3. Dashboard

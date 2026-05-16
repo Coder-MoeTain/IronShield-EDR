@@ -9,11 +9,17 @@ This project includes an enterprise-ready *baseline* of security and reliability
 | `/api/v1` versioning | **Implemented** | Legacy `/api/*` aliases retained |
 | Zod config validation | **Implemented** | Fails fast in production on weak secrets |
 | Agent key hashing (`agent_key_hash`) | **Implemented** | `AGENT_KEY_PEPPER` required in production |
-| Redis/MySQL nonce replay protection | **Implemented** | `AGENT_NONCE_STORE=redis` preferred |
-| mTLS cert fingerprint binding | **Implemented** | `endpoints.cert_*` columns + audit |
+| Redis/MySQL nonce replay protection | **Implemented** | `agent_request_nonces` + Redis SET NX; GC job |
+| mTLS cert fingerprint binding | **Implemented** | `cert_fingerprint_sha256`, issuer, bound_at + audit |
 | DPAPI agent secrets | **Implemented** | `SecretStore` / `AgentKeyProtected` |
-| Detection-as-code (31+ rules) | **Implemented** | `npm run detections:validate\|test` |
-| Alert explainability | **Implemented** | `why_fired`, `detection_score_breakdown` |
+| Detection-as-code (52 rules) | **Implemented** | `npm run detections:validate\|test\|replay` |
+| Alert explainability | **Implemented** | `alert_evidence` table + `why_fired` UI |
+| Incident lifecycle workflow | **Implemented** | triage→closed, timeline, notes, export |
+| RTR hardening (disabled by default) | **Implemented** | tenant/endpoint policy, approval, transcript |
+| Endpoint compliance scoring | **Implemented** | compliant/partial/non-compliant in UI |
+| Event store abstraction | **Implemented** | `EVENT_STORE=mysql` (OpenSearch/CH placeholders) |
+| Migration registry + checksums | **Implemented** | `npm run migrate:validate` |
+| OpenAPI route coverage CI | **Implemented** | `sync-openapi-routes` + coverage test |
 | Signed response commands | **Implemented** | Agent verifies HMAC before execute |
 | High-risk response SoD | **Implemented** | Two-person approval for dangerous actions |
 | SOC dashboard (triage, MITRE, health) | **Implemented** | See README enterprise upgrade |

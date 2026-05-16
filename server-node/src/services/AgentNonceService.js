@@ -1,5 +1,5 @@
 /**
- * Durable replay protection for signed agent requests (Redis preferred, MySQL fallback).
+ * Durable replay protection for signed agent requests (Redis SET NX EX, MySQL agent_request_nonces).
  */
 const db = require('../utils/db');
 const config = require('../config');
@@ -9,22 +9,32 @@ const redisClient = require('../utils/redisClient');
 const memoryCache = new Map();
 let tableChecked = false;
 let tableAvailable = false;
+const NONCE_TABLE = 'agent_request_nonces';
 
 async function ensureTable() {
   if (tableChecked) return tableAvailable;
   tableChecked = true;
   try {
-    await db.queryOne('SELECT 1 FROM agent_nonces LIMIT 1');
+    await db.queryOne(`SELECT 1 FROM ${NONCE_TABLE} LIMIT 1`);
     tableAvailable = true;
   } catch (err) {
     if (['ER_NO_SUCH_TABLE', 'ER_BAD_TABLE_ERROR'].includes(String(err?.code || ''))) {
-      tableAvailable = false;
-      logger.warn('agent_nonces table missing; using Redis/memory nonce cache');
+      try {
+        await db.queryOne('SELECT 1 FROM agent_nonces LIMIT 1');
+        tableAvailable = 'legacy';
+      } catch {
+        tableAvailable = false;
+        logger.warn('agent_request_nonces table missing; using Redis/memory nonce cache');
+      }
     } else {
       throw err;
     }
   }
   return tableAvailable;
+}
+
+function nonceTableName() {
+  return tableAvailable === 'legacy' ? 'agent_nonces' : NONCE_TABLE;
 }
 
 function memoryReserve(replayKey, expiresAtMs) {
@@ -51,11 +61,13 @@ async function redisReserve(endpointId, nonce, ttlSec) {
   }
 }
 
+/**
+ * Reserve a nonce for replay protection. Returns { ok, store?, reason? }.
+ */
 async function reserve(endpointId, nonce, expiresAt) {
   const replayKey = `${endpointId}:${nonce}`;
   const expiresMs = expiresAt.getTime();
   const ttlSec = Math.max(60, Math.ceil((expiresMs - Date.now()) / 1000) + 30);
-
   const storePref = config.agent?.nonceStore || 'mysql';
 
   if ((storePref === 'redis' || storePref === 'mysql') && redisClient.isConfigured()) {
@@ -64,16 +76,18 @@ async function reserve(endpointId, nonce, expiresAt) {
     if (redisOk === false) return { ok: false, reason: 'replay' };
   }
 
-  if (storePref !== 'memory' && (await ensureTable())) {
+  const tableState = await ensureTable();
+  if (storePref !== 'memory' && tableState) {
+    const table = nonceTableName();
     try {
       await db.execute(
-        `INSERT INTO agent_nonces (endpoint_id, nonce, expires_at) VALUES (?, ?, ?)`,
-        [endpointId, String(nonce).substring(0, 64), expiresAt]
+        `INSERT INTO ${table} (endpoint_id, nonce, expires_at) VALUES (?, ?, ?)`,
+        [endpointId, String(nonce).substring(0, 128), expiresAt]
       );
-      return { ok: true, store: 'db' };
+      return { ok: true, store: table === NONCE_TABLE ? 'mysql' : 'mysql_legacy' };
     } catch (err) {
       if (err.code === 'ER_DUP_ENTRY') return { ok: false, reason: 'replay' };
-      logger.warn({ err: err.message }, 'agent_nonces insert failed; memory fallback');
+      logger.warn({ err: err.message }, `${table} insert failed; memory fallback`);
     }
   }
 
@@ -83,12 +97,22 @@ async function reserve(endpointId, nonce, expiresAt) {
 }
 
 async function purgeExpired() {
-  if (!(await ensureTable())) return;
+  const tableState = await ensureTable();
+  if (!tableState) return;
+  const table = nonceTableName();
   try {
-    await db.execute('DELETE FROM agent_nonces WHERE expires_at < NOW() LIMIT 5000');
+    await db.execute(`DELETE FROM ${table} WHERE expires_at < NOW() LIMIT 10000`);
   } catch {
     /* ignore */
   }
+  if (tableState === 'legacy' || table === NONCE_TABLE) {
+    try {
+      const other = table === NONCE_TABLE ? 'agent_nonces' : NONCE_TABLE;
+      await db.execute(`DELETE FROM ${other} WHERE expires_at < NOW() LIMIT 5000`);
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
-module.exports = { reserve, purgeExpired, ensureTable };
+module.exports = { reserve, purgeExpired, ensureTable, NONCE_TABLE };

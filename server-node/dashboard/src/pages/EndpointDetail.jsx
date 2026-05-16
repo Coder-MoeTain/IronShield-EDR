@@ -311,6 +311,25 @@ export default function EndpointDetail() {
 
           <div className={styles.grid}>
             <div className={styles.card}>
+              <h3>Agent trust</h3>
+              <dl>
+                <dt>Compliance</dt>
+                <dd>
+                  {endpoint.compliance?.status || '—'}
+                  {endpoint.compliance?.score != null ? ` (${endpoint.compliance.score}%)` : ''}
+                </dd>
+                <dt>Agent key / mTLS</dt>
+                <dd>
+                  {endpoint.agent_key_hash ? 'Hashed key' : '—'}
+                  {endpoint.cert_fingerprint || endpoint.trust?.cert_fingerprint
+                    ? ` · cert ${String(endpoint.cert_fingerprint || endpoint.trust.cert_fingerprint).slice(0, 12)}…`
+                    : ' · no cert'}
+                </dd>
+                <dt>Auth failures</dt>
+                <dd>{endpoint.agent_auth_failure_count ?? endpoint.trust?.auth_failure_count ?? 0}</dd>
+              </dl>
+            </div>
+            <div className={styles.card}>
               <h3>System</h3>
               <dl>
                 <dt>Hostname</dt>

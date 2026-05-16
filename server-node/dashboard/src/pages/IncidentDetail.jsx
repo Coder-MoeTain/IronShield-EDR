@@ -178,6 +178,8 @@ export default function IncidentDetail() {
           <dl>
             <dt>Status</dt>
             <dd>{incident.status}</dd>
+            <dt>Lifecycle</dt>
+            <dd>{incident.lifecycle_phase || 'triage'}</dd>
             <dt>Severity</dt>
             <dd><span className={`${styles.badge} ${severityClass}`}>{incident.severity}</span></dd>
             <dt>Correlation</dt>
@@ -207,6 +209,34 @@ export default function IncidentDetail() {
               <p className={styles.description}>{incident.description}</p>
             </>
           )}
+        </div>
+
+        <div className={styles.card}>
+          <h3>Timeline</h3>
+          {incident.timeline?.length > 0 ? (
+            <ul className={styles.alertList}>
+              {incident.timeline.map((t) => (
+                <li key={t.id}>
+                  <span className={styles.mono}>{new Date(t.created_at).toLocaleString()}</span>
+                  {' — '}
+                  <strong>{t.event_type}</strong>: {t.message}
+                  {t.actor ? ` (${t.actor})` : ''}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className={styles.empty}>No timeline events</p>
+          )}
+          <p style={{ marginTop: '0.75rem' }}>
+            <a
+              href={`/api/admin/incidents/${id}/export?format=html`}
+              className="falcon-btn falcon-btn-ghost"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Export HTML
+            </a>
+          </p>
         </div>
 
         <div className={styles.card}>

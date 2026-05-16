@@ -125,6 +125,11 @@ router.post('/rtr/sessions', requireAnyPermission('actions:write', '*'), rtrCont
 router.get('/rtr/sessions/:id', rtrController.getSession);
 router.post('/rtr/sessions/:id/close', requireAnyPermission('actions:write', '*'), rtrController.closeSession);
 router.post('/rtr/sessions/:id/commands', requireAnyPermission('actions:write', '*'), rtrController.postCommand);
+router.post(
+  '/rtr/commands/:commandId/approve',
+  requireAnyPermission('actions:write', '*'),
+  rtrController.approveCommand
+);
 router.get('/rtr/sessions/:id/commands', rtrController.listCommands);
 router.get('/saved-views', adminController.listSavedViews);
 router.post('/saved-views', adminController.createSavedView);
@@ -212,6 +217,8 @@ router.post('/incidents/:id/status', phase4.updateIncidentStatus);
 router.patch('/incidents/:id', requireAnyPermission('alerts:write', 'actions:write', '*'), phase4.updateIncidentWorkflow);
 router.get('/incidents/:id/evidence', phase4.listIncidentEvidence);
 router.post('/incidents/:id/evidence', requireAnyPermission('alerts:write', 'actions:write', '*'), phase4.addIncidentEvidence);
+router.post('/incidents/:id/notes', requireAnyPermission('alerts:write', 'actions:write', '*'), phase4.addIncidentNote);
+router.get('/incidents/:id/export', phase4.exportIncident);
 router.get('/risk/endpoints', phase4.getRiskList);
 router.get('/endpoints/:id/risk', phase4.getEndpointRisk);
 router.get('/iocs', phase4.listIocs);

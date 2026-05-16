@@ -10,6 +10,7 @@
     "migrate": "node scripts/migrate.js up",
     "migrate:status": "node scripts/migrate.js status",
     "migrate:rollback": "node scripts/migrate.js rollback",
+    "migrate:validate": "node scripts/migrate.js validate",
     "seed": "node scripts/seed.js",
     "seed:detection-rules-100": "node scripts/seed-detection-rules-100.js",
     "process-events": "node scripts/process-unprocessed-events.js",
@@ -71,7 +72,7 @@
     "security-assurance": "node scripts/security-assurance.js",
     "test": "node scripts/run-node-tests.js",
     "sync-openapi": "node scripts/sync-openapi-v1.js",
-    "test:openapi": "node scripts/sync-openapi-v1.js && node scripts/validate-openapi.js",
+    "test:openapi": "node scripts/sync-openapi-routes.js && node scripts/sync-openapi-v1.js && node scripts/validate-openapi.js && node scripts/validate-openapi-coverage.js",
     "build-dashboard": "cd dashboard && npm install && npm run build"
   },
   "dependencies": {

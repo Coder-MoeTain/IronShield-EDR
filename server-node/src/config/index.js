@@ -113,6 +113,15 @@ module.exports = {
     port: env.REDIS_PORT ?? 6379,
     password: env.REDIS_PASSWORD || undefined,
   },
+  eventStore: {
+    type: env.EVENT_STORE || 'mysql',
+  },
+  rtr: {
+    enabled: env.RTR_ENABLED === 'true',
+    sessionTimeoutMinutes: env.RTR_SESSION_TIMEOUT_MINUTES ?? 30,
+    commandTimeoutSeconds: env.RTR_COMMAND_TIMEOUT_SECONDS ?? 120,
+    maxOutputBytes: env.RTR_MAX_OUTPUT_BYTES ?? 65536,
+  },
   kafka: {
     brokers: splitCsv(env.KAFKA_BROKERS || 'localhost:9092'),
     clientId: env.KAFKA_CLIENT_ID || 'ironshield-edr',

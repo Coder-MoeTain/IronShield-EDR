@@ -3,6 +3,8 @@
  */
 require('dotenv').config();
 const path = require('path');
+const crypto = require('crypto');
+const fs = require('fs');
 const { spawn } = require('child_process');
 const mysql = require('mysql2/promise');
 const { manifest } = require('../migrations/manifest');
@@ -68,11 +70,60 @@ async function rollbackEntry(entry) {
   await mod.down();
 }
 
+function checksumForEntry(entry) {
+  const target = entry.module || entry.legacyScript;
+  if (!target || !fs.existsSync(target)) return null;
+  const raw = fs.readFileSync(target);
+  return crypto.createHash('sha256').update(raw).digest('hex');
+}
+
 async function recordApplied(conn, entry, batch) {
-  await conn.query(
-    'INSERT INTO schema_migrations (id, batch, description) VALUES (?, ?, ?)',
-    [entry.id, batch, entry.description || entry.id]
-  );
+  const checksum = checksumForEntry(entry);
+  try {
+    await conn.query(
+      'INSERT INTO schema_migrations (id, batch, description, checksum, status) VALUES (?, ?, ?, ?, ?)',
+      [entry.id, batch, entry.description || entry.id, checksum, 'applied']
+    );
+  } catch {
+    await conn.query('INSERT INTO schema_migrations (id, batch, description) VALUES (?, ?, ?)', [
+      entry.id,
+      batch,
+      entry.description || entry.id,
+    ]);
+  }
+}
+
+async function validate() {
+  const conn = await getConnection();
+  try {
+    await ensureTrackingTable(conn);
+    const [rows] = await conn.query(
+      'SELECT id, checksum FROM schema_migrations WHERE checksum IS NOT NULL'
+    );
+    let mismatches = 0;
+    for (const row of rows) {
+      const entry = manifest.find((e) => e.id === row.id);
+      if (!entry) continue;
+      const current = checksumForEntry(entry);
+      if (current && row.checksum && current !== row.checksum) {
+        console.error(`Checksum mismatch: ${row.id}`);
+        mismatches += 1;
+      }
+    }
+    const applied = await getAppliedIds(conn);
+    const pending = manifest.filter((e) => !applied.has(e.id));
+    if (pending.length > 0) {
+      console.error(`Pending migrations: ${pending.map((p) => p.id).join(', ')}`);
+      process.exit(1);
+    }
+    if (mismatches > 0) {
+      console.error(`${mismatches} migration checksum(s) changed after apply.`);
+      process.exit(1);
+    }
+    console.log('Migration validate OK');
+  } finally {
+    await conn.end();
+  }
 }
 
 async function migrate() {
@@ -174,4 +225,4 @@ async function rollback(steps = 1) {
   }
 }
 
-module.exports = { migrate, status, rollback, manifest };
+module.exports = { migrate, status, rollback, validate, manifest };

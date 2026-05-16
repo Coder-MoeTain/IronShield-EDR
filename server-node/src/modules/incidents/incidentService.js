@@ -1,19 +1,54 @@
 /**
- * Incident service - correlated alerts
+ * Incident service — correlated alerts, lifecycle workflow, tenant isolation.
  */
 const db = require('../../utils/db');
 const crypto = require('crypto');
+
+const LIFECYCLE_PHASES = [
+  'triage',
+  'investigation',
+  'containment',
+  'eradication',
+  'recovery',
+  'closed',
+];
 
 function generateIncidentId() {
   return 'INC-' + crypto.randomBytes(4).toString('hex').toUpperCase();
 }
 
+async function addTimeline(incidentId, eventType, message, actor = null, metadata = null) {
+  try {
+    await db.execute(
+      `INSERT INTO incident_timeline (incident_id, event_type, message, actor, metadata_json)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        incidentId,
+        eventType,
+        message,
+        actor,
+        metadata ? JSON.stringify(metadata) : null,
+      ]
+    );
+  } catch (err) {
+    if (!['ER_NO_SUCH_TABLE', 'ER_BAD_TABLE_ERROR'].includes(String(err?.code || ''))) throw err;
+  }
+}
+
 async function list(filters = {}) {
   let where = 'WHERE 1=1';
   const params = [];
+  if (filters.tenantId != null) {
+    where += ' AND (i.tenant_id = ? OR (i.tenant_id IS NULL AND e.tenant_id = ?))';
+    params.push(filters.tenantId, filters.tenantId);
+  }
   if (filters.status) {
     where += ' AND i.status = ?';
     params.push(filters.status);
+  }
+  if (filters.lifecycle_phase) {
+    where += ' AND i.lifecycle_phase = ?';
+    params.push(filters.lifecycle_phase);
   }
   if (filters.severity) {
     where += ' AND i.severity = ?';
@@ -47,18 +82,47 @@ async function list(filters = {}) {
   return { rows, total };
 }
 
-async function getById(id) {
-  const incident = await db.queryOne(
-    'SELECT i.*, e.hostname, e.ip_address FROM incidents i LEFT JOIN endpoints e ON e.id = i.endpoint_id WHERE i.id = ?',
-    [id]
-  );
+async function getById(id, tenantId = null) {
+  let sql = `
+    SELECT i.*, e.hostname, e.ip_address, e.tenant_id AS endpoint_tenant_id
+    FROM incidents i
+    LEFT JOIN endpoints e ON e.id = i.endpoint_id
+    WHERE i.id = ?
+  `;
+  const params = [id];
+  if (tenantId != null) {
+    sql += ' AND (i.tenant_id = ? OR (i.tenant_id IS NULL AND e.tenant_id = ?))';
+    params.push(tenantId, tenantId);
+  }
+  const incident = await db.queryOne(sql, params);
   if (!incident) return null;
+
   const alerts = await db.query(
     `SELECT a.* FROM alerts a
      JOIN incident_alert_links ial ON ial.alert_id = a.id
      WHERE ial.incident_id = ?`,
     [id]
   );
+
+  let timeline = [];
+  let notes = [];
+  try {
+    timeline = await db.query(
+      'SELECT * FROM incident_timeline WHERE incident_id = ? ORDER BY created_at ASC',
+      [id]
+    );
+  } catch {
+    timeline = [];
+  }
+  try {
+    notes = await db.query(
+      'SELECT * FROM incident_notes WHERE incident_id = ? ORDER BY created_at ASC',
+      [id]
+    );
+  } catch {
+    notes = [];
+  }
+
   let xdr_events = [];
   try {
     xdr_events = await db.query(
@@ -69,35 +133,59 @@ async function getById(id) {
        LIMIT 500`,
       [id]
     );
-  } catch (_) {
+  } catch {
     xdr_events = [];
   }
-  return { ...incident, alerts, xdr_events };
+  return { ...incident, alerts, timeline, notes, xdr_events };
 }
 
 async function create(data) {
   const incidentId = generateIncidentId();
-  const result = await db.execute(
-    `INSERT INTO incidents (incident_id, title, description, severity, status, correlation_type, endpoint_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [
-      incidentId,
-      data.title || 'Correlated Incident',
-      data.description,
-      data.severity || 'medium',
-      data.status || 'open',
-      data.correlation_type,
-      data.endpoint_id,
-    ]
-  );
-  return { id: result.insertId, incident_id: incidentId };
+  const phase = data.lifecycle_phase || 'triage';
+  let result;
+  try {
+    result = await db.execute(
+      `INSERT INTO incidents (incident_id, title, description, severity, status, lifecycle_phase, correlation_type, endpoint_id, tenant_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        incidentId,
+        data.title || 'Correlated Incident',
+        data.description,
+        data.severity || 'medium',
+        data.status || 'open',
+        phase,
+        data.correlation_type,
+        data.endpoint_id,
+        data.tenant_id ?? null,
+      ]
+    );
+  } catch (err) {
+    if (err.code !== 'ER_BAD_FIELD_ERROR') throw err;
+    result = await db.execute(
+      `INSERT INTO incidents (incident_id, title, description, severity, status, correlation_type, endpoint_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        incidentId,
+        data.title || 'Correlated Incident',
+        data.description,
+        data.severity || 'medium',
+        data.status || 'open',
+        data.correlation_type,
+        data.endpoint_id,
+      ]
+    );
+  }
+  const id = result.insertId;
+  await addTimeline(id, 'created', 'Incident created', data.created_by || 'system', { incident_id: incidentId });
+  return { id, incident_id: incidentId };
 }
 
-async function linkAlert(incidentId, alertId) {
+async function linkAlert(incidentId, alertId, actor = null) {
   await db.execute(
     'INSERT IGNORE INTO incident_alert_links (incident_id, alert_id) VALUES (?, ?)',
     [incidentId, alertId]
   );
+  await addTimeline(incidentId, 'alert_linked', `Alert #${alertId} linked`, actor);
 }
 
 async function linkXdrEvent(incidentId, xdrEventId) {
@@ -107,26 +195,73 @@ async function linkXdrEvent(incidentId, xdrEventId) {
   );
 }
 
+async function addNote(incidentId, body, author, tenantId = null) {
+  const inc = await getById(incidentId, tenantId);
+  if (!inc) throw new Error('Incident not found');
+  const r = await db.execute(
+    'INSERT INTO incident_notes (incident_id, author, body) VALUES (?, ?, ?)',
+    [incidentId, author || 'analyst', String(body).substring(0, 16000)]
+  );
+  await addTimeline(incidentId, 'note_added', 'Analyst note added', author);
+  return r.insertId;
+}
+
+async function setLifecyclePhase(id, phase, actor = null, tenantId = null) {
+  if (!LIFECYCLE_PHASES.includes(phase)) {
+    throw new Error(`Invalid lifecycle phase: ${phase}`);
+  }
+  const inc = await getById(id, tenantId);
+  if (!inc) throw new Error('Incident not found');
+  const statusMap = {
+    triage: 'open',
+    investigation: 'investigating',
+    containment: 'investigating',
+    eradication: 'investigating',
+    recovery: 'resolved',
+    closed: 'closed',
+  };
+  await db.execute('UPDATE incidents SET lifecycle_phase = ?, status = ? WHERE id = ?', [
+    phase,
+    statusMap[phase] || inc.status,
+    id,
+  ]);
+  if (phase === 'closed') {
+    await db.execute('UPDATE incidents SET closed_at = NOW() WHERE id = ?', [id]);
+  }
+  if (phase === 'recovery') {
+    await db.execute('UPDATE incidents SET resolved_at = NOW() WHERE id = ?', [id]);
+  }
+  await addTimeline(id, 'lifecycle', `Phase → ${phase}`, actor, { phase });
+}
+
 async function updateStatus(id, status) {
   if (status === 'investigating') {
     await db.execute(
-      'UPDATE incidents SET status = ?, first_ack_at = COALESCE(first_ack_at, NOW()) WHERE id = ?',
+      'UPDATE incidents SET status = ?, lifecycle_phase = COALESCE(lifecycle_phase, "investigation"), first_ack_at = COALESCE(first_ack_at, NOW()) WHERE id = ?',
       [status, id]
     );
     return;
   }
   if (status === 'resolved') {
-    await db.execute('UPDATE incidents SET status = ?, resolved_at = NOW() WHERE id = ?', [status, id]);
+    await db.execute(
+      'UPDATE incidents SET status = ?, lifecycle_phase = "recovery", resolved_at = NOW() WHERE id = ?',
+      [status, id]
+    );
     return;
   }
   if (status === 'closed') {
-    await db.execute('UPDATE incidents SET status = ?, closed_at = NOW() WHERE id = ?', [status, id]);
+    await db.execute(
+      'UPDATE incidents SET status = ?, lifecycle_phase = "closed", closed_at = NOW() WHERE id = ?',
+      [status, id]
+    );
     return;
   }
   await db.execute('UPDATE incidents SET status = ? WHERE id = ?', [status, id]);
 }
 
-async function updateWorkflow(id, patch = {}) {
+async function updateWorkflow(id, patch = {}, tenantId = null) {
+  const inc = await getById(id, tenantId);
+  if (!inc) throw new Error('Incident not found');
   const sets = [];
   const params = [];
   if (patch.status) {
@@ -135,6 +270,10 @@ async function updateWorkflow(id, patch = {}) {
     if (patch.status === 'investigating') sets.push('first_ack_at = COALESCE(first_ack_at, NOW())');
     if (patch.status === 'resolved') sets.push('resolved_at = NOW()');
     if (patch.status === 'closed') sets.push('closed_at = NOW()');
+  }
+  if (patch.lifecycle_phase) {
+    sets.push('lifecycle_phase = ?');
+    params.push(patch.lifecycle_phase);
   }
   if (patch.owner_user_id !== undefined) {
     sets.push('owner_user_id = ?');
@@ -155,6 +294,32 @@ async function updateWorkflow(id, patch = {}) {
   if (sets.length === 0) return;
   params.push(id);
   await db.execute(`UPDATE incidents SET ${sets.join(', ')} WHERE id = ?`, params);
+}
+
+async function exportIncident(id, format = 'json', tenantId = null) {
+  const data = await getById(id, tenantId);
+  if (!data) return null;
+  if (format === 'json') {
+    return JSON.stringify(data, null, 2);
+  }
+  if (format === 'html') {
+    const esc = (s) =>
+      String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(data.incident_id)}</title></head><body>
+<h1>${esc(data.title)}</h1>
+<p><strong>ID:</strong> ${esc(data.incident_id)} · <strong>Phase:</strong> ${esc(data.lifecycle_phase)} · <strong>Severity:</strong> ${esc(data.severity)}</p>
+<h2>Alerts (${data.alerts?.length || 0})</h2>
+<ul>${(data.alerts || []).map((a) => `<li>#${a.id} ${esc(a.title)} (${esc(a.severity)})</li>`).join('')}</ul>
+<h2>Timeline</h2>
+<ul>${(data.timeline || []).map((t) => `<li>${esc(t.created_at)} — ${esc(t.event_type)}: ${esc(t.message)}</li>`).join('')}</ul>
+<h2>Notes</h2>
+${(data.notes || []).map((n) => `<p><strong>${esc(n.author)}</strong> (${esc(n.created_at)}): ${esc(n.body)}</p>`).join('')}
+</body></html>`;
+  }
+  return JSON.stringify(data);
 }
 
 async function listEvidence(incidentId) {
@@ -182,4 +347,19 @@ async function addEvidence(incidentId, evidence) {
   return result.insertId;
 }
 
-module.exports = { list, getById, create, linkAlert, linkXdrEvent, updateStatus, updateWorkflow, listEvidence, addEvidence };
+module.exports = {
+  LIFECYCLE_PHASES,
+  list,
+  getById,
+  create,
+  linkAlert,
+  linkXdrEvent,
+  addNote,
+  setLifecyclePhase,
+  updateStatus,
+  updateWorkflow,
+  exportIncident,
+  listEvidence,
+  addEvidence,
+  addTimeline,
+};

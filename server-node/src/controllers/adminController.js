@@ -72,10 +72,11 @@ async function listEndpoints(req, res, next) {
 
 async function getEndpoint(req, res, next) {
   try {
+    const { ERROR_CODES, sendErrorFromReq } = require('../utils/apiResponse');
     const { id } = req.params;
     const endpoint = await EndpointService.getById(id, req.tenantId);
     if (!endpoint) {
-      return res.status(404).json({ error: 'Endpoint not found' });
+      return sendErrorFromReq(res, req, ERROR_CODES.NOT_FOUND, 'Endpoint not found', 404);
     }
     res.json(endpoint);
   } catch (err) {

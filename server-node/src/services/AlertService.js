@@ -9,6 +9,7 @@ const RiskService = require('../modules/risk/riskService');
 const CorrelationService = require('./CorrelationService');
 const NotificationService = require('./NotificationService');
 const SiemPushService = require('./SiemPushService');
+const AlertEvidenceService = require('./AlertEvidenceService');
 const MISSING_TABLE_ERRORS = new Set(['ER_NO_SUCH_TABLE', 'ER_BAD_TABLE_ERROR']);
 let qualityTableReady = false;
 
@@ -130,6 +131,15 @@ async function createFromDetection(alerts) {
     endpointIds.add(a.endpoint_id);
     const alertId = result?.insertId;
     if (alertId) {
+      try {
+        const items = AlertEvidenceService.buildFromDetectionBreakdown(
+          a.detection_score_breakdown,
+          a
+        );
+        if (items.length) await AlertEvidenceService.insertMany(alertId, items);
+      } catch {
+        /* non-fatal */
+      }
       const sev = String(a.severity || 'medium').toLowerCase();
       metrics.alertsCreatedFromDetectionTotal.inc({
         severity: ['low', 'medium', 'high', 'critical'].includes(sev) ? sev : 'medium',
@@ -280,6 +290,7 @@ async function getById(id) {
   } catch {
     breakdown = row.detection_score_breakdown;
   }
+  const evidenceRows = await AlertEvidenceService.listByAlertId(id);
   row.why_fired = {
     rule_id: breakdown?.rule_id || evidence?.rule_id || row.rule_id,
     rule_name: breakdown?.rule_name,
@@ -293,7 +304,16 @@ async function getById(id) {
     risk_score: row.risk_score,
     confidence: breakdown?.confidence ?? row.confidence,
     score_breakdown: breakdown,
+    evidence_items: evidenceRows,
   };
+  row.risk_score_breakdown = breakdown?.score_factors || breakdown?.risk_factors || [
+    { factor: 'severity', contribution: breakdown?.severity_weight },
+    { factor: 'confidence', contribution: breakdown?.confidence_weight },
+    ...(breakdown?.matched_fields || []).map((m) => ({
+      factor: m.field,
+      contribution: m.risk_contribution,
+    })),
+  ].filter((x) => x && (x.contribution != null || x.factor));
   return row;
 }
 

@@ -82,6 +82,11 @@ const manifest = [
     description: 'Production hardening: agent_key_hash, cert binding, alert breakdown',
     module: path.join(__dirname, '20260517120000_production_hardening.js'),
   },
+  {
+    id: '20260518120000_enterprise_pilot_hardening',
+    description: 'Enterprise pilot: nonces, alert evidence, incidents, RTR, trust metrics',
+    module: path.join(__dirname, '20260518120000_enterprise_pilot_hardening.js'),
+  },
 ];
 
 module.exports = { manifest, LEGACY_DIR };

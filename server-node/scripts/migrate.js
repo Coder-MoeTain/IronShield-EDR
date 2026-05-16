@@ -7,7 +7,7 @@
  *   npm run migrate:rollback — revert last batch (module migrations with down() only)
  */
 require('dotenv').config();
-const { migrate, status, rollback } = require('./lib/migrateRunner');
+const { migrate, status, rollback, validate } = require('./lib/migrateRunner');
 
 const cmd = process.argv[2] || 'up';
 const arg = process.argv[3];
@@ -26,7 +26,11 @@ async function main() {
     await rollback(Number.isFinite(steps) && steps > 0 ? steps : 1);
     return;
   }
-  console.error(`Unknown command: ${cmd}\nUsage: migrate.js [up|status|rollback] [steps]\n`);
+  if (cmd === 'validate') {
+    await validate();
+    return;
+  }
+  console.error(`Unknown command: ${cmd}\nUsage: migrate.js [up|status|rollback|validate] [steps]\n`);
   process.exit(1);
 }
 

@@ -2,6 +2,7 @@
  * Endpoint management service
  */
 const db = require('../utils/db');
+const { enrichTrustPanel } = require('./EndpointComplianceService');
 
 /** Phase 9 — Falcon-style policy compliance: console assignment vs sensor-reported policy id. */
 function enrichEndpointPolicyView(row) {
@@ -226,7 +227,7 @@ async function getById(id, tenantId = null) {
     }
   }
 
-  return endpoint;
+  return enrichTrustPanel(endpoint);
 }
 
 async function patch(id, data, tenantId = null) {

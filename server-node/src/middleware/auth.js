@@ -144,14 +144,14 @@ async function authAgentValidated(req, res, next) {
     const keyHash = hashAgentKey(agentKey);
     let row = await db.queryOne(
       `SELECT id, tenant_id, status, agent_key_expires_at, agent_key_revoked_at,
-              cert_fingerprint, cert_revoked_at
+              cert_fingerprint, cert_fingerprint_sha256, cert_revoked_at
        FROM endpoints WHERE agent_key_hash = ? LIMIT 1`,
       [keyHash]
     );
     if (!row) {
       row = await db.queryOne(
         `SELECT id, tenant_id, status, agent_key_expires_at, agent_key_revoked_at,
-                cert_fingerprint, cert_revoked_at
+                cert_fingerprint, cert_fingerprint_sha256, cert_revoked_at
          FROM endpoints WHERE agent_key = ? LIMIT 1`,
         [String(agentKey)]
       );
@@ -183,6 +183,15 @@ async function authAgentValidated(req, res, next) {
     const signatureCheck = await verifySignedAgentRequest(req, req.agentKey, req.endpointId);
     if (!signatureCheck.ok) {
       metrics.agentAuthFailuresTotal.inc({ reason: signatureCheck.reason });
+      try {
+        const failFields =
+          signatureCheck.reason === 'replay'
+            ? 'last_replay_failure_at = NOW(), agent_auth_failure_count = agent_auth_failure_count + 1, last_auth_failure_at = NOW()'
+            : 'agent_auth_failure_count = agent_auth_failure_count + 1, last_auth_failure_at = NOW()';
+        await db.execute(`UPDATE endpoints SET ${failFields} WHERE id = ?`, [row.id]);
+      } catch {
+        /* optional columns */
+      }
       return sendErrorFromReq(res, req, ERROR_CODES.AUTHENTICATION_REQUIRED, 'Invalid agent request signature', 401, {
         reason: signatureCheck.reason,
       });

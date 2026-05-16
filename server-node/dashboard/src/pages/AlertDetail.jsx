@@ -243,12 +243,62 @@ export default function AlertDetail() {
 
       {alert.why_fired && (
         <div className={styles.card} style={{ marginBottom: '1rem' }}>
-          <h3>Why this fired</h3>
+          <h3>Why this alert fired?</h3>
           <dl>
             <dt>Rule</dt>
             <dd>{alert.why_fired.rule_name || alert.why_fired.rule_id || '—'}</dd>
             <dt>Risk score</dt>
             <dd>{alert.why_fired.risk_score ?? alert.risk_score ?? '—'}</dd>
+            {alert.risk_score_breakdown?.length > 0 && (
+              <>
+                <dt>Risk score breakdown</dt>
+                <dd>
+                  <table className="data-table" style={{ fontSize: '0.85rem' }}>
+                    <thead>
+                      <tr>
+                        <th>Factor</th>
+                        <th>Contribution</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {alert.risk_score_breakdown.map((f, i) => (
+                        <tr key={i}>
+                          <td>{f.factor}</td>
+                          <td>{f.contribution ?? '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </dd>
+              </>
+            )}
+            {alert.why_fired.evidence_items?.length > 0 && (
+              <>
+                <dt>Structured evidence</dt>
+                <dd>
+                  <table className="data-table" style={{ fontSize: '0.85rem' }}>
+                    <thead>
+                      <tr>
+                        <th>Field</th>
+                        <th>Value</th>
+                        <th>Condition</th>
+                        <th>Risk</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {alert.why_fired.evidence_items.map((ev, i) => (
+                        <tr key={i}>
+                          <td>{ev.matched_field}</td>
+                          <td className="mono">{String(ev.matched_value || '').slice(0, 80)}</td>
+                          <td>{ev.rule_condition}</td>
+                          <td>{ev.risk_contribution ?? '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </dd>
+              </>
+            )}
             {alert.why_fired.matched_fields?.length > 0 && (
               <>
                 <dt>Matched conditions</dt>

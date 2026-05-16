@@ -67,6 +67,15 @@ if (!Number.isNaN(arMs) && arMs > 0) {
   }, arMs);
 }
 
+const AgentNonceService = require('./services/AgentNonceService');
+const nonceGcMs = parseInt(process.env.AGENT_NONCE_GC_INTERVAL_MS || '900000', 10);
+if (!Number.isNaN(nonceGcMs) && nonceGcMs > 0) {
+  setInterval(() => {
+    AgentNonceService.purgeExpired().catch(() => {});
+  }, nonceGcMs);
+  logger.info({ intervalMs: nonceGcMs }, 'Agent nonce cleanup scheduler enabled');
+}
+
 process.on('SIGTERM', () => {
   server.close(() => logger.info('Server closed'));
 });

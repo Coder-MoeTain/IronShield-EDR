@@ -1,4 +1,5 @@
 const config = require('../config');
+const { ERROR_CODES, sendErrorFromReq } = require('../utils/apiResponse');
 
 /**
  * Simple ingest auth for external telemetry producers (Phase 3).
@@ -7,11 +8,17 @@ const config = require('../config');
 function authIngest(req, res, next) {
   const expected = config.ingest?.key;
   if (!expected) {
-    return res.status(503).json({ error: 'Ingest disabled (XDR_INGEST_KEY not set)' });
+    return sendErrorFromReq(
+      res,
+      req,
+      ERROR_CODES.INTERNAL_ERROR,
+      'Ingest disabled (XDR_INGEST_KEY not set)',
+      503
+    );
   }
   const got = req.headers['x-ingest-key'];
   if (!got || String(got) !== String(expected)) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return sendErrorFromReq(res, req, ERROR_CODES.AUTHENTICATION_REQUIRED, 'Unauthorized', 401);
   }
   next();
 }
