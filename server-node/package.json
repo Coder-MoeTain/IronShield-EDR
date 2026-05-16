@@ -73,6 +73,7 @@
     "test": "node scripts/run-node-tests.js",
     "sync-openapi": "node scripts/sync-openapi-v1.js",
     "test:openapi": "node scripts/sync-openapi-routes.js && node scripts/sync-openapi-v1.js && node scripts/validate-openapi.js && node scripts/validate-openapi-coverage.js",
+    "docs:status-check": "node scripts/docs-status-check.js",
     "build-dashboard": "cd dashboard && npm install && npm run build"
   },
   "dependencies": {

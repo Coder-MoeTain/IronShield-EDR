@@ -181,63 +181,15 @@ docker exec -it edr-backend-dev npm run seed
 
 See [docs/deployment/local.md](docs/deployment/local.md) and [docs/deployment/production.md](docs/deployment/production.md).
 
-### 1. Database
+**Production-oriented stack:**
 
 ```bash
-# Using Docker
-docker run -d --name edr-mysql \
-  -e MYSQL_ROOT_PASSWORD=root \
-  -e MYSQL_DATABASE=edr_platform \
-  -e MYSQL_USER=edr_user \
-  -e MYSQL_PASSWORD=edr_password \
-  -p 3306:3306 \
-  mysql:8.0
-
-# Apply schema (fresh install) — then use the migration runner for upgrades:
-mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/schema.sql
-mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/schema-phase3.sql
-mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/schema-phase4.sql
-mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/schema-phase5.sql
-mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/schema-phase6.sql
-mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/schema-endpoint-metrics.sql
-# Sensor telemetry columns (queue, uptime, containment) — or: cd server-node && npm run migrate-sensor-telemetry
-# mysql ... < database/migrate-sensor-telemetry.sql   # prefer npm run migrate-sensor-telemetry (idempotent)
-
-# Phase 5: tenants + endpoints.tenant_id (Falcon-style CID enrollment) — or:
-# cd server-node && npm run migrate-phase5-endpoints-tenant
-# Sensor update telemetry (pending update on host rows) — or:
-# cd server-node && npm run migrate-phase6-agent-update-telemetry
-mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/schema-network.sql
-mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/schema-antivirus.sql
-# NGAV telemetry columns on av_update_status (realtime, prevention, signature_count; after antivirus schema):
-# cd server-node && npm run migrate-phase7-ngav-telemetry
-# EDR policy id + last sync on endpoints:
-# cd server-node && npm run migrate-phase8-edr-policy-sync
-# RTR sessions + Falcon UI pack tables:
-# cd server-node && npm run migrate-falcon-ui-pack
-
-# Parity phases (DNS/registry/image fields, alert SLA/assignment, response actions, saved views).
-# Requires phase5 tenants table if you use tenant_api_limits FK.
-# mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/migrate-parity-phases.sql
-
-# Falcon-class host groups (sensor grouping) — or: cd server-node && npm run migrate-cs-parity
-# mysql ... < database/migrate-cs-parity.sql   # see script; prefer npm run migrate-cs-parity
-
-# Upgrades from older DBs: rename response action simulate_isolation → isolate_host
-# mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/migrate-isolate-host.sql
-# Add lift_isolation action type (after isolate_host migration if needed)
-# mysql -h 127.0.0.1 -u edr_user -p edr_platform < database/migrate-lift-isolation.sql
-
-# Suppressions, response playbooks (capabilities v2) — from server-node:
-# cd server-node && npm run migrate-capabilities-v2
+docker compose -f docker-compose.prod.yml up -d
+docker exec -it edr-backend npm run migrate
+docker exec -it edr-backend npm run seed
 ```
 
-Or use **Docker Compose** (full stack):
-
-```bash
-docker compose -f docker-compose.dev.yml up -d    # dev: API + MySQL + Redis + worker
-docker compose -f docker-compose.prod.yml up -d # prod-oriented env defaults
-```
+Manual SQL chain for brownfield DBs only: [docs/legacy-migrations.md](docs/legacy-migrations.md).
 
 ### 2. Backend
 
@@ -275,9 +227,11 @@ Backend runs on **http://localhost:3001** (terminate TLS at a reverse proxy for 
 ```bash
 cd server-node
 npm test
+npm run test:openapi
 npm run detections:validate
 npm run detections:test
 npm run audit:verify
+npm run docs:status-check
 npm run lint
 cd dashboard && npm run lint
 ```

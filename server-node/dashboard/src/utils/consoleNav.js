@@ -66,6 +66,7 @@ export function canSeeResponseNav(user, permissions = []) {
 const SIMPLE_PATHS = new Set(['/overview', '/endpoints', '/detections', '/investigation', '/protection']);
 const ADMIN_PATHS = new Set(['/overview', '/admin']);
 const MSSP_PATHS = new Set(['/overview', '/endpoints', '/detections', '/investigation', '/admin']);
+const AUDITOR_PATHS = new Set(['/overview', '/investigation', '/admin']);
 
 export function getConsoleNavItems(user, permissions = [], uiMode = readWorkspaceMode()) {
   const mode = resolveWorkspaceMode(user, uiMode);
@@ -75,9 +76,10 @@ export function getConsoleNavItems(user, permissions = [], uiMode = readWorkspac
     if (mode === WORKSPACE_MODES.SIMPLE && !SIMPLE_PATHS.has(item.path)) return false;
     if (mode === WORKSPACE_MODES.ADMIN && !ADMIN_PATHS.has(item.path)) return false;
     if (mode === WORKSPACE_MODES.MSSP && !MSSP_PATHS.has(item.path)) return false;
+    if (mode === WORKSPACE_MODES.AUDITOR && !AUDITOR_PATHS.has(item.path)) return false;
 
     if (auditor) {
-      return item.path === '/overview' || item.path === '/investigation' || item.path === '/admin';
+      return AUDITOR_PATHS.has(item.path);
     }
 
     if (item.requiresAdmin && !canSeeAdminNav(user)) return false;

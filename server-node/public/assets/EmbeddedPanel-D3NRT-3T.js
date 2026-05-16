@@ -1,1 +1,0 @@
-import{j as e,r as t,L as d}from"./index-DaIBMC7S.js";function o({children:a,label:s="Loading module"}){return e.jsx("div",{className:"console-tab-panel","data-embedded":!0,children:e.jsx(t.Suspense,{fallback:e.jsx(d,{label:s}),children:a})})}export{o as E};

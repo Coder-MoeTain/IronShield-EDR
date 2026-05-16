@@ -4,9 +4,17 @@ import TabNav from '../../components/TabNav';
 import EmbeddedPanel from '../../components/EmbeddedPanel';
 import SocRouteGuard from '../../components/SocRouteGuard';
 import { useConsoleTab } from '../../utils/consoleTabs';
-import { canSeeEnterpriseSettings, canSeeMsspAndTenants, canSeeRbacAdmin } from '../../utils/socRoles';
 import { useAuth } from '../../context/AuthContext';
 import ProductionReadinessPanel from '../../components/ProductionReadinessPanel';
+import {
+  canAccessAuditTab,
+  canAccessIntegrationsTab,
+  canAccessRbacTab,
+  canAccessReportsTab,
+  canAccessSettingsTab,
+  canAccessSystemHealthTab,
+  canAccessTenantsTab,
+} from '../../routes/permissions';
 
 const EnterpriseSettings = lazy(() => import('./tabs/EnterpriseSettingsTab'));
 const TenantManagement = lazy(() => import('./tabs/TenantManagementTab'));
@@ -18,13 +26,13 @@ const SystemHealth = lazy(() => import('../overview/tabs/SystemHealthTab'));
 const FalconRoadmapPage = lazy(() => import('./tabs/FalconRoadmapPageTab'));
 
 const ALL_TABS = [
-  { id: 'settings', label: 'Settings', guard: canSeeEnterpriseSettings },
-  { id: 'tenants', label: 'Tenants', guard: canSeeMsspAndTenants },
-  { id: 'rbac', label: 'RBAC', guard: canSeeRbacAdmin },
-  { id: 'integrations', label: 'Integrations', guard: canSeeEnterpriseSettings },
-  { id: 'audit', label: 'Audit Logs' },
-  { id: 'reports', label: 'Reports', guard: canSeeEnterpriseSettings },
-  { id: 'system-health', label: 'System Health' },
+  { id: 'settings', label: 'Settings', guard: canAccessSettingsTab },
+  { id: 'tenants', label: 'Tenants', guard: canAccessTenantsTab },
+  { id: 'rbac', label: 'RBAC', guard: canAccessRbacTab },
+  { id: 'integrations', label: 'Integrations', guard: canAccessIntegrationsTab },
+  { id: 'audit', label: 'Audit Logs', guard: canAccessAuditTab },
+  { id: 'reports', label: 'Reports', guard: canAccessReportsTab },
+  { id: 'system-health', label: 'System Health', guard: canAccessSystemHealthTab },
   { id: 'roadmap', label: 'Roadmap' },
 ];
 
@@ -44,49 +52,53 @@ export default function AdminPage() {
     >
       {(tab === 'system-health' || tab === 'settings') && <ProductionReadinessPanel />}
       {tab === 'settings' && (
-        <SocRouteGuard allow={canSeeEnterpriseSettings}>
+        <SocRouteGuard allow={canAccessSettingsTab}>
           <EmbeddedPanel label="Settings">
             <EnterpriseSettings />
           </EmbeddedPanel>
         </SocRouteGuard>
       )}
       {tab === 'tenants' && (
-        <SocRouteGuard allow={canSeeMsspAndTenants}>
+        <SocRouteGuard allow={canAccessTenantsTab}>
           <EmbeddedPanel label="Tenants">
             <TenantManagement />
           </EmbeddedPanel>
         </SocRouteGuard>
       )}
       {tab === 'rbac' && (
-        <SocRouteGuard allow={canSeeRbacAdmin}>
+        <SocRouteGuard allow={canAccessRbacTab}>
           <EmbeddedPanel label="RBAC">
             <RbacManagement />
           </EmbeddedPanel>
         </SocRouteGuard>
       )}
       {tab === 'integrations' && (
-        <SocRouteGuard allow={canSeeEnterpriseSettings}>
+        <SocRouteGuard allow={canAccessIntegrationsTab}>
           <EmbeddedPanel label="Integrations">
             <Integrations />
           </EmbeddedPanel>
         </SocRouteGuard>
       )}
       {tab === 'audit' && (
-        <EmbeddedPanel label="Audit logs">
-          <AuditLogs />
-        </EmbeddedPanel>
+        <SocRouteGuard allow={canAccessAuditTab}>
+          <EmbeddedPanel label="Audit logs">
+            <AuditLogs />
+          </EmbeddedPanel>
+        </SocRouteGuard>
       )}
       {tab === 'reports' && (
-        <SocRouteGuard allow={canSeeEnterpriseSettings}>
+        <SocRouteGuard allow={canAccessReportsTab}>
           <EmbeddedPanel label="Reports">
             <Reports />
           </EmbeddedPanel>
         </SocRouteGuard>
       )}
       {tab === 'system-health' && (
-        <EmbeddedPanel label="System health">
-          <SystemHealth />
-        </EmbeddedPanel>
+        <SocRouteGuard allow={canAccessSystemHealthTab}>
+          <EmbeddedPanel label="System health">
+            <SystemHealth />
+          </EmbeddedPanel>
+        </SocRouteGuard>
       )}
       {tab === 'roadmap' && (
         <EmbeddedPanel label="Roadmap">

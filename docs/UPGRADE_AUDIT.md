@@ -11,9 +11,11 @@
 
 IronShield is already a **substantial, feature-rich defensive EDR foundation**—not a greenfield project. It ships multi-tenant RBAC, MFA/SSO hooks, audit hash chaining, agent request signing, enrollment tokens, BullMQ/Redis workers, optional Kafka, XDR event store, NGAV module, Falcon-style UI phases, response approvals, RTR (controlled), hunting, and CI (backend tests, agent .NET tests, dashboard Vitest/Playwright).
 
-Gaps versus the target enterprise architecture are mainly **consistency and consolidation**: unified `/api/v1/`, canonical event schema, detection-as-code repo layout, formal migration CLI (`npm run migrate`), professional permission matrix, DPAPI agent secrets, dedicated MITRE coverage UI, reports module, SIEM provider framework, and production deployment split (`docker-compose.dev.yml` / `docker-compose.prod.yml`).
+**May 2026 polish:** Compact 8-page console, `/api/v1` + console BFF, `npm run migrate`, tab-specific admin RBAC, production readiness score, workspace preferences, and aligned documentation (`docs/API_COVERAGE.md`, `npm run docs:status-check`).
 
-**Recommended approach:** Nine phased upgrades (aligned with Section 23 of the upgrade spec), preserving backward compatibility via route aliases and `migrate-all` until a single migration runner replaces ad-hoc scripts.
+Remaining gaps are mainly **depth and hardening**: full BFF adoption in every tab (many still call admin APIs directly), DPAPI agent secrets in all deployments, mandatory mTLS in production, and expanded automated tab-level API tests.
+
+**Recommended approach:** Phases 1–9 delivered; continue incremental polish with backward compatibility via `legacyRedirects.js` and thin `src/pages` re-exports.
 
 ---
 
@@ -79,15 +81,17 @@ Target calls for explicit **Agent Ingestion API → Queue → Normalizer Worker 
 
 ## 2. Current API modules
 
-### 2.1 Route prefixes (no `/api/v1` yet)
+### 2.1 Route prefixes
 
-| Prefix | Auth | Primary capabilities |
-|--------|------|----------------------|
-| `/api/auth` | Public / JWT | Login, refresh, MFA, OIDC/SAML hooks, `/me` |
-| `/api/agent` | Registration token / Agent-Key (+ optional HMAC) | Register, heartbeat, events batch, network, actions, AV, policy, triage, detection-rules pull, update check, key rotate |
-| `/api/admin` | JWT + RBAC + tenant context | Dashboard, endpoints, alerts, incidents, investigations, detection rules, response actions, approvals, network, hunting, XDR, RBAC admin, enrollment tokens, AV admin, RTR, playbooks, suppressions, audit, compliance, analytics |
-| `/api/ingest` | XDR ingest key | External XDR event ingestion |
-| `/health`, `/healthz`, `/readyz`, `/metrics` | Mixed | Liveness, readiness (DB/Redis), Prometheus metrics |
+| Prefix | Status | Auth | Primary capabilities |
+|--------|--------|------|----------------------|
+| `/api/v1/*` | **implemented** | Same as legacy | Mirrors `/api/*` for versioned clients |
+| `/api/v1/console/*` | **implemented** | JWT + RBAC | BFF aggregates for 8-page dashboard |
+| `/api/auth` | **implemented** | Public / JWT | Login, refresh, MFA, OIDC/SAML hooks, `/me` |
+| `/api/agent` | **implemented** | Agent-Key + HMAC nonces | Register, heartbeat, events, AV, policy, RTR |
+| `/api/admin` | **implemented** | JWT + RBAC + tenant | Full SOC/admin surface |
+| `/api/ingest` | **implemented** | XDR ingest key | External XDR ingestion |
+| `/health`, `/healthz`, `/readyz`, `/metrics` | **implemented** | Mixed | Liveness, readiness, Prometheus |
 
 ### 2.2 Notable admin endpoints (representative)
 
@@ -103,11 +107,12 @@ Target calls for explicit **Agent Ingestion API → Queue → Normalizer Worker 
 
 | Requirement | Status |
 |-------------|--------|
-| `/api/v1/*` versioning | **Missing** — all routes under `/api/*` |
-| Standard `{ success, data, meta, requestId }` envelope | **Partial** — `requestId` on errors; most routes return ad-hoc JSON |
-| Zod validation on all inputs | **Partial** — agent/auth schemas; many admin handlers use manual parsing |
-| OpenAPI coverage | **Present** — validate via `npm run test:openapi`; completeness unknown without diff |
-| Repository/service layer everywhere | **Partial** — services exist; controllers still contain logic |
+| `/api/v1/*` versioning | **implemented** |
+| Console BFF envelope | **implemented** — `{ success, data, requestId }` on `/api/v1/console/*` |
+| Standard envelope on all admin routes | **partial** |
+| Zod validation on all inputs | **partial** |
+| OpenAPI coverage | **implemented** — `npm run test:openapi` |
+| Repository/service layer everywhere | **partial** |
 
 ---
 
@@ -156,7 +161,7 @@ Target calls for explicit **Agent Ingestion API → Queue → Normalizer Worker 
 | `endpoint_groups` | **Partial** — `host_groups` exists (Falcon parity naming) |
 | `endpoint_health` | **Partial** — columns on `endpoints` + `endpoint_metrics` |
 | `agent_keys` (lifecycle) | **Partial** — `agent_key` on endpoints + migrate scripts |
-| `agent_nonces` (DB-backed replay) | **Missing** — in-memory `Map` in `auth.js` |
+| `agent_nonces` (DB-backed replay) | **implemented** — MySQL/Redis via migration + config |
 | `normalized_events` as canonical UUID model | **Partial** — relational columns, no unified `event_id` UUID schema |
 | `detection_rule_versions` | **Missing** |
 | `alert_evidence`, `alert_dispositions` | **Partial** — disposition API exists; dedicated tables unclear |
@@ -174,47 +179,38 @@ Target calls for explicit **Agent Ingestion API → Queue → Normalizer Worker 
 
 ---
 
-## 4. Current dashboard pages
+## 4. Dashboard — compact console (May 2026)
 
-**Stack:** React 18, Vite, lazy-loaded routes (`App.jsx`), AuthContext, PermissionGate, Falcon-style `Layout.jsx` sidebar.
+**Stack:** React 18, Vite, `routeMap.jsx` + `legacyRedirects.js`, 8 primary modules under `src/features/*`.
 
-| Route | Page | SOC role |
-|-------|------|----------|
-| `/` | Dashboard | Executive KPIs, cyber news, HTTP map |
-| `/endpoints`, `/endpoints/:id` | Endpoints, Endpoint detail | Host console (Overview, Sensor, Inventory, Response tabs) |
-| `/host-groups` | Host groups | Sensor grouping |
-| `/sensor-health` | Sensor health | Queue/uptime/containment |
-| `/alerts`, `/alerts/:id` | Alerts, Alert detail | Triage (not full SLA queue spec) |
-| `/incidents`, `/incidents/:id` | Incidents | Case management |
-| `/investigations` | Investigations | Legacy case style |
-| `/detection-rules` (+ editor/detail) | Detection rules | Custom IOA |
-| `/network` | Network activity | Falcon-style explore |
-| `/hunting` | Hunting | Saved + ad-hoc queries |
-| `/process-monitor`, `/process-tree/:id` | Process views | Suspect highlighting |
-| `/events`, `/normalized-events`, `/raw-events` | Event browsers | Analyst drill-down |
-| `/iocs` | IOC watchlist | |
-| `/risk` | Risk | Endpoint risk |
-| `/respond/approvals` | Response approvals | Two-person control |
-| `/rtr` | RTR console | **High risk** — must stay heavily gated |
-| `/xdr/*` | XDR overview, events, detections, realtime | |
-| `/av/*` | NGAV dashboards | Policies, quarantine, signatures, etc. |
-| `/audit-logs` | Audit | |
-| `/enterprise`, `/tenants`, `/rbac` | Admin | Gated by socRoles |
-| `/analytics-detections`, `/threat-graph` | Analytics | |
-| `/falcon/:area` | Roadmap / parity KPIs | Internal feature map |
+| Route | Module | Status | Notes |
+|-------|--------|--------|-------|
+| `/overview` | Overview | **implemented** | Executive, SOC, health, tenant tabs; production readiness panel |
+| `/endpoints`, `/endpoints/:id` | Endpoints | **implemented** | List, groups, timeline, network, map |
+| `/detections` | Detections | **implemented** | Triage, alerts, rules, MITRE, XDR, quality |
+| `/investigation` | Investigation | **implemented** | Incidents, cases, graph, reports |
+| `/response` | Response | **implemented** | Approvals, RTR, playbooks, quarantine |
+| `/hunting` | Hunting | **implemented** | Events, IOCs, XDR realtime, network |
+| `/protection` | Protection | **implemented** | NGAV policies, quarantine, signatures |
+| `/admin` | Administration | **implemented** | Tab-specific RBAC (settings, tenants, audit, …) |
 
-### 4.1 Dashboard gaps vs target spec
+Legacy paths (`/alerts`, `/mitre`, `/audit-logs`, …) **redirect** to compact routes with `?tab=`.
 
-| Target page | Status |
-|-------------|--------|
-| Dedicated SOC Triage Queue (SLA timer, bulk disposition) | **Partial** — Alerts page |
-| “Why this alert fired?” evidence panel | **Partial** — Alert detail exists; structured explanation TBD |
-| Dedicated Host Timeline page | **Partial** — timeline embedded in Endpoint detail (`process-timeline` API) |
-| MITRE ATT&CK Coverage matrix page | **Missing** — MITRE columns in rules/alerts only |
-| Reports (PDF/HTML/JSON exports) | **Missing** |
-| Integrations admin UI | **Partial** — Enterprise settings, XDR IP feeds |
-| System Health (queue/worker/DB) | **Partial** — sensor-health; no unified ops page |
-| Executive dashboard separation | **Partial** — main Dashboard |
+`src/pages` retains **Login**, **NotFound**, and thin re-exports — see `dashboard/src/pages/DEPRECATED.md`.
+
+### 4.1 Feature status vs target spec
+
+| Target capability | Status |
+|-------------------|--------|
+| SOC Triage Queue tab | **implemented** — `/detections?tab=triage` |
+| Alert “why fired” / evidence | **partial** — alert detail + risk fields |
+| Host timeline | **implemented** — endpoint detail tab |
+| MITRE coverage UI | **implemented** — `/detections?tab=mitre` |
+| Reports (JSON/HTML jobs) | **implemented** — `/admin?tab=reports` |
+| Integrations admin | **implemented** — `/admin?tab=integrations` |
+| System health + production readiness | **implemented** — overview + admin system-health |
+| Workspace modes (Simple / Advanced / Admin / MSSP / Auditor) | **implemented** — `workspaceMode.js` + preferences |
+| Console BFF per module | **implemented** — `GET /api/v1/console/*` |
 
 ---
 

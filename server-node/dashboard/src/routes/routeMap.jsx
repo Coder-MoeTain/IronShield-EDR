@@ -9,7 +9,7 @@ import {
   LegacyMalwareAlertRedirect,
 } from '../components/LegacyRedirects';
 import { LegacyRuleDetailRedirect, LegacyRuleEditRedirect } from '../components/LegacyRuleRedirects';
-import { canAccessAdminRoute } from './permissions';
+import { canAccessAdminShell } from './permissions';
 import { LEGACY_REDIRECT_ROUTES } from './legacyRedirects';
 
 const OverviewPage = lazy(() => import('../features/overview/OverviewPage'));
@@ -24,12 +24,12 @@ const HuntingPage = lazy(() => import('../features/hunting/HuntingPage'));
 const ProtectionPage = lazy(() => import('../features/protection/ProtectionPage'));
 const AdminPage = lazy(() => import('../features/admin/AdminPage'));
 
-const DetectionRuleEditor = lazy(() => import('../pages/DetectionRuleEditor'));
-const DetectionRuleDetail = lazy(() => import('../pages/DetectionRuleDetail'));
-const EventDetail = lazy(() => import('../pages/EventDetail'));
-const NormalizedEventDetail = lazy(() => import('../pages/NormalizedEventDetail'));
-const AvDetectionDetail = lazy(() => import('../pages/AvDetectionDetail'));
-const FalconRoadmapPage = lazy(() => import('../pages/FalconRoadmapPage'));
+const DetectionRuleEditor = lazy(() => import('../features/detections/DetectionRuleEditorPage'));
+const DetectionRuleDetail = lazy(() => import('../features/detections/DetectionRuleDetailPage'));
+const EventDetail = lazy(() => import('../features/hunting/EventDetailPage'));
+const NormalizedEventDetail = lazy(() => import('../features/hunting/NormalizedEventDetailPage'));
+const AvDetectionDetail = lazy(() => import('../features/protection/AvDetectionDetailPage'));
+const FalconRoadmapPage = lazy(() => import('../features/admin/tabs/FalconRoadmapPageTab'));
 const NotFound = lazy(() => import('../pages/NotFound'));
 
 /** Compact console routes (under Layout). */
@@ -53,7 +53,7 @@ export const CONSOLE_ROUTES = [
   {
     path: 'admin',
     element: (
-      <SocRouteGuard allow={canAccessAdminRoute}>
+      <SocRouteGuard allow={canAccessAdminShell}>
         <AdminPage />
       </SocRouteGuard>
     ),

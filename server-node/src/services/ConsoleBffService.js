@@ -19,6 +19,15 @@ function bffMeta(module, tabs = []) {
   };
 }
 
+function bffPayload(meta, fields = {}) {
+  return {
+    meta,
+    tabs: meta.tabs,
+    health: { status: 'ok' },
+    ...fields,
+  };
+}
+
 async function getOverview(tenantId = null) {
   const [summary, readiness] = await Promise.all([
     DashboardService.getSummary(tenantId),
@@ -26,10 +35,10 @@ async function getOverview(tenantId = null) {
   ]);
   const ep = summary.endpoints || {};
   const alerts = summary.alerts || {};
-  return {
-    meta: bffMeta('overview', [
-      'executive', 'soc', 'endpoint-health', 'detection-analytics', 'system-health', 'tenant',
-    ]),
+  const meta = bffMeta('overview', [
+    'executive', 'soc', 'endpoint-health', 'detection-analytics', 'system-health', 'tenant',
+  ]);
+  return bffPayload(meta, {
     kpis: {
       endpoints: { total: ep.total ?? 0, online: ep.online ?? 0, offline: ep.offline ?? 0 },
       alerts: {
@@ -44,10 +53,9 @@ async function getOverview(tenantId = null) {
       alerts: summary.recentAlerts || [],
       investigations: summary.recentInvestigations || [],
     },
-    health: { status: 'ok' },
     permissions: { dashboard: 'dashboard:view' },
     summary,
-  };
+  });
 }
 
 async function getEndpoints(tenantId = null) {
@@ -67,14 +75,13 @@ async function getEndpoints(tenantId = null) {
      FROM endpoints${epFilter} ORDER BY last_heartbeat_at DESC LIMIT 15`,
     epParams
   ).catch(() => []);
-  return {
-    meta: bffMeta('endpoints', ['list', 'groups', 'timeline', 'processes', 'network', 'map', 'health']),
+  const meta = bffMeta('endpoints', ['list', 'groups', 'timeline', 'processes', 'network', 'map', 'health']);
+  return bffPayload(meta, {
     kpis: { endpoints: row || { total: 0, online: 0 } },
     telemetry_quality: telemetry,
     recent,
-    health: { status: 'ok' },
     permissions: { endpoint: 'endpoint:view' },
-  };
+  });
 }
 
 async function getEndpointDetail(endpointId, tenantId = null) {
@@ -90,14 +97,14 @@ async function getEndpointDetail(endpointId, tenantId = null) {
     })(),
     TelemetryQualityService.scoreEndpoint(endpointId).catch(() => null),
   ]);
-  return {
-    meta: bffMeta('endpoint-detail', ['overview', 'timeline', 'processes', 'network', 'trust']),
+  const meta = bffMeta('endpoint-detail', ['overview', 'timeline', 'processes', 'network', 'trust']);
+  return bffPayload(meta, {
     endpoint,
     telemetry_quality: telemetry,
     kpis: telemetry ? { quality_score: telemetry.score } : {},
     health: { status: endpoint ? 'ok' : 'not_found' },
     permissions: { endpoint: 'endpoint:view' },
-  };
+  });
 }
 
 async function getDetections(tenantId = null) {
@@ -110,10 +117,10 @@ async function getDetections(tenantId = null) {
     AnalyticsMlService.detectionQualitySummary(tenantId).catch(() => ({})),
   ]);
   const recent = await AlertService.list({ limit: 15, offset: 0, tenantId }).catch(() => ({ items: [] }));
-  return {
-    meta: bffMeta('detections', [
-      'triage', 'alerts', 'rules', 'mitre', 'xdr', 'suppressions', 'analytics', 'quality',
-    ]),
+  const meta = bffMeta('detections', [
+    'triage', 'alerts', 'rules', 'mitre', 'xdr', 'suppressions', 'analytics', 'quality',
+  ]);
+  return bffPayload(meta, {
     kpis: {
       alerts: alertSummary,
       triage_pending: triage?.pending ?? 0,
@@ -121,9 +128,8 @@ async function getDetections(tenantId = null) {
     alert_groups: groups,
     detection_quality: quality,
     recent: recent.items || recent,
-    health: { status: 'ok' },
     permissions: { alert: 'alert:view', detection: 'detection:view' },
-  };
+  });
 }
 
 async function getInvestigation(tenantId = null) {
@@ -135,13 +141,12 @@ async function getInvestigation(tenantId = null) {
     ).catch(() => ({ total: 0, open: 0 })),
     EntityGraphService.getInvestigationGraph(tenantId, 50).catch(() => ({ nodes: [], edges: [] })),
   ]);
-  return {
-    meta: bffMeta('investigation', ['incidents', 'cases', 'evidence', 'graph', 'reports']),
+  const meta = bffMeta('investigation', ['incidents', 'cases', 'evidence', 'graph', 'reports']);
+  return bffPayload(meta, {
     kpis: { incidents },
     threat_graph: graph,
-    health: { status: 'ok' },
     permissions: { incident: 'incident:view' },
-  };
+  });
 }
 
 async function getResponse(tenantId = null) {
@@ -151,40 +156,37 @@ async function getResponse(tenantId = null) {
     )
     .catch(() => ({ pending: 0 }));
   const automations = await SafeAutomationService.listRules(tenantId).catch(() => []);
-  return {
-    meta: bffMeta('response', ['approvals', 'active', 'rtr', 'playbooks', 'quarantine', 'history']),
+  const meta = bffMeta('response', ['approvals', 'active', 'rtr', 'playbooks', 'quarantine', 'history']);
+  return bffPayload(meta, {
     kpis: { approvals_pending: pending?.pending ?? 0 },
     safe_automation_rules: automations,
-    health: { status: 'ok' },
     permissions: { response: 'response:view' },
-  };
+  });
 }
 
 async function getHunting(tenantId = null) {
   const today = await db
     .queryOne(`SELECT COUNT(*) as today FROM raw_events WHERE DATE(created_at) = CURDATE()`)
     .catch(() => ({ today: 0 }));
-  return {
-    meta: bffMeta('hunting', [
-      'search', 'events', 'raw', 'normalized', 'network', 'xdr-events', 'realtime', 'iocs', 'web', 'saved',
-    ]),
+  const meta = bffMeta('hunting', [
+    'search', 'events', 'raw', 'normalized', 'network', 'xdr-events', 'realtime', 'iocs', 'web', 'saved',
+  ]);
+  return bffPayload(meta, {
     kpis: { events_today: today?.today ?? 0 },
-    health: { status: 'ok' },
     permissions: { hunting: 'hunting:view' },
-  };
+  });
 }
 
 async function getProtection(tenantId = null) {
   const avScanService = require('../modules/antivirus/avScanService');
   const summary = await avScanService.getDashboardSummary(tenantId).catch(() => ({}));
-  return {
-    meta: bffMeta('protection', [
-      'overview', 'detections', 'quarantine', 'scans', 'policies', 'signatures', 'reputation', 'web', 'capabilities',
-    ]),
+  const meta = bffMeta('protection', [
+    'overview', 'detections', 'quarantine', 'scans', 'policies', 'signatures', 'reputation', 'web', 'capabilities',
+  ]);
+  return bffPayload(meta, {
     kpis: { av: summary },
-    health: { status: 'ok' },
     permissions: { protection: 'dashboard:view' },
-  };
+  });
 }
 
 async function getAdmin(tenantId = null) {
@@ -192,15 +194,14 @@ async function getAdmin(tenantId = null) {
     db.queryOne('SELECT COUNT(*) as total FROM tenants').catch(() => ({ total: 0 })),
     ProductionReadinessService.getScore().catch(() => ({ score: 0, checks: [] })),
   ]);
-  return {
-    meta: bffMeta('admin', [
-      'settings', 'tenants', 'rbac', 'integrations', 'audit', 'reports', 'system-health', 'roadmap',
-    ]),
+  const meta = bffMeta('admin', [
+    'settings', 'tenants', 'rbac', 'integrations', 'audit', 'reports', 'system-health', 'roadmap',
+  ]);
+  return bffPayload(meta, {
     kpis: { tenants },
     production_readiness: readiness,
-    health: { status: 'ok' },
     permissions: { audit: 'audit:view', system: 'system:admin' },
-  };
+  });
 }
 
 module.exports = {

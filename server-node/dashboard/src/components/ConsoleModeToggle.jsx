@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { canSeeMsspAndTenants } from '../utils/socRoles';
+import { canSeeMsspAndTenants, isAuditorRole } from '../utils/socRoles';
+import { readWorkspacePreferences, writeWorkspacePreferences } from '../utils/workspacePreferences';
 import { WORKSPACE_MODES, readWorkspaceMode, writeWorkspaceMode } from '../utils/workspaceMode';
 import styles from './ConsoleModeToggle.module.css';
 
@@ -9,6 +10,7 @@ export function useConsoleUiMode() {
 
   const setMode = React.useCallback((next) => {
     writeWorkspaceMode(next);
+    writeWorkspacePreferences({ workspace_mode: next });
     setModeState(next);
   }, []);
 
@@ -25,6 +27,12 @@ export default function ConsoleModeToggle() {
   const { user } = useAuth();
   const [mode, setMode] = useConsoleUiMode();
   const showMssp = canSeeMsspAndTenants(user);
+  const showAuditor = isAuditorRole(user) || user?.role === 'viewer';
+
+  React.useEffect(() => {
+    const prefs = readWorkspacePreferences();
+    if (prefs.workspace_mode) setModeState(prefs.workspace_mode);
+  }, []);
 
   return (
     <div className={styles.wrap} role="group" aria-label="Workspace mode">
@@ -41,6 +49,7 @@ export default function ConsoleModeToggle() {
         <option value={WORKSPACE_MODES.ADVANCED}>Advanced Analyst</option>
         <option value={WORKSPACE_MODES.ADMIN}>Admin</option>
         {showMssp ? <option value={WORKSPACE_MODES.MSSP}>MSSP</option> : null}
+        {showAuditor ? <option value={WORKSPACE_MODES.AUDITOR}>Auditor</option> : null}
       </select>
     </div>
   );

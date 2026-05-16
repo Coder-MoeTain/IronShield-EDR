@@ -9,6 +9,7 @@ export const WORKSPACE_MODES = Object.freeze({
   ADVANCED: 'advanced',
   ADMIN: 'admin',
   MSSP: 'mssp',
+  AUDITOR: 'auditor',
 });
 
 const STORAGE_KEY = 'ironshield-workspace-mode';
@@ -36,6 +37,12 @@ export function resolveWorkspaceMode(user, requested) {
   const mode = requested || readWorkspaceMode();
   if (mode === WORKSPACE_MODES.MSSP && !canSeeMsspAndTenants(user)) {
     return WORKSPACE_MODES.ADVANCED;
+  }
+  if (mode === WORKSPACE_MODES.AUDITOR) {
+    const r = (user?.role || '').toLowerCase();
+    if (r !== 'auditor' && r !== 'read_only' && user?.role !== 'viewer') {
+      return WORKSPACE_MODES.ADVANCED;
+    }
   }
   return mode;
 }

@@ -1,24 +1,37 @@
 # Legacy page wrappers
 
-Implementation lives under `src/features/<module>/tabs/*Tab.jsx`.
+Canonical UI lives under `src/features/<module>/`.
 
-`src/pages/*.jsx` (except `Login.jsx`, `NotFound.jsx`, and detail routes still routed from `App.jsx`) are thin re-exports for backward compatibility.
+## Kept in `src/pages`
 
-## Mapping (old page → feature tab)
+| File | Purpose |
+|------|---------|
+| `Login.jsx` | Authentication |
+| `NotFound.jsx` | 404 |
+| `*.jsx` re-exports | Temporary backward compatibility for bookmarks and tests |
 
-| Legacy page | Feature module | Tab file |
-|-------------|----------------|----------|
-| Dashboard | overview | DashboardTab |
-| Alerts | detections | AlertsTab |
-| Endpoints | endpoints | EndpointsTab |
-| Incidents | investigation | IncidentsTab |
-| Hunting | hunting | HuntingTab |
-| AvOverview | protection | AvOverviewTab |
-| EnterpriseSettings | admin | EnterpriseSettingsTab |
-| … | … | See `scripts/migrate-pages-to-features.mjs` |
+## Detail routes (implementation in features)
 
-## Routes
+| Legacy path / page | Feature module | Implementation |
+|--------------------|----------------|----------------|
+| `DetectionRuleEditor.jsx` | detections | `features/detections/DetectionRuleEditorPage.jsx` |
+| `DetectionRuleDetail.jsx` | detections | `features/detections/DetectionRuleDetailPage.jsx` |
+| `EventDetail.jsx` | hunting | `features/hunting/EventDetailPage.jsx` |
+| `NormalizedEventDetail.jsx` | hunting | `features/hunting/NormalizedEventDetailPage.jsx` |
+| `AvDetectionDetail.jsx` | protection | `features/protection/AvDetectionDetailPage.jsx` |
+| `FalconRoadmapPage.jsx` | admin | `features/admin/tabs/FalconRoadmapPageTab.jsx` |
 
-Compact paths: `/overview`, `/endpoints`, `/detections`, `/investigation`, `/response`, `/hunting`, `/protection`, `/admin`.
+## Compact console modules
 
-Legacy URLs redirect via `src/routes/legacyRedirects.js`.
+| Route | Feature page |
+|-------|----------------|
+| `/overview` | `features/overview/OverviewPage.jsx` |
+| `/endpoints` | `features/endpoints/EndpointsPage.jsx` |
+| `/detections` | `features/detections/DetectionsPage.jsx` |
+| `/investigation` | `features/investigation/InvestigationPage.jsx` |
+| `/response` | `features/response/ResponsePage.jsx` |
+| `/hunting` | `features/hunting/HuntingPage.jsx` |
+| `/protection` | `features/protection/ProtectionPage.jsx` |
+| `/admin` | `features/admin/AdminPage.jsx` |
+
+Legacy URLs redirect via `src/routes/legacyRedirects.js` (e.g. `/alerts` → `/detections?tab=alerts`).

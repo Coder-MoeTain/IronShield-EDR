@@ -18,8 +18,9 @@ const CHECKS = [
   { id: 'metrics', label: 'Metrics protected', weight: 6 },
   { id: 'backup', label: 'Backup configured', weight: 8 },
   { id: 'retention', label: 'Retention jobs', weight: 6 },
-  { id: 'openapi', label: 'OpenAPI tests', weight: 8 },
-  { id: 'detections', label: 'Detection tests', weight: 10 },
+  { id: 'openapi', label: 'OpenAPI tests passing', weight: 8 },
+  { id: 'detections', label: 'Detection tests passing', weight: 10 },
+  { id: 'tenant_isolation', label: 'Tenant isolation tests', weight: 8 },
 ];
 
 async function evaluateCheck(id) {
@@ -64,6 +65,10 @@ async function evaluateCheck(id) {
     case 'detections': {
       const detDir = path.join(__dirname, '../../detections/windows');
       return fs.existsSync(detDir);
+    }
+    case 'tenant_isolation': {
+      const testFile = path.join(__dirname, '../../test/tenantIsolation.integration.test.js');
+      return fs.existsSync(testFile);
     }
     default:
       return false;
