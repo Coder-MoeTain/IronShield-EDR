@@ -2,20 +2,35 @@
  * Detection engineering API — /api/v1/detections
  */
 const express = require('express');
-const { authenticate } = require('../middleware/auth');
+const { authAdmin } = require('../middleware/auth');
+const { attachTenant } = require('../middleware/tenantMiddleware');
+const { requireTenantContext } = require('../middleware/requireTenantContext');
+const { requireMfaCompliant } = require('../middleware/mfaPolicy');
+const { tenantRateLimit } = require('../middleware/tenantRateLimit');
+const { adminAuditTrail } = require('../middleware/adminAuditTrail');
 const { requireAnyPermission } = require('../middleware/rbac');
 const { PERMISSIONS } = require('../constants/permissions');
 const detectionController = require('../controllers/detectionController');
 
 const router = express.Router();
-router.use(authenticate);
+router.use(authAdmin);
+router.use(attachTenant);
+router.use(requireTenantContext);
+router.use(requireMfaCompliant);
+router.use(tenantRateLimit);
+router.use(adminAuditTrail);
 
 const view = requireAnyPermission(PERMISSIONS.DETECTION_VIEW, 'alerts:read', '*');
 const manage = requireAnyPermission(PERMISSIONS.DETECTION_MANAGE, 'rules:write', '*');
-const test = requireAnyPermission('detection:test', PERMISSIONS.DETECTION_MANAGE, 'rules:write', '*');
-const replay = requireAnyPermission('detection:replay', PERMISSIONS.DETECTION_MANAGE, '*');
-const review = requireAnyPermission('detection:review', 'detection:approve', PERMISSIONS.DETECTION_MANAGE, '*');
-const suppress = requireAnyPermission('detection:suppress', PERMISSIONS.DETECTION_MANAGE, 'rules:write', '*');
+const test = requireAnyPermission(PERMISSIONS.DETECTION_TEST, PERMISSIONS.DETECTION_MANAGE, 'rules:write', '*');
+const replay = requireAnyPermission(PERMISSIONS.DETECTION_REPLAY, PERMISSIONS.DETECTION_MANAGE, '*');
+const review = requireAnyPermission(
+  PERMISSIONS.DETECTION_REVIEW,
+  PERMISSIONS.DETECTION_APPROVE,
+  PERMISSIONS.DETECTION_MANAGE,
+  '*'
+);
+const suppress = requireAnyPermission(PERMISSIONS.DETECTION_SUPPRESS, PERMISSIONS.DETECTION_MANAGE, 'rules:write', '*');
 
 router.get('/rules', view, detectionController.listRules);
 router.get('/rules/validate', view, detectionController.validateRulesHandler);

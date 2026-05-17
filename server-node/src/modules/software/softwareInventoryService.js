@@ -216,7 +216,8 @@ async function listInventory(filters = {}) {
   const sql = `
     SELECT esi.*, e.hostname, esr.risk_score, esr.risk_level, esr.recommended_action,
            esr.blocked, esr.accepted_risk, esr.vulnerability_count, esr.critical_count,
-           esr.reason, esr.risk_factors_json
+           esr.outdated, esr.unsupported, esr.known_exploit_count, esr.high_count,
+           esr.reason, esr.risk_factors_json, esr.accepted_risk_until
     FROM endpoint_software_inventory esi
     JOIN endpoints e ON e.id = esi.endpoint_id
     LEFT JOIN endpoint_software_risk esr ON esr.software_inventory_id = esi.id

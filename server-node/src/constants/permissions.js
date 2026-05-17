@@ -216,6 +216,8 @@ const LEGACY_ROUTE_PERMISSION_EXPANSION = Object.freeze({
   manage_integrations: [PERMISSIONS.TENANT_MANAGE, PERMISSIONS.SYSTEM_ADMIN],
   manage_tenants: [PERMISSIONS.TENANT_MANAGE],
   manage_users: [PERMISSIONS.USER_MANAGE],
+  'tenants:read': [PERMISSIONS.TENANT_VIEW, PERMISSIONS.TENANT_MANAGE],
+  'tenants:write': [PERMISSIONS.TENANT_MANAGE],
 });
 
 /** DB seed names (schema-phase5) → enterprise permissions. */

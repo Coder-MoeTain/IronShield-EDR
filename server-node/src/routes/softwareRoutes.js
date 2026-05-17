@@ -23,7 +23,9 @@ router.use(adminAuditTrail);
 router.get('/inventory', requirePermission(PERMISSIONS.SOFTWARE_VIEW), softwareController.listInventory);
 router.get('/inventory/:id', requirePermission(PERMISSIONS.SOFTWARE_VIEW), softwareController.getInventory);
 router.get('/summary', requirePermission(PERMISSIONS.SOFTWARE_VIEW), softwareController.getSummary);
+
 router.get('/reports/export', requirePermission(PERMISSIONS.SOFTWARE_EXPORT), softwareController.exportReport);
+router.get('/reports/:type', requirePermission(PERMISSIONS.SOFTWARE_EXPORT), softwareController.exportReport);
 
 router.get(
   '/vulnerabilities',
@@ -76,6 +78,11 @@ router.post(
   requirePermission(PERMISSIONS.SOFTWARE_MANAGE),
   softwareController.refreshInventory
 );
+router.post(
+  '/inventory/:id/create-incident',
+  requireAnyPermission(PERMISSIONS.SOFTWARE_MANAGE, 'alerts:write', '*'),
+  softwareController.createSoftwareIncident
+);
 
 router.get(
   '/remediation-actions',
@@ -93,6 +100,11 @@ router.post(
   requirePermission(PERMISSIONS.SOFTWARE_POLICY_MANAGE),
   softwareController.createBlockPolicy
 );
+router.post(
+  '/block-policies/:id/approve',
+  requireAnyPermission(PERMISSIONS.SOFTWARE_BLOCK, PERMISSIONS.SOFTWARE_MANAGE, '*'),
+  softwareController.approveBlockPolicy
+);
 router.put(
   '/block-policies/:id',
   requirePermission(PERMISSIONS.SOFTWARE_POLICY_MANAGE),
@@ -102,6 +114,12 @@ router.delete(
   '/block-policies/:id',
   requirePermission(PERMISSIONS.SOFTWARE_POLICY_MANAGE),
   softwareController.deleteBlockPolicy
+);
+
+router.post(
+  '/emergency-unblock',
+  requireAnyPermission('*', PERMISSIONS.SOFTWARE_UNBLOCK),
+  softwareController.emergencyUnblock
 );
 
 router.post(

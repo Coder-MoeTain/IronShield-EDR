@@ -46,7 +46,11 @@ export default function OverviewPage() {
       .then((data) => setKpis(data?.kpis || data))
       .catch(() => setKpis(null));
     api(apiPath('/api/software/summary'), { silent: true })
-      .then((r) => (r.ok ? r.json() : null))
+      .then(async (r) => {
+        if (!r.ok) return null;
+        const json = await r.json();
+        return json?.success && json.data ? json.data : json;
+      })
       .then(setSoftwareSummary)
       .catch(() => setSoftwareSummary(null));
   }, [api]);

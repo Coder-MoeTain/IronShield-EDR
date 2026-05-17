@@ -34,12 +34,13 @@ public static class ResponseCommandVerifier
         }
 
         var parametersJson = "{}";
-        if (action.Parameters is { HasValue: true } p)
+        if (action.Parameters.HasValue)
         {
-            parametersJson = p.Value.ValueKind switch
+            var p = action.Parameters.Value;
+            parametersJson = p.ValueKind switch
             {
                 JsonValueKind.Null or JsonValueKind.Undefined => "{}",
-                _ => JsonSerializer.Serialize(p.Value),
+                _ => JsonSerializer.Serialize(p),
             };
         }
 

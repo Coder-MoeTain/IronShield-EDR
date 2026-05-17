@@ -5,53 +5,63 @@ function findLegacy(path) {
   return LEGACY_REDIRECT_ROUTES.find((r) => r.path === path);
 }
 
-describe('legacy redirects', () => {
-  it('/alerts -> /detections?tab=alerts', () => {
-    const r = findLegacy('alerts');
-    expect(r?.type).toBe('preserve');
-    expect(r?.to).toBe('/detections');
-    expect(r?.defaultTab).toBe('alerts');
+const SPOT_CHECKS = [
+  ['alerts', { type: 'preserve', to: '/detections', defaultTab: 'alerts' }],
+  ['events', { type: 'preserve', to: '/hunting', defaultTab: 'events' }],
+  ['xdr/events', { type: 'preserve', to: '/hunting', defaultTab: 'xdr-events' }],
+  ['av/quarantine', { type: 'preserve', to: '/protection', defaultTab: 'quarantine' }],
+  ['incidents', { type: 'preserve', to: '/investigation', defaultTab: 'incidents' }],
+  ['rtr', { type: 'preserve', to: '/response', defaultTab: 'rtr' }],
+  ['audit-logs', { type: 'preserve', to: '/admin', defaultTab: 'audit' }],
+  ['reports', { type: 'preserve', to: '/admin', defaultTab: 'reports' }],
+  ['dashboard', { type: 'navigate', to: '/overview' }],
+  ['av', { type: 'navigate', to: '/protection' }],
+  ['raw-events', { type: 'preserve', to: '/hunting', defaultTab: 'raw' }],
+  ['detection-rules', { type: 'preserve', to: '/detections', defaultTab: 'rules' }],
+  ['soc/triage', { type: 'preserve', to: '/detections', defaultTab: 'triage' }],
+  ['threat-graph', { type: 'preserve', to: '/investigation', defaultTab: 'graph' }],
+  ['respond/approvals', { type: 'preserve', to: '/response', defaultTab: 'approvals' }],
+  ['enterprise', { type: 'preserve', to: '/admin', defaultTab: 'settings' }],
+  ['policies', { type: 'preserve', to: '/protection', defaultTab: 'policies' }],
+  ['risk', { type: 'preserve', to: '/overview', defaultTab: 'executive' }],
+];
+
+describe('legacy redirects catalog', () => {
+  it('defines all legacy routes with unique paths', () => {
+    expect(LEGACY_REDIRECT_ROUTES.length).toBeGreaterThanOrEqual(56);
+    const paths = LEGACY_REDIRECT_ROUTES.map((r) => r.path);
+    expect(new Set(paths).size).toBe(paths.length);
   });
 
-  it('/events -> /hunting?tab=events', () => {
-    const r = findLegacy('events');
-    expect(r?.to).toBe('/hunting');
-    expect(r?.defaultTab).toBe('events');
-  });
+  for (const def of LEGACY_REDIRECT_ROUTES) {
+    it(`route "${def.path}" has valid type`, () => {
+      expect(def.type).toBeTruthy();
+      const legacyTypes = [
+        'navigate',
+        'preserve',
+        'legacy-alert',
+        'legacy-rule-edit',
+        'legacy-rule-detail',
+        'legacy-malware-alert',
+        'legacy-incident',
+        'legacy-case',
+      ];
+      expect(legacyTypes).toContain(def.type);
+      if (def.type === 'navigate' || def.type === 'preserve') {
+        expect(def.to).toMatch(/^\//);
+      }
+    });
+  }
+});
 
-  it('/xdr/events -> /hunting?tab=xdr-events', () => {
-    const r = findLegacy('xdr/events');
-    expect(r?.to).toBe('/hunting');
-    expect(r?.defaultTab).toBe('xdr-events');
-  });
-
-  it('/av/quarantine -> /protection?tab=quarantine', () => {
-    const r = findLegacy('av/quarantine');
-    expect(r?.to).toBe('/protection');
-    expect(r?.defaultTab).toBe('quarantine');
-  });
-
-  it('/incidents -> /investigation?tab=incidents', () => {
-    const r = findLegacy('incidents');
-    expect(r?.to).toBe('/investigation');
-    expect(r?.defaultTab).toBe('incidents');
-  });
-
-  it('/rtr -> /response?tab=rtr', () => {
-    const r = findLegacy('rtr');
-    expect(r?.to).toBe('/response');
-    expect(r?.defaultTab).toBe('rtr');
-  });
-
-  it('/audit-logs -> /admin?tab=audit', () => {
-    const r = findLegacy('audit-logs');
-    expect(r?.to).toBe('/admin');
-    expect(r?.defaultTab).toBe('audit');
-  });
-
-  it('/reports -> /admin?tab=reports', () => {
-    const r = findLegacy('reports');
-    expect(r?.to).toBe('/admin');
-    expect(r?.defaultTab).toBe('reports');
-  });
+describe('legacy redirects spot checks', () => {
+  for (const [path, expected] of SPOT_CHECKS) {
+    it(`/${path} redirects correctly`, () => {
+      const r = findLegacy(path);
+      expect(r).toBeTruthy();
+      for (const [key, value] of Object.entries(expected)) {
+        expect(r[key]).toBe(value);
+      }
+    });
+  }
 });

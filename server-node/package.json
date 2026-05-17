@@ -84,7 +84,12 @@
     "test:command-center": "cd dashboard && npx vitest run src/test/command-center.test.js",
     "sync-openapi": "node scripts/sync-openapi-v1.js",
     "test:openapi": "node scripts/sync-openapi-routes.js && node scripts/sync-openapi-v1.js && node scripts/validate-openapi.js && node scripts/validate-openapi-coverage.js",
+    "test:tenant-isolation": "node --test test/tenantIsolation.service.test.js test/requireTenantContext.test.js test/tenantQuery.test.js test/tenantService.security.test.js",
+    "test:rbac": "node --test test/rbac.unit.test.js test/rbacRouteMatrix.unit.test.js",
+    "test:envelope": "node --test test/envelopeResponse.test.js",
     "test:software": "node --test test/software.unit.test.js",
+    "test:agent-software": "dotnet test ../agent-csharp/tests/EDR.Agent.Core.Tests/EDR.Agent.Core.Tests.csproj --filter FullyQualifiedName~Software",
+    "test:software-ui": "cd dashboard && npx vitest run src/test/software-risk-ui.test.js",
     "software:vuln-import": "node scripts/software-vuln-import.js",
     "docs:status-check": "node scripts/docs-status-check.js",
     "build-dashboard": "cd dashboard && npm install && npm run build"

@@ -1,4 +1,5 @@
 using EDR.Agent.Core.WebUrl;
+using Xunit;
 
 namespace EDR.Agent.Core.Tests;
 

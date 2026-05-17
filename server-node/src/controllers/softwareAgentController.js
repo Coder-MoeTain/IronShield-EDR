@@ -1,11 +1,15 @@
 /**
- * Software Risk Management — agent API
+ * Software Risk Management — agent API (standard envelope)
  */
 const SoftwareInventoryService = require('../modules/software/softwareInventoryService');
 const SoftwareBlockPolicyService = require('../modules/software/softwareBlockPolicyService');
 const SoftwareRemediationService = require('../modules/software/softwareRemediationService');
 const AuditLogService = require('../services/AuditLogService');
-const { ERROR_CODES, sendErrorFromReq } = require('../utils/apiResponse');
+const { ERROR_CODES, sendSuccess, sendErrorFromReq, requestIdFromReq } = require('../utils/apiResponse');
+
+function ok(res, req, data, status = 200) {
+  return sendSuccess(res, data, { status, requestId: requestIdFromReq(req) });
+}
 
 async function uploadInventory(req, res, next) {
   try {
@@ -32,7 +36,7 @@ async function uploadInventory(req, res, next) {
       summary,
       username: `agent:${endpointId}`,
     });
-    res.json({ ok: true, ...summary });
+    ok(res, req, summary);
   } catch (err) {
     next(err);
   }
@@ -46,10 +50,11 @@ async function getSoftwarePolicies(req, res, next) {
       req.endpointId,
       tenantId
     );
-    res.json({
+    const pendingRefresh = await SoftwareRemediationService.hasPendingRefresh(req.endpointId, tenantId);
+    ok(res, req, {
       ...policies,
       pending_notifications: notifications || [],
-      pending_refresh: (notifications || []).some(() => false),
+      pending_refresh: pendingRefresh,
     });
   } catch (err) {
     next(err);
@@ -66,7 +71,7 @@ async function submitPolicyResult(req, res, next) {
       resourceId: String(policy_id || ''),
       details: { process_name, process_path, action_taken },
     });
-    res.json({ ok: true });
+    ok(res, req, { recorded: true });
   } catch (err) {
     next(err);
   }
@@ -75,14 +80,14 @@ async function submitPolicyResult(req, res, next) {
 async function submitNotificationResult(req, res, next) {
   try {
     const body = req.body || {};
-    await SoftwareRemediationService.recordNotificationResult({
+    const result = await SoftwareRemediationService.recordNotificationResult({
       tenantId: req.tenantId,
       endpointId: req.endpointId,
       notificationId: body.notification_id,
       userResponse: body.user_response,
       status: body.status,
     });
-    res.json({ ok: true });
+    ok(res, req, result);
   } catch (err) {
     next(err);
   }

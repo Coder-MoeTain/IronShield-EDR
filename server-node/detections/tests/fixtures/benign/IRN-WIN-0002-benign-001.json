@@ -1,0 +1,16 @@
+{
+  "id": "IRN-WIN-0002-benign-001",
+  "description": "Office process without suspicious child shell.",
+  "events": [
+    {
+      "event_id": "evt-002b",
+      "event_type": "process_start",
+      "event_time": "2026-05-17T11:05:00Z",
+      "endpoint_id": 1,
+      "process_name": "WINWORD.EXE",
+      "parent_process_name": "explorer.exe",
+      "command_line": "WINWORD.EXE document.docx"
+    }
+  ],
+  "must_not_match": ["IRN-WIN-0002"]
+}

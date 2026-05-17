@@ -14,7 +14,9 @@ public class SoftwareBlockEnforcer
     private static readonly HashSet<string> ProtectedProcesses = new(StringComparer.OrdinalIgnoreCase)
     {
         "System", "Idle", "wininit", "services", "lsass", "csrss", "smss", "winlogon", "explorer",
+        "svchost", "dwm", "fontdrvhost", "sihost", "taskhostw", "runtimebroker", "searchindexer",
         "IronShield.Agent.Service", "EDR.Agent.Service", "MsMpEng", "SecurityHealthService",
+        "SecurityHealthSystray", "WmiPrvSE", "dllhost",
     };
 
     private readonly ProcessResponseExecutor _killer = new();

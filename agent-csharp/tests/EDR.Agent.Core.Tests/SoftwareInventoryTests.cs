@@ -23,6 +23,18 @@ public class SoftwareInventoryTests
     }
 
     [Fact]
+    public async Task BlockEnforcer_SkipsProtectedProcesses()
+    {
+        var enforcer = new SoftwareBlockEnforcer();
+        var policies = new List<SoftwareBlockPolicyDto>
+        {
+            new() { Id = "1", SoftwareName = "lsass", Action = "block" },
+        };
+        var result = await enforcer.EvaluateProcessAsync(1234, "lsass", null, policies);
+        Assert.Null(result);
+    }
+
+    [Fact]
     public void Diff_DetectsAddedAndRemoved()
     {
         var collector = new SoftwareInventoryCollector();

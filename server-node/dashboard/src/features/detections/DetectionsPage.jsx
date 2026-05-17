@@ -1,8 +1,11 @@
 import React, { lazy } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import ConsolePage from '../../components/ConsolePage';
 import TabNav from '../../components/TabNav';
 import EmbeddedPanel from '../../components/EmbeddedPanel';
+import KpiStrip from '../../components/KpiStrip';
 import { useConsoleTab } from '../../utils/consoleTabs';
+import { useConsoleBff } from '../../hooks/useConsoleBff';
 
 const SocTriageQueue = lazy(() => import('./tabs/SocTriageQueueTab'));
 const Alerts = lazy(() => import('./tabs/AlertsTab'));
@@ -36,7 +39,17 @@ const TABS = [
 const VALID = TABS.map((t) => t.id);
 
 export default function DetectionsPage() {
+  const { api } = useAuth();
   const [tab, setTab] = useConsoleTab('triage', VALID);
+  const { data: bff } = useConsoleBff(api, 'detections');
+  const alerts = bff?.kpis?.alerts || {};
+  const kpiItems = bff
+    ? [
+        { id: 'triage', label: 'Triage pending', value: bff.kpis?.triage_pending ?? '—' },
+        { id: 'crit', label: 'Critical alerts', value: alerts.critical ?? alerts.bySeverity?.critical ?? '—' },
+        { id: 'high', label: 'High alerts', value: alerts.high ?? alerts.bySeverity?.high ?? '—' },
+      ]
+    : [];
 
   return (
     <ConsolePage
@@ -45,6 +58,7 @@ export default function DetectionsPage() {
       description="Triage queue, alerts, rules, MITRE coverage, and detection analytics."
       tabs={<TabNav tabs={TABS} activeTab={tab} onChange={setTab} ariaLabel="Detection sections" />}
     >
+      {kpiItems.length > 0 && <KpiStrip items={kpiItems} />}
       {tab === 'triage' && (
         <EmbeddedPanel label="Triage queue">
           <SocTriageQueue />

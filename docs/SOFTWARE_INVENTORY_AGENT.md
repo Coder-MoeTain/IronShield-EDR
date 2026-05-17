@@ -1,28 +1,59 @@
-# Software Inventory — Windows Agent
+# Software Inventory Agent
 
-## Collection sources
+The Windows agent collects installed software from registry uninstall keys and uploads deltas to the platform.
 
-- `HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall`
-- `HKLM\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall`
-- `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall` (when `SOFTWARE_INVENTORY_INCLUDE_USER_APPS=true`)
+## Configuration (`AgentConfig`)
 
-**Not used:** `Win32_Product` WMI class (can trigger MSI repair).
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `SoftwareInventoryEnabled` | `true` | Enable collection loop |
+| `SoftwareInventoryIntervalHours` | `24` | Scan interval |
+| `SoftwareInventoryIncludeUserApps` | `true` | Include HKCU uninstall keys |
+| `SoftwareInventoryIncludeExecutablePaths` | `false` | Resolve executable paths (slower) |
 
-## Config (`config.json` / environment)
+## Collection
 
-| Setting | Default |
-|---------|---------|
-| `SoftwareInventoryEnabled` | `true` |
-| `SoftwareInventoryIntervalHours` | `24` |
-| `SoftwareInventoryIncludeUserApps` | `true` |
-| `SoftwareInventoryIncludeExecutablePaths` | `true` |
+`SoftwareInventoryCollector` reads:
 
-## Fingerprint
+- `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall`
+- `HKLM\SOFTWARE\WOW6432Node\...\Uninstall`
+- `HKCU\...\Uninstall` (when enabled)
 
-`SHA256(normalized_name|vendor|version|install_location|endpoint_id)` — stable per endpoint install.
+**Never** uses WMI `Win32_Product` (slow, triggers consistency checks).
+
+Fingerprints are SHA-256 of normalized name, vendor, version, install location, and endpoint ID.
 
 ## Upload
 
-`POST /api/v1/agent/software-inventory` with `scan_type` `full` or `delta`, `software[]`, and `removed_fingerprints[]`.
+`POST /api/v1/agent/software-inventory`
 
-Server responds with `{ added, updated, removed }` summary (audit only; full payload not stored in audit).
+```json
+{
+  "scan_type": "delta",
+  "inventory_scan_id": "uuid",
+  "software": [{ "name", "vendor", "version", "fingerprint", "install_location" }],
+  "removed_fingerprints": []
+}
+```
+
+Response envelope: `{ "success": true, "data": { "added", "updated", "removed" } }`.
+
+## Policy poll
+
+`GET /api/v1/agent/software-policies` returns:
+
+- `block_policies` — active tenant policies
+- `protected_processes` — allowlist (must match backend)
+- `pending_notifications` — user messages to display
+- `pending_refresh` — true when refresh remediation is queued
+
+## Block enforcement
+
+`SoftwareBlockEnforcer` runs on process creation. Skips protected processes and IronShield paths. Posts results to `POST /api/v1/agent/software-policy-result`.
+
+## Testing
+
+```bash
+cd server-node
+npm run test:agent-software
+```

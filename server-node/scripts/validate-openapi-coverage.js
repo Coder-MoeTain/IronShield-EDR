@@ -1,34 +1,21 @@
 #!/usr/bin/env node
 /**
- * Ensures Express routes are documented in openapi.json (agent + admin + auth + ingest).
+ * Ensures Express routes are documented in openapi.json (with correct mount prefixes).
  */
 const fs = require('fs');
 const path = require('path');
+const { ROUTE_MOUNT_MAP, collectRoutesFromFile } = require('./lib/openapiRouteMounts');
 
 const root = path.join(__dirname, '..');
 const spec = JSON.parse(fs.readFileSync(path.join(root, 'openapi', 'openapi.json'), 'utf8'));
 const documented = new Set(Object.keys(spec.paths || {}));
 
-const routeFiles = [
-  'src/routes/agentRoutes.js',
-  'src/routes/adminRoutes.js',
-  'src/routes/authRoutes.js',
-  'src/routes/ingestRoutes.js',
-];
-
-const methodMap = { get: 'get', post: 'post', put: 'put', patch: 'patch', delete: 'delete' };
 const found = new Set();
 
-for (const rel of routeFiles) {
-  const text = fs.readFileSync(path.join(root, rel), 'utf8');
-  const re = /router\.(get|post|put|patch|delete)\(\s*['"`]([^'"`]+)['"`]/gi;
-  let m;
-  while ((m = re.exec(text))) {
-    const routePath = m[2];
-    if (routePath.startsWith('/')) {
-      found.add(`/api${routePath}`);
-      found.add(`/api/v1${routePath}`);
-    }
+for (const rel of Object.keys(ROUTE_MOUNT_MAP)) {
+  const routes = collectRoutesFromFile(root, rel);
+  for (const { path: apiPath } of routes) {
+    found.add(apiPath);
   }
 }
 

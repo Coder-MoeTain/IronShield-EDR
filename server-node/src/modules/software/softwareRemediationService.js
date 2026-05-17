@@ -118,7 +118,22 @@ async function notifyUninstall(inventoryId, tenantId, actor, body = {}) {
   return action;
 }
 
+async function hasPendingRefresh(endpointId, tenantId) {
+  const rows = await db.query(
+    `SELECT 1 FROM software_remediation_actions
+     WHERE endpoint_id = ? AND tenant_id = ? AND action_type = 'refresh_inventory'
+       AND status IN ('requested','pending_agent') LIMIT 1`,
+    [endpointId, tenantId]
+  );
+  return (rows || []).length > 0;
+}
+
 async function acceptRisk(inventoryId, tenantId, actor, { until, reason } = {}) {
+  if (!reason || String(reason).trim().length < 3) {
+    const err = new Error('Accept risk reason is required');
+    err.code = 'REASON_REQUIRED';
+    throw err;
+  }
   const sw = await SoftwareInventoryService.getById(inventoryId, tenantId);
   if (!sw) return null;
   await db.query(
@@ -230,5 +245,6 @@ module.exports = {
   listActions,
   recordNotificationResult,
   getPendingNotifications,
+  hasPendingRefresh,
   requiresBlockApproval,
 };

@@ -1,0 +1,22 @@
+{
+  "id": "IRN-WIN-0002-malicious-001",
+  "description": "cmd.exe spawned from WINWORD.exe.",
+  "events": [
+    {
+      "event_id": "evt-002a",
+      "event_type": "process_start",
+      "event_time": "2026-05-17T11:00:00Z",
+      "endpoint_id": 1,
+      "process_name": "cmd.exe",
+      "parent_process_name": "WINWORD.EXE",
+      "command_line": "cmd.exe /c whoami"
+    }
+  ],
+  "must_match": ["IRN-WIN-0002"],
+  "expected_alerts": [
+    {
+      "rule_id": "IRN-WIN-0002",
+      "severity": "high"
+    }
+  ]
+}

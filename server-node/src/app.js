@@ -24,6 +24,7 @@ const authRoutes = require('./routes/authRoutes');
 const ingestRoutes = require('./routes/ingestRoutes');
 const consoleRoutes = require('./routes/consoleRoutes');
 const softwareRoutes = require('./routes/softwareRoutes');
+const { envelopeResponseMiddleware } = require('./middleware/envelopeResponse');
 
 const app = express();
 
@@ -181,13 +182,14 @@ if (config.metrics?.enabled) {
 }
 
 function mountApiRoutes(basePath) {
-  app.use(`${basePath}/auth`, authRoutes);
-  app.use(`${basePath}/agent`, agentRoutes);
-  app.use(`${basePath}/admin`, adminRoutes);
+  const enveloped = [envelopeResponseMiddleware];
+  app.use(`${basePath}/auth`, ...enveloped, authRoutes);
+  app.use(`${basePath}/admin`, ...enveloped, adminRoutes);
   app.use(`${basePath}/software`, softwareRoutes);
-  app.use(`${basePath}/detections`, detectionRoutes);
-  app.use(`${basePath}/ingest`, ingestRoutes);
+  app.use(`${basePath}/detections`, ...enveloped, detectionRoutes);
   app.use(`${basePath}/console`, consoleRoutes);
+  app.use(`${basePath}/agent`, agentRoutes);
+  app.use(`${basePath}/ingest`, ingestRoutes);
 }
 
 for (const prefix of API_PREFIXES) {

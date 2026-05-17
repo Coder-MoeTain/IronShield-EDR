@@ -1,8 +1,11 @@
 import React, { lazy } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import ConsolePage from '../../components/ConsolePage';
 import TabNav from '../../components/TabNav';
 import EmbeddedPanel from '../../components/EmbeddedPanel';
+import KpiStrip from '../../components/KpiStrip';
 import { useConsoleTab } from '../../utils/consoleTabs';
+import { useConsoleBff } from '../../hooks/useConsoleBff';
 
 const AvOverview = lazy(() => import('./tabs/AvOverviewTab'));
 const AvDetections = lazy(() => import('./tabs/AvDetectionsTab'));
@@ -30,7 +33,17 @@ const TABS = [
 const VALID = TABS.map((t) => t.id);
 
 export default function ProtectionPage() {
+  const { api } = useAuth();
   const [tab, setTab] = useConsoleTab('overview', VALID);
+  const { data: bff } = useConsoleBff(api, 'protection');
+  const av = bff?.kpis?.av || {};
+  const kpiItems = bff
+    ? [
+        { id: 'det', label: 'Detections (24h)', value: av.detections_24h ?? av.detections24h ?? '—' },
+        { id: 'q', label: 'Quarantined', value: av.quarantined ?? av.quarantine_count ?? '—' },
+        { id: 'scan', label: 'Scans running', value: av.scans_running ?? av.active_scans ?? '—' },
+      ]
+    : [];
 
   return (
     <ConsolePage
@@ -39,6 +52,7 @@ export default function ProtectionPage() {
       description="NGAV overview, malware detections, quarantine, policies, signatures, and web protection."
       tabs={<TabNav tabs={TABS} activeTab={tab} onChange={setTab} ariaLabel="Protection sections" />}
     >
+      {kpiItems.length > 0 && <KpiStrip items={kpiItems} />}
       {tab === 'overview' && (
         <EmbeddedPanel label="Protection overview">
           <AvOverview />

@@ -1,0 +1,1 @@
+function a(e){return e&&typeof e=="object"&&e.success===!0&&"data"in e?{data:e.data,meta:e.meta,requestId:e.requestId,legacy:!1}:{data:e,meta:void 0,requestId:e==null?void 0:e.requestId,legacy:!0}}async function r(e){const t=await e.json();return a(t)}export{r};

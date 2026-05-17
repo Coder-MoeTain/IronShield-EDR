@@ -97,6 +97,11 @@ const manifest = [
     description: 'Software inventory, vulnerability risk, remediation, block policies',
     module: path.join(__dirname, '20260519120000_software_risk_management.js'),
   },
+  {
+    id: '20260520120000_software_block_lifecycle',
+    description: 'Block policy lifecycle status, block reason, vulnerability needs_review',
+    module: path.join(__dirname, '20260520120000_software_block_lifecycle.js'),
+  },
 ];
 
 module.exports = { manifest, LEGACY_DIR };

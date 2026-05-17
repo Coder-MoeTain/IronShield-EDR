@@ -4,6 +4,9 @@ import { useAuth } from '../../../context/AuthContext';
 import PageShell from '../../../components/PageShell';
 import { falconSeverityClass } from '../../../utils/falconUi';
 import { asJsonList } from '../../../utils/apiJson';
+import { apiPath } from '../../../utils/apiPath';
+import { readApiJson } from '../../../utils/apiEnvelope';
+import { fetchConsoleBff } from '../../../utils/consoleBff';
 import styles from './AvOverviewTab.module.css';
 
 export default function AvOverview() {
@@ -24,19 +27,25 @@ export default function AvOverview() {
     setLoading(true);
     setApiError(null);
     try {
-      const [sumRes, detRes] = await Promise.all([
-        api('/api/admin/av/dashboard/summary'),
-        api('/api/admin/av/detections?limit=10'),
+      const [bffData, detRes] = await Promise.all([
+        fetchConsoleBff(api, 'protection'),
+        api(apiPath('/api/admin/av/detections?limit=10')),
       ]);
-      if (!sumRes.ok || !detRes.ok) {
-        const failed = !sumRes.ok ? sumRes : detRes;
-        const err = await failed.json().catch(() => ({}));
-        throw new Error(err.error || `API error (${failed.status})`);
+      if (!detRes.ok) {
+        const err = await detRes.json().catch(() => ({}));
+        throw new Error(err?.error?.message || err.error || `API error (${detRes.status})`);
       }
-      const sumData = await sumRes.json();
-      const detData = await detRes.json();
+      const { data: detData } = await readApiJson(detRes);
+      const sumData = bffData?.kpis?.av
+        ? bffData.kpis.av
+        : await api(apiPath('/api/admin/av/dashboard/summary'))
+            .then(async (sumRes) => {
+              if (!sumRes.ok) throw new Error('summary failed');
+              const { data } = await readApiJson(sumRes);
+              return data ?? {};
+            });
       setSummary(sumData);
-      setDetections(Array.isArray(detData) ? detData : (detData.results || []));
+      setDetections(Array.isArray(detData) ? detData : (detData?.results || detData?.items || []));
     } catch (e) {
       setSummary(null);
       setDetections([]);

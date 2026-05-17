@@ -418,7 +418,8 @@ Aligned with the upgrade specification (Section 23). Each phase should land with
 
 - [x] `server-node/detections/` layout + fixtures
 - [x] `npm run detections:validate|test|replay`
-- [x] IRN-WIN-* rule pack (30+ defensive rules via `generate-detection-as-code-pack.js`)
+- [x] IRN-WIN-* rule pack (**52** defensive rules in current pack; Phase 5 shipped **31** via `generate-detection-as-code-pack.js`)
+- [x] Software Risk Management (inventory, CVE scoring, block policies, remediation, reports) — see `docs/SOFTWARE_RISK_MANAGEMENT.md`
 - [x] MITRE coverage API + dashboard (`MitreCoverageService`, `/mitre`)
 
 ### Phase 6 — SOC workflows

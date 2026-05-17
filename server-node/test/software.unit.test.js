@@ -6,6 +6,13 @@ const assert = require('node:assert/strict');
 const { matchesExpression, compareVersions } = require('../src/modules/software/versionMatcher');
 const { calculateRiskScore } = require('../src/modules/software/softwareRiskService');
 const { computeFingerprint, normalizeName } = require('../src/modules/software/softwareNormalize');
+const {
+  isProtectedSoftwareName,
+  isDangerousWildcard,
+  validateBlockPolicy,
+} = require('../src/modules/software/softwareBlockSafety');
+const { requiresBlockApproval } = require('../src/modules/software/softwareRemediationService');
+const SoftwareReportService = require('../src/modules/software/softwareReportService');
 
 describe('versionMatcher', () => {
   it('compares semantic versions', () => {
@@ -17,6 +24,17 @@ describe('versionMatcher', () => {
     const r = matchesExpression('124.0.0.0', '<125.0.0.0');
     assert.equal(r.match, true);
     assert.equal(r.needsReview, false);
+  });
+
+  it('matches greater-than and equals', () => {
+    assert.equal(matchesExpression('2.0.0', '>=2.0.0').match, true);
+    assert.equal(matchesExpression('2.0.0', '>2.0.0').match, false);
+    assert.equal(matchesExpression('2.0.0', '=2.0.0').match, true);
+  });
+
+  it('matches range expression', () => {
+    const r = matchesExpression('3.0.0', 'range: >=3.0.0 <4.0.0');
+    assert.equal(r.match, true);
   });
 
   it('marks unparseable as needs review', () => {
@@ -65,5 +83,52 @@ describe('softwareNormalize', () => {
     });
     assert.equal(a, b);
     assert.equal(a.length, 64);
+  });
+});
+
+describe('softwareBlockSafety', () => {
+  it('rejects protected process names', () => {
+    assert.equal(isProtectedSoftwareName('lsass'), true);
+    assert.equal(isProtectedSoftwareName('IronShield.Agent.Service'), true);
+    assert.equal(isProtectedSoftwareName('Notepad'), false);
+  });
+
+  it('flags dangerous wildcards', () => {
+    assert.equal(isDangerousWildcard({ executable_path_pattern: '*' }), true);
+    assert.equal(
+      isDangerousWildcard({ executable_path_pattern: 'C:\\Program Files\\Vendor\\Application\\*.exe' }),
+      false
+    );
+  });
+
+  it('validates block policy', () => {
+    const bad = validateBlockPolicy({ software_name: 'lsass' });
+    assert.equal(bad.valid, false);
+    const ok = validateBlockPolicy({ software_name: 'OldApp' });
+    assert.equal(ok.valid, true);
+  });
+
+  it('requires super_admin for broad wildcard', () => {
+    const r = validateBlockPolicy({ executable_path_pattern: '*' }, { isSuperAdmin: false });
+    assert.equal(r.valid, false);
+    const r2 = validateBlockPolicy({ executable_path_pattern: '*' }, { isSuperAdmin: true });
+    assert.equal(r2.valid, true);
+  });
+});
+
+describe('requiresBlockApproval', () => {
+  it('requires approval for browser blocks', () => {
+    assert.equal(requiresBlockApproval({ software_name: 'Google Chrome' }), true);
+  });
+});
+
+describe('softwareReportService', () => {
+  it('exports CSV header', () => {
+    const csv = SoftwareReportService.toCsv({ rows: [] });
+    assert.ok(csv.includes('name,vendor'));
+  });
+
+  it('lists report types', () => {
+    assert.ok(SoftwareReportService.REPORT_TYPES.includes('vulnerable'));
   });
 });

@@ -53,6 +53,7 @@
 
 | When | What |
 |:-----|:-----|
+| **May 2026** | **Software Risk Management** — Installed software inventory, CVE scoring, remediation (notify/block/accept-risk), block policy lifecycle with SoD approval, protected-process safety, six exportable reports, and Protection → Software Risk console. Docs: [SOFTWARE_RISK_MANAGEMENT.md](docs/SOFTWARE_RISK_MANAGEMENT.md). |
 | **May 2026** | **Compact EDR/XDR console** — Eight-page SOC navigation (`/overview`, `/endpoints`, `/detections`, `/investigation`, `/response`, `/hunting`, `/protection`, `/admin`) with tabbed modules, legacy URL redirects, UI modes (Simple / Advanced / Admin), and BFF endpoints `GET /api/v1/console/*`. |
 | **May 2026** | **Production hardening (pilot-ready)** — `/api/v1`, agent key hashing, Redis nonces, cert binding, **52** IRN-WIN rules (current pack), ESLint in CI, [api.md](docs/api.md) rewrite. See [enterprise-hardening.md](docs/enterprise-hardening.md). |
 | **May 2026** | **Enterprise upgrade (Phases 1–9)** — Foundation hardening, formal migrations, agent trust (DPAPI, signed requests, signed response commands), detection-as-code (**31** IRN-WIN rules in Phase 5; pack grew to **52**), SOC triage/MITRE/health UI, integrations & reports, `docker-compose.dev.yml` / `docker-compose.prod.yml`. Full checklist: [UPGRADE_AUDIT.md](docs/UPGRADE_AUDIT.md). |
@@ -109,7 +110,7 @@ npm run capture-screenshots
 # optional: README_CAPTURE_URL=http://127.0.0.1:5173
 ```
 
-Outputs are written to **`docs/images/`** (`login.png`, `dashboard.png`, `banner.png`, `hosts.png`, `host-detail.png`, `network-activity.png`, `detection-rules.png`, `architecture.png` from `assets/architecture.svg`).
+Outputs are written to **`docs/images/`** (`login.png`, `dashboard.png`, `banner.png`, `hosts.png`, `host-detail.png`, `network-activity.png`, `detection-rules.png`, `software-risk.png`, `architecture.png` from `assets/architecture.svg`). Capture **Software Risk** at `/protection?tab=software-risk` (inventory + Reports sub-tab recommended).
 
 | Sign in | Dashboard |
 |:---:|:---:|
@@ -148,6 +149,7 @@ Vector assets (`assets/banner.svg`, `assets/screenshot-*.svg`) remain available 
 - **Threat intel integrations** — Add **3rd‑party IP blacklist feeds** from Enterprise settings → imports into IOC watchlist
 - **Antivirus Module** — File scanning, signatures, heuristics, quarantine
 - **XDR foundation** — Canonical multi-source event store (`xdr_events`), detections (`xdr_detections`), live `/ws` stream
+- **Software Risk Management** — Registry-based inventory, CVE matching, remediation (notify/block/accept-risk), block policies with SoD approval, protected-process safety, and exportable reports ([docs](docs/SOFTWARE_RISK_MANAGEMENT.md))
 
 ### Dashboard Highlights
 
@@ -165,6 +167,7 @@ Vector assets (`assets/banner.svg`, `assets/screenshot-*.svg`) remain available 
 - **System health** — `/system/health` (API, readiness, queue, endpoints)
 - **Integrations & reports** — `/integrations`, `/reports` (webhook, Splunk HEC, SOC summaries)
 - **Alert “why fired”** — Evidence and risk on alert detail
+- **Software Risk** — Protection → Software Risk: KPIs, vulnerable software, block policies, remediation timeline, reports export; Endpoint Detail → Installed Software tab ([screenshots](#screenshots))
 
 ---
 

@@ -1,24 +1,45 @@
 # Software Remediation Workflow
 
+Remediation actions coordinate admin intent with agent-delivered user notifications and inventory refresh requests.
+
+## Action types
+
+| Type | Description |
+|------|-------------|
+| `notify_update` | User notification to patch software |
+| `notify_uninstall` | User notification to remove software |
+| `block_execution` | Creates/links block policy |
+| `unblock_execution` | Removes block for inventory item |
+| `accept_risk` | Documents risk acceptance with expiry |
+| `refresh_inventory` | Requests agent full/delta scan |
+
 ## Status lifecycle
 
-`open` → `notified` → `acknowledged` → `blocked` / `updated` / `uninstalled` / `accepted_risk` → `closed`
+`requested` → `pending_agent` → `delivered` → `acknowledged` → `completed` (or `failed`, `cancelled`, `expired`).
 
-Mapped to `software_remediation_actions.status`: `requested`, `pending_agent`, `delivered`, `acknowledged`, `completed`, `failed`, `cancelled`, `expired`.
+## APIs
 
-## Actions
+| Endpoint | Permission |
+|----------|------------|
+| `POST /api/v1/software/inventory/:id/notify-update` | `software:notify` |
+| `POST /api/v1/software/inventory/:id/notify-uninstall` | `software:notify` |
+| `POST /api/v1/software/inventory/:id/block` | `software:block` |
+| `POST /api/v1/software/inventory/:id/unblock` | `software:unblock` |
+| `POST /api/v1/software/inventory/:id/accept-risk` | `software:accept_risk` |
+| `POST /api/v1/software/inventory/:id/refresh` | `software:manage` |
+| `POST /api/v1/software/inventory/:id/create-incident` | `software:manage` or `alerts:write` |
+| `GET /api/v1/software/remediation-actions` | `software:view` |
 
-| API | Purpose |
-|-----|---------|
-| `POST .../notify-update` | User notification to update |
-| `POST .../notify-uninstall` | User notification to uninstall |
-| `POST .../block` | Create block policy + mark blocked |
-| `POST .../unblock` | Remove block flag |
-| `POST .../accept-risk` | Accept risk with optional expiry |
-| `POST .../refresh` | Request inventory rescan |
+All responses use the standard envelope: `{ success, data, requestId }`.
 
-## Verification
+## Accept risk
 
-After user acknowledges “I updated”, agent rescans on next inventory cycle; backend compares version against vulnerability `fixed_version` and updates risk automatically.
+Requires `reason` in body. Optional `until` datetime sets `accepted_risk_until` on `endpoint_software_risk`.
 
-User responses: `POST /api/v1/agent/software-notification-result`.
+## User notifications
+
+Pending notifications are included in agent policy poll. User acknowledgment via `POST /api/v1/agent/software-notification-result`.
+
+## Dashboard
+
+Protection → Software Risk provides modals for notify update/uninstall, block (with reason + approver), and accept risk. Software detail drawer shows remediation timeline per inventory item.

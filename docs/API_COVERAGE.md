@@ -118,6 +118,30 @@ Envelope: `{ success, data, requestId }` — `data` includes `meta`, `tabs`, `kp
 | Detections | `GET /api/v1/admin/av/detections` | implemented | manual |
 | Quarantine | `GET /api/v1/admin/av/quarantine` | implemented | `npm run test:legacy-redirects` |
 | Policies / signatures / scans | `/api/v1/admin/av/*` | implemented | manual |
+| **Software Risk** | `GET /api/v1/software/summary`, `/inventory`, `/block-policies` | implemented | `npm run test:software`, `npm run test:software-ui` |
+
+### Software Risk APIs (`/api/v1/software`)
+
+| Endpoint | Permission | Status | Test |
+|----------|------------|--------|------|
+| `GET /summary` | `software:view` | implemented | `test:software` |
+| `GET /inventory`, `/inventory/:id` | `software:view` | implemented | `test:software-ui` |
+| `GET /reports/:type?format=` | `software:export` | implemented | `test:software` |
+| `POST /inventory/:id/notify-update` | `software:notify` | implemented | manual |
+| `POST /inventory/:id/block` | `software:block` | implemented | `test:software` (safety) |
+| `POST /inventory/:id/accept-risk` | `software:accept_risk` | implemented | manual |
+| `GET/POST /block-policies` | `software:policy:manage` | implemented | manual |
+
+### Agent software APIs (`/api/v1/agent`)
+
+| Endpoint | Status | Test |
+|----------|--------|------|
+| `POST /software-inventory` | implemented | `test:agent-software` |
+| `GET /software-policies` | implemented | manual |
+| `POST /software-policy-result` | implemented | manual |
+| `POST /software-notification-result` | implemented | manual |
+
+Envelope: `{ success, data, requestId }` on software admin + agent controllers.
 
 ---
 

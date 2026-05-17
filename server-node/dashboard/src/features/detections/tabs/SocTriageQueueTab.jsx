@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import PageShell from '../../../components/PageShell';
 import { falconSeverityClass } from '../../../utils/falconUi';
+import { apiPath } from '../../../utils/apiPath';
+import { readApiJson } from '../../../utils/apiEnvelope';
 import styles from './SocTriageQueueTab.module.css';
 
 export default function SocTriageQueue() {
@@ -17,9 +19,13 @@ export default function SocTriageQueue() {
       sort: 'risk_score',
       order: 'desc',
     });
-    api(`/api/admin/alerts?${q}`)
-      .then((r) => r.json())
-      .then((rows) => setAlerts(Array.isArray(rows) ? rows : rows?.items || []))
+    api(apiPath(`/api/admin/alerts?${q}`))
+      .then(async (r) => {
+        if (!r.ok) return [];
+        const { data } = await readApiJson(r);
+        return Array.isArray(data) ? data : data?.items || [];
+      })
+      .then(setAlerts)
       .catch(() => setAlerts([]))
       .finally(() => setLoading(false));
   }, [api]);
