@@ -1,6 +1,8 @@
 # Legacy manual SQL migrations
 
-IronShield now uses the formal migration runner as the **supported** upgrade path:
+See [MIGRATION_POLICY.md](MIGRATION_POLICY.md) for the official policy.
+
+IronShield uses the formal migration runner as the **supported** upgrade path:
 
 ```bash
 cd server-node

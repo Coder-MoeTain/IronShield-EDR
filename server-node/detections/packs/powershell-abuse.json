@@ -1,0 +1,10 @@
+{
+  "id": "powershell-abuse",
+  "name": "PowerShell Abuse",
+  "description": "Detections focused on suspicious PowerShell execution patterns.",
+  "version": "1.0.0",
+  "platform": "windows",
+  "enabled_by_default": true,
+  "data_sources_required": ["process_creation", "powershell_event"],
+  "rules": ["IRN-WIN-0001", "IRN-WIN-0017", "IRN-WIN-0093", "IRN-WIN-0100"]
+}

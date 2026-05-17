@@ -19,10 +19,22 @@ describe('legacy redirects', () => {
     expect(r?.defaultTab).toBe('events');
   });
 
+  it('/xdr/events -> /hunting?tab=xdr-events', () => {
+    const r = findLegacy('xdr/events');
+    expect(r?.to).toBe('/hunting');
+    expect(r?.defaultTab).toBe('xdr-events');
+  });
+
   it('/av/quarantine -> /protection?tab=quarantine', () => {
     const r = findLegacy('av/quarantine');
     expect(r?.to).toBe('/protection');
     expect(r?.defaultTab).toBe('quarantine');
+  });
+
+  it('/incidents -> /investigation?tab=incidents', () => {
+    const r = findLegacy('incidents');
+    expect(r?.to).toBe('/investigation');
+    expect(r?.defaultTab).toBe('incidents');
   });
 
   it('/rtr -> /response?tab=rtr', () => {
@@ -35,5 +47,11 @@ describe('legacy redirects', () => {
     const r = findLegacy('audit-logs');
     expect(r?.to).toBe('/admin');
     expect(r?.defaultTab).toBe('audit');
+  });
+
+  it('/reports -> /admin?tab=reports', () => {
+    const r = findLegacy('reports');
+    expect(r?.to).toBe('/admin');
+    expect(r?.defaultTab).toBe('reports');
   });
 });

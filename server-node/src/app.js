@@ -19,9 +19,11 @@ const promClient = require('prom-client');
 
 const agentRoutes = require('./routes/agentRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const detectionRoutes = require('./routes/detectionRoutes');
 const authRoutes = require('./routes/authRoutes');
 const ingestRoutes = require('./routes/ingestRoutes');
 const consoleRoutes = require('./routes/consoleRoutes');
+const softwareRoutes = require('./routes/softwareRoutes');
 
 const app = express();
 
@@ -182,6 +184,8 @@ function mountApiRoutes(basePath) {
   app.use(`${basePath}/auth`, authRoutes);
   app.use(`${basePath}/agent`, agentRoutes);
   app.use(`${basePath}/admin`, adminRoutes);
+  app.use(`${basePath}/software`, softwareRoutes);
+  app.use(`${basePath}/detections`, detectionRoutes);
   app.use(`${basePath}/ingest`, ingestRoutes);
   app.use(`${basePath}/console`, consoleRoutes);
 }

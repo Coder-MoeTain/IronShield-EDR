@@ -1,0 +1,15 @@
+{
+  "id": "IRN-WIN-0001-benign-001",
+  "description": "PowerShell without encoded command flags.",
+  "events": [
+    {
+      "event_type": "process_start",
+      "event_time": "2026-05-17T10:00:00Z",
+      "endpoint_id": 1,
+      "process_name": "powershell.exe",
+      "command_line": "powershell.exe -NoProfile -Command Get-Service"
+    }
+  ],
+  "must_not_match": ["IRN-WIN-0001"],
+  "expected_no_alerts": true
+}

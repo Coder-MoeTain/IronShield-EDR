@@ -40,6 +40,7 @@ const IMPLEMENTED = [
   { id: 'upgrade_audit', file: 'docs/UPGRADE_AUDIT.md' },
   { id: 'api_coverage', file: 'docs/API_COVERAGE.md' },
   { id: 'legacy_migrations', file: 'docs/legacy-migrations.md' },
+  { id: 'migration_policy', file: 'docs/MIGRATION_POLICY.md' },
   { id: 'route_map', file: 'server-node/dashboard/src/routes/routeMap.jsx' },
   { id: 'legacy_redirects', file: 'server-node/dashboard/src/routes/legacyRedirects.js' },
   { id: 'production_readiness', file: 'server-node/src/services/ProductionReadinessService.js' },

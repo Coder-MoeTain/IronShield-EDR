@@ -1,13 +1,20 @@
 {
   "id": "IRN-WIN-0001",
   "name": "Suspicious Encoded PowerShell Command",
-  "description": "Detects PowerShell launched with encoded command arguments.",
+  "description": "Detects PowerShell execution with encoded command arguments commonly used to obscure malicious scripts.",
   "status": "stable",
+  "enabled": true,
   "severity": "high",
-  "risk_score": 70,
+  "risk_score": 75,
+  "confidence": 80,
   "platform": "windows",
+  "data_sources": ["process_creation"],
   "event_types": ["process_start", "process_create"],
-  "mitre": { "tactics": ["Execution", "Defense Evasion"], "techniques": ["T1059.001"] },
+  "category": "execution",
+  "mitre": {
+    "tactics": ["Execution", "Defense Evasion"],
+    "techniques": [{ "id": "T1059.001", "name": "PowerShell" }]
+  },
   "logic": {
     "all": [
       { "field": "process_name", "op": "contains", "value": "powershell" },
@@ -20,6 +27,28 @@
       }
     ]
   },
-  "author": "IronShield",
-  "version": "1.0.0"
+  "explain": {
+    "summary": "PowerShell was launched with an encoded command argument.",
+    "matched_fields": ["process_name", "command_line"],
+    "risk_factors": [
+      { "name": "Encoded PowerShell", "points": 40 },
+      { "name": "Script interpreter execution", "points": 20 }
+    ]
+  },
+  "false_positives": ["Administrative scripts", "Endpoint management tools"],
+  "tuning": {
+    "allowlist_fields": ["command_line", "parent_process_name", "user.name", "endpoint.hostname"],
+    "recommended_suppression_ttl_days": 30
+  },
+  "response_guidance": [
+    "Review the parent process.",
+    "Check decoded command in a safe analysis environment if available.",
+    "Correlate with network and file events."
+  ],
+  "references": [],
+  "author": "IronShield Detection Engineering",
+  "version": "1.0.0",
+  "created_at": "2026-05-17",
+  "updated_at": "2026-05-17",
+  "tests": ["IRN-WIN-0001-benign-001", "IRN-WIN-0001-malicious-001"]
 }

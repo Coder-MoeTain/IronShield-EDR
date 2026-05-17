@@ -76,3 +76,8 @@ test('ConsoleBffService admin payload shape', async () => {
   assertBffShape(data);
   assert.ok(data.production_readiness, 'production_readiness on admin BFF');
 });
+
+test.after(async () => {
+  const db = require('../src/utils/db');
+  await db.closePool().catch(() => {});
+});

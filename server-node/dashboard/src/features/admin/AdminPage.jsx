@@ -31,14 +31,17 @@ const ALL_TABS = [
   { id: 'rbac', label: 'RBAC', guard: canAccessRbacTab },
   { id: 'integrations', label: 'Integrations', guard: canAccessIntegrationsTab },
   { id: 'audit', label: 'Audit Logs', guard: canAccessAuditTab },
-  { id: 'reports', label: 'Reports', guard: canAccessReportsTab },
+  { id: 'reports', label: 'Reports', guard: (u, p) => canAccessReportsTab(u, p) },
   { id: 'system-health', label: 'System Health', guard: canAccessSystemHealthTab },
   { id: 'roadmap', label: 'Roadmap' },
 ];
 
 export default function AdminPage() {
-  const { user } = useAuth();
-  const visibleTabs = ALL_TABS.filter((t) => !t.guard || t.guard(user)).map(({ id, label }) => ({ id, label }));
+  const { user, permissions } = useAuth();
+  const visibleTabs = ALL_TABS.filter((t) => !t.guard || t.guard(user, permissions)).map(({ id, label }) => ({
+    id,
+    label,
+  }));
   const defaultTab = visibleTabs[0]?.id || 'audit';
   const valid = visibleTabs.map((t) => t.id);
   const [tab, setTab] = useConsoleTab(defaultTab, valid);
@@ -87,7 +90,7 @@ export default function AdminPage() {
         </SocRouteGuard>
       )}
       {tab === 'reports' && (
-        <SocRouteGuard allow={canAccessReportsTab}>
+        <SocRouteGuard allow={(u) => canAccessReportsTab(u, permissions)}>
           <EmbeddedPanel label="Reports">
             <Reports />
           </EmbeddedPanel>

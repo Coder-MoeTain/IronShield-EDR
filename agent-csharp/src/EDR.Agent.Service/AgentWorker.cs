@@ -10,6 +10,7 @@ using EDR.Agent.Core.Utils;
 using EDR.Agent.Core.DeviceControl;
 using EDR.Agent.Core.Detection;
 using EDR.Agent.Core.WebUrl;
+using EDR.Agent.Core.Software;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -66,6 +67,12 @@ public class AgentWorker
     private RealtimeScanWatcher? _realtimeWatcher;
     private readonly object _realtimeLock = new();
     private string? _realtimeStateKey;
+
+    private SoftwarePoliciesResponse? _softwarePolicies;
+    private readonly object _softwarePolicyLock = new();
+    private Dictionary<string, SoftwareInventoryItemDto> _lastSoftwareInventory = new();
+    private readonly SoftwareInventoryCollector _softwareInventoryCollector = new();
+    private readonly SoftwareBlockEnforcer _softwareBlockEnforcer = new();
 
     public AgentWorker(ConfigService configService, object? _)
     {
@@ -142,8 +149,10 @@ public class AgentWorker
         var deviceControlTask = DeviceControlPolicyLoopAsync(_cts.Token);
         var webUrlTask = WebUrlProtectionLoopAsync(_cts.Token);
         var detectionRulesTask = DetectionRulesSyncLoopAsync(_cts.Token);
+        var softwareInventoryTask = SoftwareInventoryLoopAsync(_cts.Token);
+        var softwarePolicyTask = SoftwarePolicyLoopAsync(_cts.Token);
 
-        await Task.WhenAll(_heartbeatTask, _uploadTask, _collectTask, commandTask, triageTask, updateTask, avTask, connectivityTask, deviceControlTask, webUrlTask, detectionRulesTask);
+        await Task.WhenAll(_heartbeatTask, _uploadTask, _collectTask, commandTask, triageTask, updateTask, avTask, connectivityTask, deviceControlTask, webUrlTask, detectionRulesTask, softwareInventoryTask, softwarePolicyTask);
     }
 
     /// <summary>USB / removable volume policy: WMI volume arrival, audit or eject (user-mode).</summary>
@@ -539,6 +548,36 @@ public class AgentWorker
                 {
                     await foreach (var evt in collector.CollectAsync(ct))
                     {
+                        if (collector is ProcessCollector && evt.EventType == "process_create" && evt.ProcessId.HasValue)
+                        {
+                            IReadOnlyList<SoftwareBlockPolicyDto> policies;
+                            lock (_softwarePolicyLock)
+                                policies = _softwarePolicies?.BlockPolicies ?? Array.Empty<SoftwareBlockPolicyDto>();
+                            if (policies.Count > 0)
+                            {
+                                await _softwareBlockEnforcer.EvaluateProcessAsync(
+                                    evt.ProcessId.Value,
+                                    evt.ProcessName ?? "",
+                                    evt.ProcessPath,
+                                    policies,
+                                    async (result) =>
+                                    {
+                                        try
+                                        {
+                                            await _transport.SubmitSoftwarePolicyResultAsync(new
+                                            {
+                                                policy_id = result.PolicyId,
+                                                event_type = result.EventType,
+                                                process_name = result.ProcessName,
+                                                process_path = result.ProcessPath,
+                                                action_taken = result.ActionTaken,
+                                            }, ct);
+                                        }
+                                        catch { /* non-fatal */ }
+                                    },
+                                    ct);
+                            }
+                        }
                         _queue.Enqueue(evt);
                     }
                 }
@@ -855,6 +894,99 @@ public class AgentWorker
         {
             return (false, ex.Message);
         }
+    }
+
+    private async Task SoftwarePolicyLoopAsync(CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(_config.AgentKey)) return;
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                var policies = await _transport.GetSoftwarePoliciesAsync(ct);
+                if (policies != null)
+                {
+                    lock (_softwarePolicyLock) _softwarePolicies = policies;
+                    foreach (var n in policies.PendingNotifications ?? new List<SoftwareNotificationDto>())
+                    {
+                        Console.WriteLine($"[SoftwareNotify] {n.Title}: {n.Message}");
+                        try
+                        {
+                            await _transport.SubmitSoftwareNotificationResultAsync(new
+                            {
+                                notification_id = n.Id,
+                                user_response = "shown",
+                                status = "shown",
+                            }, ct);
+                        }
+                        catch { /* non-fatal */ }
+                    }
+                }
+                await Task.Delay(TimeSpan.FromMinutes(5), ct);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { break; }
+            catch (Exception ex) { Console.WriteLine($"[SoftwarePolicy] {ex.Message}"); await Task.Delay(TimeSpan.FromMinutes(2), ct); }
+        }
+    }
+
+    private async Task SoftwareInventoryLoopAsync(CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(_config.AgentKey) || !_config.SoftwareInventoryEnabled) return;
+        await Task.Delay(TimeSpan.FromSeconds(30), ct);
+        var interval = TimeSpan.FromHours(Math.Max(1, _config.SoftwareInventoryIntervalHours));
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await UploadSoftwareInventoryAsync("delta", ct);
+                await Task.Delay(interval, ct);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { break; }
+            catch (Exception ex) { Console.WriteLine($"[SoftwareInventory] {ex.Message}"); await Task.Delay(TimeSpan.FromHours(1), ct); }
+        }
+    }
+
+    private async Task UploadSoftwareInventoryAsync(string scanType, CancellationToken ct)
+    {
+        var items = _softwareInventoryCollector.Collect(
+            _config.SoftwareInventoryIncludeUserApps,
+            _config.SoftwareInventoryIncludeExecutablePaths);
+        var endpointId = _config.EndpointId;
+        foreach (var item in items)
+            item.Fingerprint = SoftwareInventoryCollector.ComputeFingerprint(item, endpointId);
+
+        var prev = _lastSoftwareInventory;
+        var (added, updated, removed) = _softwareInventoryCollector.Diff(items, prev);
+        _lastSoftwareInventory = items.ToDictionary(x => x.Fingerprint);
+
+        var uploadList = scanType == "full" ? items : added.Concat(updated).ToList();
+        var payload = new
+        {
+            endpoint_id = endpointId,
+            inventory_scan_id = Guid.NewGuid().ToString("N"),
+            scan_type = scanType,
+            started_at = DateTime.UtcNow,
+            completed_at = DateTime.UtcNow,
+            agent_version = AgentVersion,
+            software = uploadList.Select(s => new
+            {
+                fingerprint = s.Fingerprint,
+                name = s.Name,
+                vendor = s.Vendor,
+                version = s.Version,
+                install_location = s.InstallLocation,
+                executable_paths = s.ExecutablePaths,
+                uninstall_string = s.UninstallString,
+                quiet_uninstall_string = s.QuietUninstallString,
+                install_date = s.InstallDate,
+                architecture = s.Architecture,
+                source = s.Source,
+                status = s.Status,
+            }),
+            removed_fingerprints = removed,
+        };
+        await _transport.UploadSoftwareInventoryAsync(payload, ct);
+        Console.WriteLine($"[SoftwareInventory] uploaded scan={scanType} items={uploadList.Count} removed={removed.Count}");
     }
 
     private async Task TriageTaskPollLoopAsync(CancellationToken ct)

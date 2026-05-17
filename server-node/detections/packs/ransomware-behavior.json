@@ -1,0 +1,10 @@
+{
+  "id": "ransomware-behavior",
+  "name": "Ransomware Behavior",
+  "description": "Impact-stage behaviors associated with ransomware and destructive attacks.",
+  "version": "1.0.0",
+  "platform": "windows",
+  "enabled_by_default": true,
+  "data_sources_required": ["process_creation", "file_event"],
+  "rules": ["IRN-WIN-0110", "IRN-WIN-0111", "IRN-WIN-0112", "IRN-WIN-0113"]
+}

@@ -1,0 +1,23 @@
+{
+  "id": "windows-core",
+  "name": "Windows Core",
+  "description": "Core Windows endpoint behavioral detections for execution, persistence, and defense evasion.",
+  "version": "1.0.0",
+  "platform": "windows",
+  "enabled_by_default": true,
+  "minimum_agent_version": "1.0.0",
+  "data_sources_required": ["process_creation"],
+  "rules": [
+    "IRN-WIN-0001",
+    "IRN-WIN-0011",
+    "IRN-WIN-0012",
+    "IRN-WIN-0013",
+    "IRN-WIN-0017",
+    "IRN-WIN-0018",
+    "IRN-WIN-0023",
+    "IRN-WIN-0024",
+    "IRN-WIN-0043",
+    "IRN-WIN-0044",
+    "IRN-WIN-0110"
+  ]
+}

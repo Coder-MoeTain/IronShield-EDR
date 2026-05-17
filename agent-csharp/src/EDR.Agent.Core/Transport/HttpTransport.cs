@@ -360,6 +360,39 @@ public class HttpTransport
         res.EnsureSuccessStatusCode();
     }
 
+    public async Task<SoftwarePoliciesResponse?> GetSoftwarePoliciesAsync(CancellationToken ct = default)
+    {
+        using var req = CreateSignedRequest(HttpMethod.Get, $"{_baseUrl}/api/agent/software-policies");
+        var res = await _client.SendAsync(req, ct);
+        if (!res.IsSuccessStatusCode) return null;
+        var body = await res.Content.ReadAsStringAsync(ct);
+        return JsonSerializer.Deserialize<SoftwarePoliciesResponse>(body, JsonOptions);
+    }
+
+    public async Task UploadSoftwareInventoryAsync(object payload, CancellationToken ct = default)
+    {
+        var json = JsonSerializer.Serialize(payload, JsonOptions);
+        var req = CreateSignedRequest(HttpMethod.Post, $"{_baseUrl}/api/agent/software-inventory", json);
+        var res = await _client.SendAsync(req, ct);
+        res.EnsureSuccessStatusCode();
+    }
+
+    public async Task SubmitSoftwarePolicyResultAsync(object payload, CancellationToken ct = default)
+    {
+        var json = JsonSerializer.Serialize(payload, JsonOptions);
+        var req = CreateSignedRequest(HttpMethod.Post, $"{_baseUrl}/api/agent/software-policy-result", json);
+        var res = await _client.SendAsync(req, ct);
+        res.EnsureSuccessStatusCode();
+    }
+
+    public async Task SubmitSoftwareNotificationResultAsync(object payload, CancellationToken ct = default)
+    {
+        var json = JsonSerializer.Serialize(payload, JsonOptions);
+        var req = CreateSignedRequest(HttpMethod.Post, $"{_baseUrl}/api/agent/software-notification-result", json);
+        var res = await _client.SendAsync(req, ct);
+        res.EnsureSuccessStatusCode();
+    }
+
     /// <summary>IOC-derived domain blocklist for Web & URL protection (hosts sinkhole).</summary>
     public async Task<WebUrlBlocklistResponse?> GetWebBlocklistAsync(CancellationToken ct = default)
     {

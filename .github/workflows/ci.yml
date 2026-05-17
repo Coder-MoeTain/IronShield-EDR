@@ -27,8 +27,16 @@ jobs:
         run: npm run lint
       - name: Detection-as-code validate
         run: npm run detections:validate
+      - name: Detection-as-code lint
+        run: npm run detections:lint
       - name: Detection-as-code tests
         run: npm run detections:test
+      - name: Detection unit tests
+        run: npm run test:detections
+      - name: Detection coverage report
+        run: npm run detections:coverage
+      - name: Detection docs and index
+        run: npm run detections:docs && npm run detections:index
       - name: Tests
         run: npm test
       - name: Security assurance (control mapping + audit + tests)

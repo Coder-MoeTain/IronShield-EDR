@@ -1,0 +1,22 @@
+{
+  "id": "IRN-WIN-0001-malicious-001",
+  "description": "PowerShell launched with encoded command argument.",
+  "events": [
+    {
+      "event_id": "evt-001",
+      "event_type": "process_start",
+      "event_time": "2026-05-17T10:00:00Z",
+      "endpoint_id": 1,
+      "process_name": "powershell.exe",
+      "command_line": "powershell.exe -EncodedCommand JABzAD0ATgBlAHcALQBPAGoA"
+    }
+  ],
+  "must_match": ["IRN-WIN-0001"],
+  "expected_alerts": [
+    {
+      "rule_id": "IRN-WIN-0001",
+      "severity": "high",
+      "require_explanation": true
+    }
+  ]
+}

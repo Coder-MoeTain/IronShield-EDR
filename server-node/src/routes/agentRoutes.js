@@ -55,4 +55,20 @@ router.get('/web/blocklist', authAgentValidated, webProtectionController.getWebB
 const agentDetectionRulesController = require('../controllers/agentDetectionRulesController');
 router.get('/detection-rules', authAgentValidated, agentDetectionRulesController.getDetectionRules);
 
+const softwareAgentController = require('../controllers/softwareAgentController');
+const softwareAgentSchemas = require('../schemas/softwareAgentSchemas');
+router.post(
+  '/software-inventory',
+  authAgentValidated,
+  validate(softwareAgentSchemas.softwareInventorySchema),
+  softwareAgentController.uploadInventory
+);
+router.get('/software-policies', authAgentValidated, softwareAgentController.getSoftwarePolicies);
+router.post('/software-policy-result', authAgentValidated, softwareAgentController.submitPolicyResult);
+router.post(
+  '/software-notification-result',
+  authAgentValidated,
+  softwareAgentController.submitNotificationResult
+);
+
 module.exports = router;

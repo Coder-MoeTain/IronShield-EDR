@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ironshield.local/schemas/detection-rule.json",
+  "title": "IronShield Detection Rule",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "description",
+    "status",
+    "enabled",
+    "severity",
+    "risk_score",
+    "confidence",
+    "platform",
+    "data_sources",
+    "event_types",
+    "category",
+    "mitre",
+    "logic",
+    "explain",
+    "false_positives",
+    "response_guidance",
+    "author",
+    "version",
+    "created_at",
+    "updated_at",
+    "tests"
+  ],
+  "properties": {
+    "id": { "type": "string", "pattern": "^IRN-(WIN|XDR|CLD|IDN|NET)-[A-Z]{3}-\\d{4}$|^IRN-WIN-\\d{4}$" },
+    "name": { "type": "string", "minLength": 8 },
+    "description": { "type": "string", "minLength": 20 },
+    "status": { "enum": ["experimental", "test", "stable", "deprecated", "disabled"] },
+    "enabled": { "type": "boolean" },
+    "severity": { "enum": ["informational", "low", "medium", "high", "critical"] },
+    "risk_score": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "confidence": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "platform": { "enum": ["windows", "linux", "macos", "xdr", "cloud", "identity", "network"] },
+    "data_sources": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "event_types": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "category": { "type": "string" },
+    "mitre": {
+      "type": "object",
+      "required": ["tactics", "techniques"],
+      "properties": {
+        "tactics": { "type": "array", "items": { "type": "string" } },
+        "techniques": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "type": "string", "pattern": "^T\\d{4}(\\.\\d{3})?$" },
+              {
+                "type": "object",
+                "required": ["id"],
+                "properties": {
+                  "id": { "type": "string", "pattern": "^T\\d{4}(\\.\\d{3})?$" },
+                  "name": { "type": "string" }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "logic": { "type": "object" },
+    "explain": { "type": "object" },
+    "false_positives": { "type": "array", "items": { "type": "string" } },
+    "tuning": { "type": "object" },
+    "response_guidance": { "type": "array", "items": { "type": "string" } },
+    "references": { "type": "array" },
+    "author": { "type": "string" },
+    "version": { "type": "string" },
+    "created_at": { "type": "string" },
+    "updated_at": { "type": "string" },
+    "tests": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": true
+}

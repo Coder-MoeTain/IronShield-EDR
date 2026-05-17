@@ -13,16 +13,24 @@ const AvMalwareAlerts = lazy(() => import('./tabs/AvMalwareAlertsTab'));
 const AnalyticsDetections = lazy(() => import('../overview/tabs/AnalyticsDetectionsTab'));
 const Suppressions = lazy(() => import('./tabs/SuppressionsTab'));
 const DetectionQualityTab = lazy(() => import('./tabs/DetectionQualityTab'));
+const RulePacks = lazy(() => import('./tabs/RulePacksTab'));
+const DataSourceCoverage = lazy(() => import('./tabs/DataSourceCoverageTab'));
+const ReplayLab = lazy(() => import('./tabs/ReplayLabTab'));
+const RuleReviews = lazy(() => import('./tabs/RuleReviewsTab'));
 
 const TABS = [
   { id: 'triage', label: 'Triage Queue' },
   { id: 'alerts', label: 'Alerts' },
   { id: 'rules', label: 'Detection Rules' },
+  { id: 'packs', label: 'Rule Packs' },
+  { id: 'quality', label: 'Detection Quality' },
   { id: 'mitre', label: 'MITRE Coverage' },
-  { id: 'xdr', label: 'XDR Detections' },
+  { id: 'datasources', label: 'Data Sources' },
   { id: 'suppressions', label: 'Suppressions' },
+  { id: 'replay', label: 'Replay Lab' },
+  { id: 'reviews', label: 'Rule Reviews' },
+  { id: 'xdr', label: 'XDR Detections' },
   { id: 'analytics', label: 'Detection Analytics' },
-  { id: 'quality', label: 'Quality' },
 ];
 
 const VALID = TABS.map((t) => t.id);
@@ -75,6 +83,26 @@ export default function DetectionsPage() {
       {tab === 'quality' && (
         <EmbeddedPanel label="Detection quality">
           <DetectionQualityTab />
+        </EmbeddedPanel>
+      )}
+      {tab === 'packs' && (
+        <EmbeddedPanel label="Rule packs">
+          <RulePacks />
+        </EmbeddedPanel>
+      )}
+      {tab === 'datasources' && (
+        <EmbeddedPanel label="Data source coverage">
+          <DataSourceCoverage />
+        </EmbeddedPanel>
+      )}
+      {tab === 'replay' && (
+        <EmbeddedPanel label="Replay lab">
+          <ReplayLab />
+        </EmbeddedPanel>
+      )}
+      {tab === 'reviews' && (
+        <EmbeddedPanel label="Rule reviews">
+          <RuleReviews />
         </EmbeddedPanel>
       )}
     </ConsolePage>

@@ -14,6 +14,12 @@ export function canAccessAdminRoute(user) {
   return canAccessAdminShell(user);
 }
 
+function hasReportPerm(permissions, perm) {
+  if (!Array.isArray(permissions)) return false;
+  if (permissions.includes('*')) return true;
+  return permissions.includes(perm);
+}
+
 /** May open /admin (shell); tab visibility is finer-grained below. */
 export function canAccessAdminShell(user) {
   if (!user) return false;
@@ -26,6 +32,31 @@ export function canAccessAdminShell(user) {
     user.role === 'admin' ||
     user.role === 'super_admin'
   );
+}
+
+export function canViewReports(user, permissions = []) {
+  if (!user) return false;
+  if (isAuditorRole(user) || isReadOnlyViewer(user)) return true;
+  if (hasReportPerm(permissions, 'report:view')) return true;
+  return canSeeEnterpriseSettings(user);
+}
+
+export function canCreateReports(user, permissions = []) {
+  if (!user || isAuditorRole(user) || isReadOnlyViewer(user)) return false;
+  if (hasReportPerm(permissions, 'report:create')) return true;
+  return canSeeEnterpriseSettings(user);
+}
+
+export function canExportReports(user, permissions = []) {
+  if (!user || isAuditorRole(user) || isReadOnlyViewer(user)) return false;
+  if (hasReportPerm(permissions, 'report:export')) return true;
+  return canSeeEnterpriseSettings(user);
+}
+
+export function canDeleteReports(user, permissions = []) {
+  if (!user || isAuditorRole(user) || isReadOnlyViewer(user)) return false;
+  if (hasReportPerm(permissions, 'report:delete')) return true;
+  return user.role === 'super_admin' || user.role === 'admin';
 }
 
 export function canAccessUsersTab(user) {
@@ -47,9 +78,8 @@ export function canAccessAuditTab(user) {
   return Boolean(user) && canAccessAdminShell(user);
 }
 
-export function canAccessReportsTab(user) {
-  if (!user || isAuditorRole(user) || isReadOnlyViewer(user)) return false;
-  return canSeeEnterpriseSettings(user);
+export function canAccessReportsTab(user, permissions = []) {
+  return canViewReports(user, permissions);
 }
 
 export function canAccessSystemHealthTab(user) {

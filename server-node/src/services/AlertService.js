@@ -127,7 +127,19 @@ async function insertAlertRow(a) {
 async function createFromDetection(alerts) {
   const endpointIds = new Set();
   const AlertFingerprintService = require('./AlertFingerprintService');
+  const alertDeduplicationService = require('../modules/detections/alertDeduplicationService');
+  const AlertEvidenceRepository = require('../repositories/AlertEvidenceRepository');
+
   for (const a of alerts) {
+    let skipInsert = false;
+    try {
+      const dedup = await alertDeduplicationService.processDedup(a, a._norm || {});
+      if (dedup.duplicate) skipInsert = true;
+    } catch {
+      /* non-fatal */
+    }
+    if (skipInsert) continue;
+
     const result = await insertAlertRow(a);
     endpointIds.add(a.endpoint_id);
     const alertId = result?.insertId;
@@ -145,6 +157,11 @@ async function createFromDetection(alerts) {
           a
         );
         if (items.length) await AlertEvidenceService.insertMany(alertId, items);
+        const breakdown = a.detection_score_breakdown || a.why_fired?.detection_score_breakdown;
+        const conditions = breakdown?.matched_fields || a.why_fired?.matched_conditions || [];
+        await AlertEvidenceRepository.insertMatchedConditions(alertId, conditions);
+        const riskFactors = a.why_fired?.risk_breakdown || breakdown?.risk_factors || [];
+        await AlertEvidenceRepository.insertRiskBreakdown(alertId, riskFactors);
       } catch {
         /* non-fatal */
       }
@@ -299,13 +316,40 @@ async function getById(id) {
     breakdown = row.detection_score_breakdown;
   }
   const evidenceRows = await AlertEvidenceService.listByAlertId(id);
+  let structured = null;
+  try {
+    structured = await require('../repositories/AlertEvidenceRepository').listByAlertId(id);
+  } catch {
+    structured = null;
+  }
+
   row.why_fired = {
     rule_id: breakdown?.rule_id || evidence?.rule_id || row.rule_id,
-    rule_name: breakdown?.rule_name,
-    summary: row.description,
-    matched_fields: breakdown?.matched_fields || evidence?.matched_fields,
+    rule_name: breakdown?.rule_name || breakdown?.matched_rule?.name,
+    summary: evidence?.summary || breakdown?.summary || row.description,
+    matched_rule: breakdown?.matched_rule,
+    matched_fields: breakdown?.matched_fields || evidence?.matched_conditions || evidence?.matched_fields,
+    matched_conditions: structured?.conditions?.length
+      ? structured.conditions.map((c) => ({
+          field: c.field_name,
+          operator: c.operator,
+          expected: c.expected_value,
+          actual: c.actual_value,
+          matched: c.matched === 1,
+        }))
+      : breakdown?.matched_fields || evidence?.matched_fields,
+    risk_breakdown: structured?.risk?.length
+      ? structured.risk.map((r) => ({ factor: r.factor, points: r.points }))
+      : evidence?.risk_breakdown || breakdown?.risk_factors,
+    confidence_breakdown: evidence?.confidence_breakdown || breakdown?.confidence_factors,
+    recommended_triage: evidence?.recommended_triage || breakdown?.recommended_triage,
+    false_positive_notes: evidence?.false_positive_notes || breakdown?.false_positive_notes,
     condition_paths: breakdown?.matched_fields?.map((m) => m.condition_path),
     evidence: evidence?.evidence || evidence?.logic || evidence,
+    mitre: evidence?.mitre || breakdown?.mitre || {
+      tactics: row.mitre_tactic ? [row.mitre_tactic] : [],
+      techniques: row.mitre_technique ? [row.mitre_technique] : [],
+    },
     mitre_tactic: row.mitre_tactic,
     mitre_technique: row.mitre_technique,
     severity: row.severity,

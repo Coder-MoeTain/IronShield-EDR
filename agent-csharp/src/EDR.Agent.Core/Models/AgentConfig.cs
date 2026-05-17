@@ -104,4 +104,14 @@ public class AgentConfig
     /// When true (default), Windows agent applies Web & URL protection (IOC domains → hosts sinkhole) if policy allows.
     /// </summary>
     public bool WebUrlProtectionEnabled { get; set; } = true;
+
+    /// <summary>Collect installed software inventory and upload to server.</summary>
+    public bool SoftwareInventoryEnabled { get; set; } = true;
+
+    /// <summary>Hours between scheduled software inventory scans.</summary>
+    public int SoftwareInventoryIntervalHours { get; set; } = 24;
+
+    public bool SoftwareInventoryIncludeUserApps { get; set; } = true;
+
+    public bool SoftwareInventoryIncludeExecutablePaths { get; set; } = true;
 }

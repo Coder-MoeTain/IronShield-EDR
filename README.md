@@ -27,8 +27,8 @@
   <a href="#-architecture">Architecture</a> •
   <a href="#-api-overview">API</a> •
   <a href="docs/">Documentation</a> •
-  <a href="docs/falcon-parity-features.md">Falcon-class feature map</a> •
-  <a href="docs/crowdstrike-ui-phase1.md">Falcon-style UI (Phase 1)</a> •
+  <a href="docs/falcon-parity-features.md">Enterprise EDR feature parity</a> •
+  <a href="docs/crowdstrike-ui-phase1.md">Enterprise SOC UI (Phase 1)</a> •
   <a href="docs/crowdstrike-ui-phase4.md">Sensor telemetry (Phase 4)</a> •
   <a href="docs/crowdstrike-ui-phase5.md">Tenants (Phase 5)</a> •
   <a href="docs/crowdstrike-ui-phase6.md">Sensor updates (Phase 6)</a> •
@@ -36,10 +36,10 @@
   <a href="docs/crowdstrike-ui-phase8.md">EDR sensor policy (Phase 8)</a> •
   <a href="docs/crowdstrike-ui-phase9.md">Policy compliance (Phase 9)</a> •
   <a href="docs/crowdstrike-ui-phase10.md">Host timeline (Phase 10)</a> •
-  <a href="docs/falcon-advanced-ui.md">Falcon-class advanced UI (RTR, graph, analytics)</a> •
+  <a href="docs/falcon-advanced-ui.md">Advanced SOC UI (RTR, graph, analytics)</a> •
   <a href="docs/crowdstrike-detection-rules.md">Detection rules (Custom IOA)</a> •
   <a href="docs/detection-upgrade-plan.md">Detection upgrade plan</a> •
-  <a href="docs/crowdstrike-network-activity.md">Network activity (Falcon-style)</a> •
+  <a href="docs/crowdstrike-network-activity.md">Network Activity Console</a> •
   <a href="docs/enterprise-hardening.md">Enterprise hardening</a> •
   <a href="docs/UPGRADE_AUDIT.md">Enterprise upgrade (Phases 1–9)</a> •
   <a href="docs/ARCHITECTURE.md">Architecture</a> •
@@ -54,13 +54,13 @@
 | When | What |
 |:-----|:-----|
 | **May 2026** | **Compact EDR/XDR console** — Eight-page SOC navigation (`/overview`, `/endpoints`, `/detections`, `/investigation`, `/response`, `/hunting`, `/protection`, `/admin`) with tabbed modules, legacy URL redirects, UI modes (Simple / Advanced / Admin), and BFF endpoints `GET /api/v1/console/*`. |
-| **May 2026** | **Production hardening (pilot-ready)** — `/api/v1`, agent key hashing, Redis nonces, cert binding, **52** IRN-WIN rules, ESLint in CI, [api.md](docs/api.md) rewrite. See [enterprise-hardening.md](docs/enterprise-hardening.md). |
-| **May 2026** | **Enterprise upgrade (Phases 1–9)** — Foundation hardening, formal migrations, agent trust (DPAPI, signed requests, signed response commands), detection-as-code (**31** IRN-WIN rules), SOC triage/MITRE/health UI, integrations & reports, `docker-compose.dev.yml` / `docker-compose.prod.yml`. Full checklist: [UPGRADE_AUDIT.md](docs/UPGRADE_AUDIT.md). |
+| **May 2026** | **Production hardening (pilot-ready)** — `/api/v1`, agent key hashing, Redis nonces, cert binding, **52** IRN-WIN rules (current pack), ESLint in CI, [api.md](docs/api.md) rewrite. See [enterprise-hardening.md](docs/enterprise-hardening.md). |
+| **May 2026** | **Enterprise upgrade (Phases 1–9)** — Foundation hardening, formal migrations, agent trust (DPAPI, signed requests, signed response commands), detection-as-code (**31** IRN-WIN rules in Phase 5; pack grew to **52**), SOC triage/MITRE/health UI, integrations & reports, `docker-compose.dev.yml` / `docker-compose.prod.yml`. Full checklist: [UPGRADE_AUDIT.md](docs/UPGRADE_AUDIT.md). |
 | **Mar 2026** | **Host detail UX** — `/endpoints/:id` uses a tabbed console layout (**Overview**, **Sensor & policies**, **Inventory**, **Response**): KPI strip, consolidated system/health/resource cards, trimmed operational copy, and removal of the legacy one-click demo remediation block. |
 | **Mar 2026** | **README screenshots** — Real UI captures live in [`docs/images/`](docs/images/) (PNG). Regenerate with Playwright after UI changes (see [Screenshots](#screenshots)). |
 | **Mar 2026** | **XDR UI + integrations** — XDR pages for `xdr_events` and `xdr_detections`, live **Realtime** feed (`/ws`), host/network bandwidth (RX/TX Mbps), and Enterprise settings for **3rd‑party IP blacklist feeds** → IOC watchlist (`/api/admin/xdr/ip-feeds`). |
-| **Mar 2025** | **Network activity (Falcon-style)** — Explore page: KPI strip (`GET /api/admin/network/summary`), time window + endpoint filters, **Exclude localhost**, remote IP / process search, **Scope** badges, tabs (Connections, Outgoing IPs, Traffic by endpoint, Network logs). Docs: [crowdstrike-network-activity.md](docs/crowdstrike-network-activity.md). |
-| **Earlier** | Falcon parity phases (sensor telemetry, tenants, NGAV, EDR policy, policy compliance, host timeline), **Detection rules** (Custom IOA), **RTR**, **Threat graph**, **Hunting**, **IOC** watchlist — see [falcon-parity-features.md](docs/falcon-parity-features.md). |
+| **Mar 2025** | **Network Activity Console** — Explore page: KPI strip (`GET /api/admin/network/summary`), time window + endpoint filters, **Exclude localhost**, remote IP / process search, **Scope** badges, tabs (Connections, Outgoing IPs, Traffic by endpoint, Network logs). Docs: [crowdstrike-network-activity.md](docs/crowdstrike-network-activity.md). |
+| **Earlier** | Enterprise EDR parity phases (sensor telemetry, tenants, NGAV, EDR policy, policy compliance, host timeline), **Detection rules** (Custom IOA), **RTR**, **Threat graph**, **Hunting**, **IOC** watchlist — see [falcon-parity-features.md](docs/falcon-parity-features.md). |
 
 ### Enterprise upgrade (Phases 1–9)
 
@@ -72,7 +72,7 @@ Phased upgrade toward production-grade enterprise EDR (defensive only). Baseline
 | **2 — Data layer** | `npm run migrate` / `migrate:status` / `migrate:rollback` / `seed`, `tenant_id` on events/alerts, `agent_nonces`, tenant isolation tests |
 | **3 — Agent trust** | Windows DPAPI for agent keys, single-use enrollment tokens, HMAC request signing + MySQL nonces, **signed response commands** (agent verifies before execute), [mTLS enrollment guide](docs/security/agent-mtls-enrollment.md) |
 | **4 — Telemetry** | Canonical event schema (Zod), `event_id` idempotency, queue-first ingest (`INGEST_QUEUE_FIRST`, Redis worker) |
-| **5 — Detection** | `server-node/detections/` (**52** IRN-WIN JSON rules), `detections:validate` / `detections:test`, MITRE coverage API + dashboard (`/mitre`) |
+| **5 — Detection** | `server-node/detections/` (**31** IRN-WIN rules shipped in Phase 5; **52** in current pack), `detections:validate` / `detections:test`, MITRE coverage API + dashboard (`/detections?tab=mitre`) |
 | **6 — SOC workflows** | Alert `risk_score` / `evidence_summary` / **why fired**, response lifecycle fields, integration export on new alerts |
 | **7 — Dashboard** | Triage queue (`/soc/triage`), host timeline (`/hosts/:id/timeline`), system health, integrations & reports pages, demo banner (`VITE_DEMO_MODE=true`) |
 | **8 — Integrations** | Webhook + Splunk HEC providers, report jobs (JSON/HTML) with audit + download |
@@ -137,7 +137,7 @@ Vector assets (`assets/banner.svg`, `assets/screenshot-*.svg`) remain available 
 ### Core Capabilities
 
 - **Endpoint Monitoring** — Process events, Windows Event Log, network connections, file hashing
-- **Detection Engine** — DB-backed rules plus **detection-as-code** (`server-node/detections/windows/`, IRN-WIN-* pack) with MITRE ATT&CK mapping
+- **Detection Engine** — DB-backed rules plus **detection-as-code** (`server-node/detections/windows/`, **52** IRN-WIN rules in the current pack; Phase 5 initially shipped **31**) with MITRE ATT&CK mapping
 - **Response Actions** — Kill process, triage collection, host isolation (policy)
 - **Real Time Response (RTR)** — Remote shell sessions + command queueing, with allowlists and audit trail
 - **MSSP Operations** — Per-client overview (endpoints, alerts, investigations) for internal SOC workflows
@@ -152,7 +152,7 @@ Vector assets (`assets/banner.svg`, `assets/screenshot-*.svg`) remain available 
 ### Dashboard Highlights
 
 - **Host detail** — Tabbed host console: overview KPIs, sensor/policy/NGAV strips, inventory (timeline, ports, disk, shares, connections), and response (RTR, queued actions, policy, triage, playbooks); see [screenshots](#screenshots)
-- **Network activity** — Falcon-style Explore view: KPIs, filters, scope badges, logs ([docs](docs/crowdstrike-network-activity.md); [screenshots](#screenshots))
+- **Network Activity Console** — Enterprise explore view: KPIs, filters, scope badges, logs ([docs](docs/crowdstrike-network-activity.md); [screenshots](#screenshots))
 - **Bandwidth telemetry** — Agent-reported RX/TX Mbps in host metrics and Network Explore when filtering by endpoint
 - **Process Monitor** — Suspect process detection with suspicious path indicators
 - **Process Tree** — Visualize process hierarchy from normalized events
@@ -232,6 +232,10 @@ npm run detections:validate
 npm run detections:test
 npm run audit:verify
 npm run docs:status-check
+npm run test:console-bff
+npm run test:dashboard-tabs
+npm run test:permissions
+npm run test:legacy-redirects
 npm run lint
 cd dashboard && npm run lint
 ```
@@ -335,7 +339,7 @@ Start-Service EDR.Agent
 
 **Docs:** [ARCHITECTURE.md](docs/ARCHITECTURE.md) (telemetry pipeline, detection-as-code) · [SECURITY_MODEL.md](docs/SECURITY_MODEL.md) (trust boundaries) · [UPGRADE_AUDIT.md](docs/UPGRADE_AUDIT.md) (phase checklist)
 
-**Roadmap & Falcon-style parity:** See [docs/crowdstrike-parity-roadmap.md](docs/crowdstrike-parity-roadmap.md) for capability analysis beyond the Phases 1–9 upgrade.
+**IronShield roadmap & enterprise parity:** See [docs/crowdstrike-parity-roadmap.md](docs/crowdstrike-parity-roadmap.md) for capability analysis beyond the Phases 1–9 upgrade (internal comparison notes).
 
 ---
 

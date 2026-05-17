@@ -44,4 +44,11 @@ async function queryOne(sql, params = []) {
   return rows[0] || null;
 }
 
-module.exports = { getPool, query, queryOne, execute };
+async function closePool() {
+  if (pool) {
+    await pool.end();
+    pool = null;
+  }
+}
+
+module.exports = { getPool, query, queryOne, execute, closePool };

@@ -1,0 +1,1923 @@
+{
+  "generated_at": "2026-05-17T02:35:43.440Z",
+  "rule_count": 52,
+  "mitre": {
+    "tactics": [
+      "Reconnaissance",
+      "Resource Development",
+      "Initial Access",
+      "Execution",
+      "Persistence",
+      "Privilege Escalation",
+      "Defense Evasion",
+      "Credential Access",
+      "Discovery",
+      "Lateral Movement",
+      "Collection",
+      "Command and Control",
+      "Exfiltration",
+      "Impact"
+    ],
+    "matrix": [
+      {
+        "tactic": "Reconnaissance",
+        "techniques": []
+      },
+      {
+        "tactic": "Resource Development",
+        "techniques": []
+      },
+      {
+        "tactic": "Initial Access",
+        "techniques": [
+          {
+            "technique": "T1566.001",
+            "rules": [
+              {
+                "id": "IRN-WIN-0100",
+                "name": "Office Spawning PowerShell",
+                "status": "stable",
+                "source": "code",
+                "severity": "high",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          }
+        ]
+      },
+      {
+        "tactic": "Execution",
+        "techniques": [
+          {
+            "technique": "T1218",
+            "rules": [
+              {
+                "id": "IRN-WIN-0010",
+                "name": "Suspicious Certutil Usage",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              },
+              {
+                "id": "IRN-WIN-0022",
+                "name": "Regsvcs LOLBin",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1059.001",
+            "rules": [
+              {
+                "id": "IRN-WIN-0001",
+                "name": "Suspicious Encoded PowerShell Command",
+                "status": "stable",
+                "source": "code",
+                "severity": "high",
+                "platform": "windows",
+                "data_sources": [
+                  "process_creation"
+                ]
+              },
+              {
+                "id": "IRN-WIN-0017",
+                "name": "PowerShell from User Temp Path",
+                "status": "stable",
+                "source": "code",
+                "severity": "high",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "tested"
+          },
+          {
+            "technique": "T1059.003",
+            "rules": [
+              {
+                "id": "IRN-WIN-0002",
+                "name": "Command Shell Spawned From Office Process",
+                "status": "stable",
+                "source": "code",
+                "severity": "high",
+                "platform": "windows",
+                "data_sources": []
+              },
+              {
+                "id": "IRN-WIN-0016",
+                "name": "Cmd from Script Interpreter",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              },
+              {
+                "id": "IRN-WIN-0018",
+                "name": "Cmd from Temp Directory",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1218.005",
+            "rules": [
+              {
+                "id": "IRN-WIN-0011",
+                "name": "Mshta Script Execution",
+                "status": "stable",
+                "source": "code",
+                "severity": "high",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1218.010",
+            "rules": [
+              {
+                "id": "IRN-WIN-0012",
+                "name": "Regsvr32 Squiblydoo",
+                "status": "stable",
+                "source": "code",
+                "severity": "high",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1218.011",
+            "rules": [
+              {
+                "id": "IRN-WIN-0013",
+                "name": "Rundll32 No DLL",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1059.005",
+            "rules": [
+              {
+                "id": "IRN-WIN-0014",
+                "name": "Wscript Script Host",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              },
+              {
+                "id": "IRN-WIN-0015",
+                "name": "Cscript Script Host",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1202",
+            "rules": [
+              {
+                "id": "IRN-WIN-0019",
+                "name": "Forfiles LOLBin Execution",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          }
+        ]
+      },
+      {
+        "tactic": "Persistence",
+        "techniques": [
+          {
+            "technique": "T1547.001",
+            "rules": [
+              {
+                "id": "IRN-WIN-0020",
+                "name": "Run Key Persistence",
+                "status": "stable",
+                "source": "code",
+                "severity": "high",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1053.005",
+            "rules": [
+              {
+                "id": "IRN-WIN-0021",
+                "name": "Scheduled Task Creation",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1543.003",
+            "rules": [
+              {
+                "id": "IRN-WIN-0023",
+                "name": "New Service via SC",
+                "status": "stable",
+                "source": "code",
+                "severity": "high",
+                "platform": "windows",
+                "data_sources": []
+              },
+              {
+                "id": "IRN-WIN-0024",
+                "name": "PowerShell New-Service",
+                "status": "stable",
+                "source": "code",
+                "severity": "high",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          }
+        ]
+      },
+      {
+        "tactic": "Privilege Escalation",
+        "techniques": [
+          {
+            "technique": "T1548.002",
+            "rules": [
+              {
+                "id": "IRN-WIN-0030",
+                "name": "UAC Bypass via Fodhelper",
+                "status": "stable",
+                "source": "code",
+                "severity": "high",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1134",
+            "rules": [
+              {
+                "id": "IRN-WIN-0031",
+                "name": "Runas Elevated Execution",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          }
+        ]
+      },
+      {
+        "tactic": "Defense Evasion",
+        "techniques": [
+          {
+            "technique": "T1218",
+            "rules": [
+              {
+                "id": "IRN-WIN-0010",
+                "name": "Suspicious Certutil Usage",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              },
+              {
+                "id": "IRN-WIN-0022",
+                "name": "Regsvcs LOLBin",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1562.001",
+            "rules": [
+              {
+                "id": "IRN-WIN-0040",
+                "name": "Disable Windows Defender",
+                "status": "stable",
+                "source": "code",
+                "severity": "critical",
+                "platform": "windows",
+                "data_sources": []
+              },
+              {
+                "id": "IRN-WIN-0044",
+                "name": "Tamper with Defender via Set-MpPreference",
+                "status": "stable",
+                "source": "code",
+                "severity": "critical",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1070.001",
+            "rules": [
+              {
+                "id": "IRN-WIN-0041",
+                "name": "Clear Security Event Log",
+                "status": "stable",
+                "source": "code",
+                "severity": "high",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1047",
+            "rules": [
+              {
+                "id": "IRN-WIN-0042",
+                "name": "Suspicious WMIC Process",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1140",
+            "rules": [
+              {
+                "id": "IRN-WIN-0043",
+                "name": "Certutil Decode File",
+                "status": "stable",
+                "source": "code",
+                "severity": "high",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1564.001",
+            "rules": [
+              {
+                "id": "IRN-WIN-0045",
+                "name": "Attrib Hide File",
+                "status": "stable",
+                "source": "code",
+                "severity": "low",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1059.001",
+            "rules": [
+              {
+                "id": "IRN-WIN-0001",
+                "name": "Suspicious Encoded PowerShell Command",
+                "status": "stable",
+                "source": "code",
+                "severity": "high",
+                "platform": "windows",
+                "data_sources": [
+                  "process_creation"
+                ]
+              },
+              {
+                "id": "IRN-WIN-0017",
+                "name": "PowerShell from User Temp Path",
+                "status": "stable",
+                "source": "code",
+                "severity": "high",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "tested"
+          }
+        ]
+      },
+      {
+        "tactic": "Credential Access",
+        "techniques": [
+          {
+            "technique": "T1003.001",
+            "rules": [
+              {
+                "id": "IRN-WIN-0050",
+                "name": "LSASS Memory Access Tool",
+                "status": "stable",
+                "source": "code",
+                "severity": "critical",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1003",
+            "rules": [
+              {
+                "id": "IRN-WIN-0051",
+                "name": "Mimikatz Name Indicator",
+                "status": "stable",
+                "source": "code",
+                "severity": "critical",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          }
+        ]
+      },
+      {
+        "tactic": "Discovery",
+        "techniques": [
+          {
+            "technique": "T1018",
+            "rules": [
+              {
+                "id": "IRN-WIN-0060",
+                "name": "Network Discovery via nltest",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1087.002",
+            "rules": [
+              {
+                "id": "IRN-WIN-0061",
+                "name": "AD Recon with dsquery",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1046",
+            "rules": [
+              {
+                "id": "IRN-WIN-0062",
+                "name": "Port Scan with Test-NetConnection",
+                "status": "stable",
+                "source": "code",
+                "severity": "low",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1033",
+            "rules": [
+              {
+                "id": "IRN-WIN-0063",
+                "name": "Whoami Full Output",
+                "status": "stable",
+                "source": "code",
+                "severity": "low",
+                "platform": "windows",
+                "data_sources": []
+              },
+              {
+                "id": "IRN-WIN-0069",
+                "name": "Quser Session Discovery",
+                "status": "stable",
+                "source": "code",
+                "severity": "low",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1087.001",
+            "rules": [
+              {
+                "id": "IRN-WIN-0064",
+                "name": "Net User Enumeration",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1069.001",
+            "rules": [
+              {
+                "id": "IRN-WIN-0065",
+                "name": "Net Group Enumeration",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1016",
+            "rules": [
+              {
+                "id": "IRN-WIN-0066",
+                "name": "Ipconfig All Adapters",
+                "status": "stable",
+                "source": "code",
+                "severity": "low",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1082",
+            "rules": [
+              {
+                "id": "IRN-WIN-0067",
+                "name": "Systeminfo Recon",
+                "status": "stable",
+                "source": "code",
+                "severity": "low",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1057",
+            "rules": [
+              {
+                "id": "IRN-WIN-0068",
+                "name": "Tasklist Process Survey",
+                "status": "stable",
+                "source": "code",
+                "severity": "low",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1135",
+            "rules": [
+              {
+                "id": "IRN-WIN-0072",
+                "name": "Net View Share Discovery",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          }
+        ]
+      },
+      {
+        "tactic": "Lateral Movement",
+        "techniques": [
+          {
+            "technique": "T1021.002",
+            "rules": [
+              {
+                "id": "IRN-WIN-0070",
+                "name": "Remote Service via PsExec",
+                "status": "stable",
+                "source": "code",
+                "severity": "high",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1021.003",
+            "rules": [
+              {
+                "id": "IRN-WIN-0071",
+                "name": "WMI Remote Process",
+                "status": "stable",
+                "source": "code",
+                "severity": "high",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          }
+        ]
+      },
+      {
+        "tactic": "Collection",
+        "techniques": [
+          {
+            "technique": "T1560.001",
+            "rules": [
+              {
+                "id": "IRN-WIN-0080",
+                "name": "Archive Sensitive Data",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1560",
+            "rules": [
+              {
+                "id": "IRN-WIN-0081",
+                "name": "7zip Archive Creation",
+                "status": "stable",
+                "source": "code",
+                "severity": "low",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          }
+        ]
+      },
+      {
+        "tactic": "Command and Control",
+        "techniques": [
+          {
+            "technique": "T1197",
+            "rules": [
+              {
+                "id": "IRN-WIN-0090",
+                "name": "Suspicious Bitsadmin Download",
+                "status": "stable",
+                "source": "code",
+                "severity": "high",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1105",
+            "rules": [
+              {
+                "id": "IRN-WIN-0091",
+                "name": "Curl Download to Temp",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              },
+              {
+                "id": "IRN-WIN-0092",
+                "name": "Wget External Download",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              },
+              {
+                "id": "IRN-WIN-0093",
+                "name": "PowerShell Download Cradle",
+                "status": "stable",
+                "source": "code",
+                "severity": "high",
+                "platform": "windows",
+                "data_sources": []
+              },
+              {
+                "id": "IRN-WIN-0094",
+                "name": "Invoke-WebRequest Download",
+                "status": "stable",
+                "source": "code",
+                "severity": "high",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          }
+        ]
+      },
+      {
+        "tactic": "Exfiltration",
+        "techniques": []
+      },
+      {
+        "tactic": "Impact",
+        "techniques": [
+          {
+            "technique": "T1490",
+            "rules": [
+              {
+                "id": "IRN-WIN-0110",
+                "name": "Vssadmin Delete Shadows",
+                "status": "stable",
+                "source": "code",
+                "severity": "critical",
+                "platform": "windows",
+                "data_sources": []
+              },
+              {
+                "id": "IRN-WIN-0111",
+                "name": "Bcdedit Recovery Disabled",
+                "status": "stable",
+                "source": "code",
+                "severity": "critical",
+                "platform": "windows",
+                "data_sources": []
+              },
+              {
+                "id": "IRN-WIN-0112",
+                "name": "Wmic Shadow Copy Delete",
+                "status": "stable",
+                "source": "code",
+                "severity": "critical",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          },
+          {
+            "technique": "T1485",
+            "rules": [
+              {
+                "id": "IRN-WIN-0113",
+                "name": "Cipher Secure Delete",
+                "status": "stable",
+                "source": "code",
+                "severity": "medium",
+                "platform": "windows",
+                "data_sources": []
+              }
+            ],
+            "alert_count": 0,
+            "coverage_level": "stable"
+          }
+        ]
+      }
+    ],
+    "techniques_covered": 39,
+    "techniques": {
+      "T1560.001": {
+        "technique": "T1560.001",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0080",
+            "name": "Archive Sensitive Data",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1560": {
+        "technique": "T1560",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0081",
+            "name": "7zip Archive Creation",
+            "status": "stable",
+            "source": "code",
+            "severity": "low",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1197": {
+        "technique": "T1197",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0090",
+            "name": "Suspicious Bitsadmin Download",
+            "status": "stable",
+            "source": "code",
+            "severity": "high",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1105": {
+        "technique": "T1105",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0091",
+            "name": "Curl Download to Temp",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          },
+          {
+            "id": "IRN-WIN-0092",
+            "name": "Wget External Download",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          },
+          {
+            "id": "IRN-WIN-0093",
+            "name": "PowerShell Download Cradle",
+            "status": "stable",
+            "source": "code",
+            "severity": "high",
+            "platform": "windows",
+            "data_sources": []
+          },
+          {
+            "id": "IRN-WIN-0094",
+            "name": "Invoke-WebRequest Download",
+            "status": "stable",
+            "source": "code",
+            "severity": "high",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 4,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1003.001": {
+        "technique": "T1003.001",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0050",
+            "name": "LSASS Memory Access Tool",
+            "status": "stable",
+            "source": "code",
+            "severity": "critical",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1003": {
+        "technique": "T1003",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0051",
+            "name": "Mimikatz Name Indicator",
+            "status": "stable",
+            "source": "code",
+            "severity": "critical",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1218": {
+        "technique": "T1218",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0010",
+            "name": "Suspicious Certutil Usage",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          },
+          {
+            "id": "IRN-WIN-0022",
+            "name": "Regsvcs LOLBin",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 2,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1562.001": {
+        "technique": "T1562.001",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0040",
+            "name": "Disable Windows Defender",
+            "status": "stable",
+            "source": "code",
+            "severity": "critical",
+            "platform": "windows",
+            "data_sources": []
+          },
+          {
+            "id": "IRN-WIN-0044",
+            "name": "Tamper with Defender via Set-MpPreference",
+            "status": "stable",
+            "source": "code",
+            "severity": "critical",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 2,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1070.001": {
+        "technique": "T1070.001",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0041",
+            "name": "Clear Security Event Log",
+            "status": "stable",
+            "source": "code",
+            "severity": "high",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1047": {
+        "technique": "T1047",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0042",
+            "name": "Suspicious WMIC Process",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1140": {
+        "technique": "T1140",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0043",
+            "name": "Certutil Decode File",
+            "status": "stable",
+            "source": "code",
+            "severity": "high",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1564.001": {
+        "technique": "T1564.001",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0045",
+            "name": "Attrib Hide File",
+            "status": "stable",
+            "source": "code",
+            "severity": "low",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1018": {
+        "technique": "T1018",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0060",
+            "name": "Network Discovery via nltest",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1087.002": {
+        "technique": "T1087.002",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0061",
+            "name": "AD Recon with dsquery",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1046": {
+        "technique": "T1046",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0062",
+            "name": "Port Scan with Test-NetConnection",
+            "status": "stable",
+            "source": "code",
+            "severity": "low",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1033": {
+        "technique": "T1033",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0063",
+            "name": "Whoami Full Output",
+            "status": "stable",
+            "source": "code",
+            "severity": "low",
+            "platform": "windows",
+            "data_sources": []
+          },
+          {
+            "id": "IRN-WIN-0069",
+            "name": "Quser Session Discovery",
+            "status": "stable",
+            "source": "code",
+            "severity": "low",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 2,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1087.001": {
+        "technique": "T1087.001",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0064",
+            "name": "Net User Enumeration",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1069.001": {
+        "technique": "T1069.001",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0065",
+            "name": "Net Group Enumeration",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1016": {
+        "technique": "T1016",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0066",
+            "name": "Ipconfig All Adapters",
+            "status": "stable",
+            "source": "code",
+            "severity": "low",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1082": {
+        "technique": "T1082",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0067",
+            "name": "Systeminfo Recon",
+            "status": "stable",
+            "source": "code",
+            "severity": "low",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1057": {
+        "technique": "T1057",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0068",
+            "name": "Tasklist Process Survey",
+            "status": "stable",
+            "source": "code",
+            "severity": "low",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1135": {
+        "technique": "T1135",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0072",
+            "name": "Net View Share Discovery",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1059.001": {
+        "technique": "T1059.001",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0001",
+            "name": "Suspicious Encoded PowerShell Command",
+            "status": "stable",
+            "source": "code",
+            "severity": "high",
+            "platform": "windows",
+            "data_sources": [
+              "process_creation"
+            ]
+          },
+          {
+            "id": "IRN-WIN-0017",
+            "name": "PowerShell from User Temp Path",
+            "status": "stable",
+            "source": "code",
+            "severity": "high",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 2,
+        "experimental_rules": 0,
+        "with_tests": 1,
+        "alert_count": 0,
+        "coverage_level": "tested"
+      },
+      "T1059.003": {
+        "technique": "T1059.003",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0002",
+            "name": "Command Shell Spawned From Office Process",
+            "status": "stable",
+            "source": "code",
+            "severity": "high",
+            "platform": "windows",
+            "data_sources": []
+          },
+          {
+            "id": "IRN-WIN-0016",
+            "name": "Cmd from Script Interpreter",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          },
+          {
+            "id": "IRN-WIN-0018",
+            "name": "Cmd from Temp Directory",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 3,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1218.005": {
+        "technique": "T1218.005",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0011",
+            "name": "Mshta Script Execution",
+            "status": "stable",
+            "source": "code",
+            "severity": "high",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1218.010": {
+        "technique": "T1218.010",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0012",
+            "name": "Regsvr32 Squiblydoo",
+            "status": "stable",
+            "source": "code",
+            "severity": "high",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1218.011": {
+        "technique": "T1218.011",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0013",
+            "name": "Rundll32 No DLL",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1059.005": {
+        "technique": "T1059.005",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0014",
+            "name": "Wscript Script Host",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          },
+          {
+            "id": "IRN-WIN-0015",
+            "name": "Cscript Script Host",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 2,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1202": {
+        "technique": "T1202",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0019",
+            "name": "Forfiles LOLBin Execution",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1490": {
+        "technique": "T1490",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0110",
+            "name": "Vssadmin Delete Shadows",
+            "status": "stable",
+            "source": "code",
+            "severity": "critical",
+            "platform": "windows",
+            "data_sources": []
+          },
+          {
+            "id": "IRN-WIN-0111",
+            "name": "Bcdedit Recovery Disabled",
+            "status": "stable",
+            "source": "code",
+            "severity": "critical",
+            "platform": "windows",
+            "data_sources": []
+          },
+          {
+            "id": "IRN-WIN-0112",
+            "name": "Wmic Shadow Copy Delete",
+            "status": "stable",
+            "source": "code",
+            "severity": "critical",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 3,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1485": {
+        "technique": "T1485",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0113",
+            "name": "Cipher Secure Delete",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1566.001": {
+        "technique": "T1566.001",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0100",
+            "name": "Office Spawning PowerShell",
+            "status": "stable",
+            "source": "code",
+            "severity": "high",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1021.002": {
+        "technique": "T1021.002",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0070",
+            "name": "Remote Service via PsExec",
+            "status": "stable",
+            "source": "code",
+            "severity": "high",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1021.003": {
+        "technique": "T1021.003",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0071",
+            "name": "WMI Remote Process",
+            "status": "stable",
+            "source": "code",
+            "severity": "high",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1547.001": {
+        "technique": "T1547.001",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0020",
+            "name": "Run Key Persistence",
+            "status": "stable",
+            "source": "code",
+            "severity": "high",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1053.005": {
+        "technique": "T1053.005",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0021",
+            "name": "Scheduled Task Creation",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1543.003": {
+        "technique": "T1543.003",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0023",
+            "name": "New Service via SC",
+            "status": "stable",
+            "source": "code",
+            "severity": "high",
+            "platform": "windows",
+            "data_sources": []
+          },
+          {
+            "id": "IRN-WIN-0024",
+            "name": "PowerShell New-Service",
+            "status": "stable",
+            "source": "code",
+            "severity": "high",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 2,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1548.002": {
+        "technique": "T1548.002",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0030",
+            "name": "UAC Bypass via Fodhelper",
+            "status": "stable",
+            "source": "code",
+            "severity": "high",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      },
+      "T1134": {
+        "technique": "T1134",
+        "tactics": {},
+        "rules": [
+          {
+            "id": "IRN-WIN-0031",
+            "name": "Runas Elevated Execution",
+            "status": "stable",
+            "source": "code",
+            "severity": "medium",
+            "platform": "windows",
+            "data_sources": []
+          }
+        ],
+        "stable_rules": 1,
+        "experimental_rules": 0,
+        "with_tests": 0,
+        "alert_count": 0,
+        "coverage_level": "stable"
+      }
+    },
+    "gaps": [],
+    "coverage_levels": [
+      "none",
+      "experimental",
+      "stable",
+      "tested",
+      "active"
+    ]
+  },
+  "data_sources": {
+    "data_sources": [
+      {
+        "data_source": "process_creation",
+        "endpoints_reporting": 0,
+        "endpoints_total": 0,
+        "rules_depending": [
+          "IRN-WIN-0080",
+          "IRN-WIN-0081",
+          "IRN-WIN-0090",
+          "IRN-WIN-0091",
+          "IRN-WIN-0092",
+          "IRN-WIN-0093",
+          "IRN-WIN-0094",
+          "IRN-WIN-0050",
+          "IRN-WIN-0051",
+          "IRN-WIN-0010",
+          "IRN-WIN-0040",
+          "IRN-WIN-0041",
+          "IRN-WIN-0042",
+          "IRN-WIN-0043",
+          "IRN-WIN-0044",
+          "IRN-WIN-0045",
+          "IRN-WIN-0060",
+          "IRN-WIN-0061",
+          "IRN-WIN-0062",
+          "IRN-WIN-0063",
+          "IRN-WIN-0064",
+          "IRN-WIN-0065",
+          "IRN-WIN-0066",
+          "IRN-WIN-0067",
+          "IRN-WIN-0068",
+          "IRN-WIN-0069",
+          "IRN-WIN-0072",
+          "IRN-WIN-0001",
+          "IRN-WIN-0002",
+          "IRN-WIN-0011",
+          "IRN-WIN-0012",
+          "IRN-WIN-0013",
+          "IRN-WIN-0014",
+          "IRN-WIN-0015",
+          "IRN-WIN-0016",
+          "IRN-WIN-0017",
+          "IRN-WIN-0018",
+          "IRN-WIN-0019",
+          "IRN-WIN-0022",
+          "IRN-WIN-0110",
+          "IRN-WIN-0111",
+          "IRN-WIN-0112",
+          "IRN-WIN-0113",
+          "IRN-WIN-0100",
+          "IRN-WIN-0070",
+          "IRN-WIN-0071",
+          "IRN-WIN-0020",
+          "IRN-WIN-0021",
+          "IRN-WIN-0023",
+          "IRN-WIN-0024",
+          "IRN-WIN-0030",
+          "IRN-WIN-0031"
+        ],
+        "rule_count": 52
+      },
+      {
+        "data_source": "process_termination",
+        "endpoints_reporting": 0,
+        "endpoints_total": 0,
+        "rules_depending": [],
+        "rule_count": 0
+      },
+      {
+        "data_source": "network_connection",
+        "endpoints_reporting": 0,
+        "endpoints_total": 0,
+        "rules_depending": [],
+        "rule_count": 0
+      },
+      {
+        "data_source": "file_event",
+        "endpoints_reporting": 0,
+        "endpoints_total": 0,
+        "rules_depending": [],
+        "rule_count": 0
+      },
+      {
+        "data_source": "registry_event",
+        "endpoints_reporting": 0,
+        "endpoints_total": 0,
+        "rules_depending": [],
+        "rule_count": 0
+      },
+      {
+        "data_source": "powershell_event",
+        "endpoints_reporting": 0,
+        "endpoints_total": 0,
+        "rules_depending": [],
+        "rule_count": 0
+      },
+      {
+        "data_source": "windows_security_event",
+        "endpoints_reporting": 0,
+        "endpoints_total": 0,
+        "rules_depending": [],
+        "rule_count": 0
+      },
+      {
+        "data_source": "defender_event",
+        "endpoints_reporting": 0,
+        "endpoints_total": 0,
+        "rules_depending": [],
+        "rule_count": 0
+      },
+      {
+        "data_source": "dns_event",
+        "endpoints_reporting": 0,
+        "endpoints_total": 0,
+        "rules_depending": [],
+        "rule_count": 0
+      },
+      {
+        "data_source": "authentication_event",
+        "endpoints_reporting": 0,
+        "endpoints_total": 0,
+        "rules_depending": [],
+        "rule_count": 0
+      }
+    ]
+  }
+}

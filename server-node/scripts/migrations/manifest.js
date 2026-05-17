@@ -87,6 +87,16 @@ const manifest = [
     description: 'Enterprise pilot: nonces, alert evidence, incidents, RTR, trust metrics',
     module: path.join(__dirname, '20260518120000_enterprise_pilot_hardening.js'),
   },
+  {
+    id: '20260517180000_detection_engineering',
+    description: 'Detection engineering: explainability tables, quality metrics, suppressions, packs',
+    module: path.join(__dirname, '20260517180000_detection_engineering.js'),
+  },
+  {
+    id: '20260519120000_software_risk_management',
+    description: 'Software inventory, vulnerability risk, remediation, block policies',
+    module: path.join(__dirname, '20260519120000_software_risk_management.js'),
+  },
 ];
 
 module.exports = { manifest, LEGACY_DIR };

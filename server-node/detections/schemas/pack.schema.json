@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ironshield.local/schemas/detection-pack.json",
+  "title": "IronShield Detection Rule Pack",
+  "type": "object",
+  "required": ["id", "name", "description", "version", "platform", "rules"],
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "version": { "type": "string" },
+    "platform": { "type": "string" },
+    "rules": { "type": "array", "items": { "type": "string" } },
+    "enabled_by_default": { "type": "boolean" },
+    "minimum_agent_version": { "type": "string" },
+    "data_sources_required": { "type": "array", "items": { "type": "string" } }
+  }
+}

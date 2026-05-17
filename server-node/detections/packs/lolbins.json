@@ -1,0 +1,10 @@
+{
+  "id": "lolbins",
+  "name": "LOLBins",
+  "description": "Living-off-the-land binary abuse detections.",
+  "version": "1.0.0",
+  "platform": "windows",
+  "enabled_by_default": true,
+  "data_sources_required": ["process_creation"],
+  "rules": ["IRN-WIN-0011", "IRN-WIN-0012", "IRN-WIN-0013", "IRN-WIN-0019", "IRN-WIN-0022"]
+}

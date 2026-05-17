@@ -249,6 +249,48 @@ export default function AlertDetail() {
             <dd>{alert.why_fired.rule_name || alert.why_fired.rule_id || '—'}</dd>
             <dt>Risk score</dt>
             <dd>{alert.why_fired.risk_score ?? alert.risk_score ?? '—'}</dd>
+            <dt>Confidence</dt>
+            <dd>
+              {alert.why_fired.confidence != null
+                ? `${Math.round(Number(alert.why_fired.confidence) * 100)}%`
+                : '—'}
+            </dd>
+            {alert.why_fired.confidence_breakdown?.length > 0 && (
+              <>
+                <dt>Confidence breakdown</dt>
+                <dd>
+                  <ul>
+                    {alert.why_fired.confidence_breakdown.map((f, i) => (
+                      <li key={i}>{f.factor}: +{f.points}</li>
+                    ))}
+                  </ul>
+                </dd>
+              </>
+            )}
+            {alert.why_fired.false_positive_notes?.length > 0 && (
+              <>
+                <dt>False positive notes</dt>
+                <dd>
+                  <ul>
+                    {alert.why_fired.false_positive_notes.map((n, i) => (
+                      <li key={i}>{n}</li>
+                    ))}
+                  </ul>
+                </dd>
+              </>
+            )}
+            {alert.why_fired.recommended_triage?.length > 0 && (
+              <>
+                <dt>Recommended triage</dt>
+                <dd>
+                  <ol>
+                    {alert.why_fired.recommended_triage.map((n, i) => (
+                      <li key={i}>{n}</li>
+                    ))}
+                  </ol>
+                </dd>
+              </>
+            )}
             {alert.risk_score_breakdown?.length > 0 && (
               <>
                 <dt>Risk score breakdown</dt>

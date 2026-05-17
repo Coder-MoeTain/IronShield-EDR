@@ -7,6 +7,10 @@ import {
   canAccessIntegrationsTab,
   canAccessRbacTab,
   canAccessReportsTab,
+  canViewReports,
+  canCreateReports,
+  canExportReports,
+  canDeleteReports,
   canAccessSettingsTab,
   canAccessSystemHealthTab,
   canAccessTenantsTab,
@@ -20,22 +24,22 @@ describe('route permissions', () => {
     expect(canRunResponseActions({ role: 'viewer' }, [])).toBe(false);
   });
 
-  it('viewer can open admin shell but not dangerous tabs', () => {
+  it('viewer can view reports but not create or export', () => {
     expect(canAccessAdminShell({ role: 'viewer' })).toBe(true);
-    expect(canAccessAuditTab({ role: 'viewer' })).toBe(true);
-    expect(canAccessSystemHealthTab({ role: 'viewer' })).toBe(true);
+    expect(canViewReports({ role: 'viewer' }, [])).toBe(true);
+    expect(canAccessReportsTab({ role: 'viewer' }, [])).toBe(true);
+    expect(canCreateReports({ role: 'viewer' }, [])).toBe(false);
+    expect(canExportReports({ role: 'viewer' }, [])).toBe(false);
     expect(canAccessTenantsTab({ role: 'viewer' })).toBe(false);
-    expect(canAccessRbacTab({ role: 'viewer' })).toBe(false);
-    expect(canAccessUsersTab({ role: 'viewer' })).toBe(false);
     expect(canAccessSettingsTab({ role: 'viewer' })).toBe(false);
-    expect(canAccessIntegrationsTab({ role: 'viewer' })).toBe(false);
-    expect(canAccessReportsTab({ role: 'viewer' })).toBe(false);
   });
 
-  it('auditor can access audit and system health only among write tabs', () => {
+  it('auditor can view reports and audit but not modify admin', () => {
     expect(canAccessAdminShell({ role: 'auditor' })).toBe(true);
-    expect(canAccessAuditTab({ role: 'auditor' })).toBe(true);
-    expect(canAccessSystemHealthTab({ role: 'auditor' })).toBe(true);
+    expect(canViewReports({ role: 'auditor' }, ['report:view'])).toBe(true);
+    expect(canAccessReportsTab({ role: 'auditor' }, [])).toBe(true);
+    expect(canCreateReports({ role: 'auditor' }, [])).toBe(false);
+    expect(canDeleteReports({ role: 'auditor' }, [])).toBe(false);
     expect(canAccessTenantsTab({ role: 'auditor' })).toBe(false);
     expect(canAccessRbacTab({ role: 'auditor' })).toBe(false);
     expect(canAccessSettingsTab({ role: 'auditor' })).toBe(false);
@@ -48,11 +52,10 @@ describe('route permissions', () => {
     expect(canAccessTenantsTab({ role: 'analyst' })).toBe(false);
     expect(canAccessRbacTab({ role: 'analyst' })).toBe(false);
     expect(canAccessSettingsTab({ role: 'analyst' })).toBe(false);
-    expect(canAccessReportsTab({ role: 'analyst' })).toBe(true);
-    expect(canAccessIntegrationsTab({ role: 'analyst' })).toBe(true);
+    expect(canViewReports({ role: 'analyst' }, [])).toBe(true);
   });
 
-  it('tenant_admin can access tenants context but not global RBAC', () => {
+  it('tenant_admin cannot use tenant switcher or global RBAC', () => {
     expect(canAccessAdminShell({ role: 'tenant_admin' })).toBe(true);
     expect(canAccessTenantsTab({ role: 'tenant_admin' })).toBe(false);
     expect(canAccessRbacTab({ role: 'tenant_admin' })).toBe(false);
@@ -65,8 +68,8 @@ describe('route permissions', () => {
     expect(canAccessTenantsTab(user)).toBe(true);
     expect(canAccessRbacTab(user)).toBe(true);
     expect(canAccessSettingsTab(user)).toBe(true);
-    expect(canAccessReportsTab(user)).toBe(true);
-    expect(canAccessIntegrationsTab(user)).toBe(true);
+    expect(canViewReports(user, ['*'])).toBe(true);
+    expect(canDeleteReports(user, ['*'])).toBe(true);
     expect(canSeeTenantSwitcher(user)).toBe(true);
   });
 });
