@@ -84,6 +84,8 @@
     "test:command-center": "cd dashboard && npx vitest run src/test/command-center.test.js",
     "sync-openapi": "node scripts/sync-openapi-v1.js",
     "test:openapi": "node scripts/sync-openapi-routes.js && node scripts/sync-openapi-v1.js && node scripts/validate-openapi.js && node scripts/validate-openapi-coverage.js",
+    "test:software": "node --test test/software.unit.test.js",
+    "software:vuln-import": "node scripts/software-vuln-import.js",
     "docs:status-check": "node scripts/docs-status-check.js",
     "build-dashboard": "cd dashboard && npm install && npm run build"
   },

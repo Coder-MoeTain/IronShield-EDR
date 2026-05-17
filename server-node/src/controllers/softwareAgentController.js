@@ -10,8 +10,8 @@ const { ERROR_CODES, sendErrorFromReq } = require('../utils/apiResponse');
 async function uploadInventory(req, res, next) {
   try {
     const body = req.body || {};
-    const endpointId = req.agent?.endpoint_id || body.endpoint_id;
-    const tenantId = req.agent?.tenant_id || req.tenantId;
+    const endpointId = req.endpointId || body.endpoint_id;
+    const tenantId = req.tenantId;
     if (!endpointId || !tenantId) {
       return sendErrorFromReq(res, req, ERROR_CODES.VALIDATION_ERROR, 'endpoint required', 400);
     }
@@ -40,10 +40,10 @@ async function uploadInventory(req, res, next) {
 
 async function getSoftwarePolicies(req, res, next) {
   try {
-    const tenantId = req.agent?.tenant_id || req.tenantId;
+    const tenantId = req.tenantId;
     const policies = await SoftwareBlockPolicyService.getAgentPolicies(tenantId);
     const notifications = await SoftwareRemediationService.getPendingNotifications(
-      req.agent?.endpoint_id,
+      req.endpointId,
       tenantId
     );
     res.json({
@@ -60,7 +60,7 @@ async function submitPolicyResult(req, res, next) {
   try {
     const { policy_id, event_type, process_name, process_path, action_taken } = req.body || {};
     await AuditLogService.log({
-      username: `agent:${req.agent?.endpoint_id}`,
+      username: `agent:${req.endpointId}`,
       action: `software.${event_type || 'execution_event'}`,
       resourceType: 'software_block_policy',
       resourceId: String(policy_id || ''),
@@ -76,8 +76,8 @@ async function submitNotificationResult(req, res, next) {
   try {
     const body = req.body || {};
     await SoftwareRemediationService.recordNotificationResult({
-      tenantId: req.agent?.tenant_id,
-      endpointId: req.agent?.endpoint_id,
+      tenantId: req.tenantId,
+      endpointId: req.endpointId,
       notificationId: body.notification_id,
       userResponse: body.user_response,
       status: body.status,

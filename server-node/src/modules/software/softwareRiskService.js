@@ -21,11 +21,15 @@ function clamp(n, min, max) {
 
 async function findMatchingVulnerabilities(software) {
   const norm = normalizeName(software.name);
+  const vendorNorm = normalizeName(software.vendor || '');
   const rows = await db.query(
     `SELECT * FROM software_vulnerabilities
-     WHERE normalized_name = ? OR normalized_name LIKE ?
+     WHERE normalized_name = ?
+        OR ? LIKE CONCAT('%', normalized_name, '%')
+        OR normalized_name LIKE CONCAT('%', ?, '%')
+        OR (vendor IS NOT NULL AND vendor != '' AND ? LIKE CONCAT('%', LOWER(vendor), '%'))
      ORDER BY cvss_score DESC`,
-    [norm, `%${norm.slice(0, Math.min(norm.length, 20))}%`]
+    [norm, norm, norm, vendorNorm]
   );
   const matched = [];
   for (const vuln of rows || []) {

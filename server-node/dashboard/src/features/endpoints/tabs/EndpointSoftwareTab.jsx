@@ -24,11 +24,11 @@ export default function EndpointSoftwareTab() {
 
   return (
     <div className={styles.wrap}>
-      <motion.div className={styles.kpis}>
+      <div className={styles.kpis}>
         <span>Installed: <strong>{rows.length}</strong></span>
         <span>Vulnerable: <strong>{vulnerable}</strong></span>
         <span>Blocked: <strong>{blocked}</strong></span>
-      </motion.div>
+      </div>
       {loading ? <p>Loading software inventory…</p> : (
         <table className={styles.table}>
           <thead>
@@ -53,6 +53,6 @@ export default function EndpointSoftwareTab() {
           </tbody>
         </table>
       )}
-    </motion.div>
+    </div>
   );
 }

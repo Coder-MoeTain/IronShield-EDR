@@ -38,11 +38,17 @@ export default function OverviewPage() {
     if (agentHealthTab) setTab('endpoint-health');
   }, [agentHealthTab, setTab]);
 
+  const [softwareSummary, setSoftwareSummary] = useState(null);
+
   useEffect(() => {
     api(apiPath('/api/console/overview'))
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => setKpis(data?.kpis || data))
       .catch(() => setKpis(null));
+    api(apiPath('/api/software/summary'), { silent: true })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setSoftwareSummary)
+      .catch(() => setSoftwareSummary(null));
   }, [api]);
 
   const kpiItems = kpis
@@ -51,6 +57,14 @@ export default function OverviewPage() {
         { id: 'on', label: 'Online', value: kpis.endpoints?.online, tone: 'ok' },
         { id: 'crit', label: 'Critical alerts', value: kpis.alerts?.critical, tone: 'bad' },
         { id: 'inc', label: 'Active incidents', value: kpis.incidents?.open, tone: 'warn' },
+        ...(softwareSummary
+          ? [{
+              id: 'sw',
+              label: 'Vulnerable software',
+              value: softwareSummary.vulnerable_count ?? 0,
+              tone: (softwareSummary.critical_count ?? 0) > 0 ? 'bad' : 'warn',
+            }]
+          : []),
       ]
     : [];
 

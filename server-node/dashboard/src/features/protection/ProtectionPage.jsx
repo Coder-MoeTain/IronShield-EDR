@@ -13,8 +13,10 @@ const AvSignatures = lazy(() => import('./tabs/AvSignaturesTab'));
 const AvFileReputation = lazy(() => import('./tabs/AvFileReputationTab'));
 const WebUrlProtection = lazy(() => import('../hunting/tabs/WebUrlProtectionTab'));
 const ProtectionCapabilities = lazy(() => import('./tabs/ProtectionCapabilitiesTab'));
+const SoftwareRisk = lazy(() => import('./tabs/SoftwareRiskTab'));
 const TABS = [
   { id: 'overview', label: 'Protection Overview' },
+  { id: 'software-risk', label: 'Software Risk' },
   { id: 'detections', label: 'Malware Detections' },
   { id: 'quarantine', label: 'Quarantine' },
   { id: 'scans', label: 'Scan Tasks' },
@@ -40,6 +42,11 @@ export default function ProtectionPage() {
       {tab === 'overview' && (
         <EmbeddedPanel label="Protection overview">
           <AvOverview />
+        </EmbeddedPanel>
+      )}
+      {tab === 'software-risk' && (
+        <EmbeddedPanel label="Software risk">
+          <SoftwareRisk />
         </EmbeddedPanel>
       )}
       {tab === 'detections' && (

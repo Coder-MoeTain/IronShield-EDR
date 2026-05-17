@@ -11,9 +11,11 @@ const ProcessMonitor = lazy(() => import('./tabs/ProcessMonitorTab'));
 const ProcessTree = lazy(() => import('./tabs/ProcessTreeTab'));
 const Network = lazy(() => import('./tabs/NetworkTab'));
 const ResponseApprovals = lazy(() => import('../response/tabs/ResponseApprovalsTab'));
+const EndpointSoftware = lazy(() => import('./tabs/EndpointSoftwareTab'));
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
+  { id: 'software', label: 'Installed Software' },
   { id: 'timeline', label: 'Timeline' },
   { id: 'processes', label: 'Processes' },
   { id: 'network', label: 'Network' },
@@ -53,6 +55,11 @@ export default function EndpointDetailPage() {
       {tab === 'processes' && (
         <EmbeddedPanel label="Processes">
           {view === 'process-tree' ? <ProcessTree /> : <ProcessMonitor />}
+        </EmbeddedPanel>
+      )}
+      {tab === 'software' && (
+        <EmbeddedPanel label="Installed software">
+          <EndpointSoftware />
         </EmbeddedPanel>
       )}
       {tab === 'network' && (
