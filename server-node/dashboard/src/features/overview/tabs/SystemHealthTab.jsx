@@ -3,15 +3,14 @@ import { useAuth } from '../../../context/AuthContext';
 import PageShell from '../../../components/PageShell';
 
 export default function SystemHealth() {
-  const { api } = useAuth();
+  const { apiJson } = useAuth();
   const [health, setHealth] = useState(null);
 
   useEffect(() => {
-    api('/api/admin/system/health')
-      .then((r) => r.json())
+    apiJson('/api/admin/system/health', { silent: true })
       .then(setHealth)
       .catch(() => setHealth(null));
-  }, [api]);
+  }, [apiJson]);
 
   return (
     <PageShell title="System Health" kicker="Operations">

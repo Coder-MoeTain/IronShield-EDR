@@ -21,3 +21,19 @@
   background: var(--bg-tertiary);
   color: var(--text-primary);
 }
+
+.wrapCollapsed {
+  padding-left: 0.45rem;
+  padding-right: 0.45rem;
+}
+
+.wrapCollapsed .label {
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.wrapCollapsed .select {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  font-size: 0.7rem;
+}

@@ -1,6 +1,30 @@
-agent-csharp > dotnet run --project src\EDR.Agent.Service\EDR.Agent.Service.csproj -- --console
-server-node > npm start
+# Local dev (dashboard + API)
 
-cd server-node && npm run migrate-all
-admin
-ChangeMe123!
+Run **both** processes — the dashboard on :5173 proxies `/api` to the backend on :3000.
+If only Vite is running, every API call fails (503/500).
+
+```powershell
+# Terminal 1 — API (port 3000)
+cd server-node
+npm run dev
+
+# Terminal 2 — Dashboard (port 5173)
+cd server-node/dashboard
+npm run dev
+```
+
+One-time / after pull:
+
+```powershell
+cd server-node
+npm run migrate
+```
+
+Login: **admin** / **ChangeMe123!00**
+
+Agent (optional):
+
+```powershell
+cd agent-csharp
+dotnet run --project src\EDR.Agent.Service\EDR.Agent.Service.csproj -- --console
+```

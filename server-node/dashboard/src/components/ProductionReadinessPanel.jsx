@@ -4,15 +4,14 @@ import { apiPath } from '../utils/apiPath';
 import LoadingState from './LoadingState';
 
 export default function ProductionReadinessPanel({ compact = false }) {
-  const { api } = useAuth();
+  const { apiJson } = useAuth();
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    api(apiPath('/api/admin/platform/production-readiness'))
-      .then((r) => (r.ok ? r.json() : null))
+    apiJson(apiPath('/api/admin/platform/production-readiness'), { silent: true })
       .then(setData)
       .catch(() => setData(null));
-  }, [api]);
+  }, [apiJson]);
 
   if (!data) return compact ? null : <LoadingState label="Production readiness" />;
 

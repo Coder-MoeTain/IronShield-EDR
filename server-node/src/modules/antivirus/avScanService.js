@@ -4,6 +4,10 @@
 const db = require('../../utils/db');
 const MalwareAlertService = require('./malwareAlertService');
 
+function isMissingTableError(err) {
+  return ['ER_NO_SUCH_TABLE', 'ER_BAD_TABLE_ERROR'].includes(String(err?.code || ''));
+}
+
 async function listTasks(filters = {}) {
   let sql = `
     SELECT t.*, e.hostname
@@ -12,6 +16,10 @@ async function listTasks(filters = {}) {
     WHERE 1=1
   `;
   const params = [];
+  if (filters.tenantId != null) {
+    sql += ' AND e.tenant_id = ?';
+    params.push(filters.tenantId);
+  }
   if (filters.endpointId) {
     sql += ' AND t.endpoint_id = ?';
     params.push(filters.endpointId);
@@ -22,7 +30,12 @@ async function listTasks(filters = {}) {
   }
   sql += ' ORDER BY t.created_at DESC LIMIT ?';
   params.push(Math.min(parseInt(filters.limit) || 50, 200));
-  return db.query(sql, params);
+  try {
+    return await db.query(sql, params);
+  } catch (err) {
+    if (isMissingTableError(err)) return [];
+    throw err;
+  }
 }
 
 async function getTask(id) {

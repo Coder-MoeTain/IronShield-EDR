@@ -614,15 +614,28 @@ public class AgentWorker
                 {
                     try
                     {
-                        if (!string.IsNullOrWhiteSpace(action.CommandSignature))
                         {
                             var endpointId = action.EndpointId ?? _config.EndpointId;
-                            if (!endpointId.HasValue || endpointId.Value <= 0
-                                || string.IsNullOrEmpty(_config.AgentKey)
-                                || !ResponseCommandVerifier.TryVerify(action, endpointId.Value, _config.AgentKey, out var verifyErr))
+                            var requireSigned = _config.RequireSignedResponseCommands;
+                            if (requireSigned || !string.IsNullOrWhiteSpace(action.CommandSignature))
                             {
-                                await poller.SubmitResultAsync(action.Id, false, $"Command signature rejected: {verifyErr ?? "missing_endpoint"}", null, ct);
-                                continue;
+                                if (!endpointId.HasValue || endpointId.Value <= 0
+                                    || string.IsNullOrEmpty(_config.AgentKey)
+                                    || !ResponseCommandVerifier.TryVerify(
+                                        action,
+                                        endpointId.Value,
+                                        _config.AgentKey,
+                                        requireSigned,
+                                        out var verifyErr))
+                                {
+                                    await poller.SubmitResultAsync(
+                                        action.Id,
+                                        false,
+                                        $"Command signature rejected: {verifyErr ?? "missing_endpoint"}",
+                                        null,
+                                        ct);
+                                    continue;
+                                }
                             }
                         }
 

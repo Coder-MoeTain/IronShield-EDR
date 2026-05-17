@@ -1,7 +1,15 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { isJwtExpired } from '../utils/jwt';
 import { apiPath } from '../utils/apiPath';
+import { parseApiResponse, readApiJson } from '../utils/apiEnvelope';
 import { useToast } from './ToastContext';
+
+function apiErrorMessage(json, fallback = 'Request failed') {
+  if (!json) return fallback;
+  if (typeof json.error === 'string') return json.error;
+  if (json.error?.message) return json.error.message;
+  return fallback;
+}
 
 const AuthContext = createContext(null);
 
@@ -96,7 +104,8 @@ export function AuthProvider({ children }) {
           body: JSON.stringify({ refresh_token: rt }),
         });
         if (!r.ok) return false;
-        const d = await r.json();
+        const { data: d } = parseApiResponse(await r.json());
+        if (!d?.token) return false;
         localStorage.setItem(TOKEN_KEY, d.token);
         if (d.refresh_token) localStorage.setItem(REFRESH_KEY, d.refresh_token);
         else localStorage.removeItem(REFRESH_KEY);
@@ -151,6 +160,10 @@ export function AuthProvider({ children }) {
       headers: { Authorization: `Bearer ${tokenRef.current}` },
     })
       .then((r) => (r.ok ? r.json() : { permissions: [] }))
+      .then((json) => {
+        const { data: d } = parseApiResponse(json);
+        return d || json;
+      })
       .then((d) => setPermissions(Array.isArray(d.permissions) ? d.permissions : []))
       .catch(() => setPermissions([]));
   }, [sessionReady, token]);
@@ -163,11 +176,18 @@ export function AuthProvider({ children }) {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      const e = new Error(err.error || 'Login failed');
-      e.mfaRequired = !!err.mfa_required;
+      const e = new Error(apiErrorMessage(err, 'Login failed'));
+      e.mfaRequired = !!(
+        err.mfa_required ||
+        err.error?.details?.mfa_required ||
+        err.error?.mfa_required
+      );
       throw e;
     }
-    const data = await res.json();
+    const { data } = parseApiResponse(await res.json());
+    if (!data?.token) {
+      throw new Error('Login response missing token');
+    }
     admin401Redirecting = false;
     localStorage.setItem(TOKEN_KEY, data.token);
     if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
@@ -233,11 +253,43 @@ export function AuthProvider({ children }) {
             addToast({ variant: 'error', message: 'Permission denied for this action.' });
           }
 
+          if (res.status === 503 && !silent) {
+            try {
+              const parsed = await readApiJson(res.clone());
+              if (parsed.error?.code === 'BACKEND_UNAVAILABLE') {
+                addToast({
+                  variant: 'error',
+                  message: parsed.error.message || 'API backend is not running.',
+                });
+              }
+            } catch {
+              /* ignore parse errors */
+            }
+          }
+
           if (res.status >= 500 && res.status < 600 && attempt < maxRetries) {
             await new Promise((r) => setTimeout(r, 300 * 2 ** attempt));
             attempt += 1;
             continue;
           }
+
+          const originalJson = res.json.bind(res);
+          res.json = async function unwrapApiJson() {
+            const body = await originalJson();
+            const parsed = parseApiResponse(body);
+            if (parsed.success) return parsed.data;
+            if (res.status >= 400) {
+              const msg =
+                parsed.error?.message ||
+                (typeof body?.error === 'string' ? body.error : null) ||
+                `HTTP ${res.status}`;
+              const err = new Error(msg);
+              err.status = res.status;
+              err.response = parsed;
+              throw err;
+            }
+            return body;
+          };
 
           return res;
         } catch (err) {
@@ -257,6 +309,25 @@ export function AuthProvider({ children }) {
     [user?.role, selectedTenantId, logout, addToast, tryRefresh]
   );
 
+  const apiJson = useCallback(
+    async (path, options = {}) => {
+      const res = await api(path, options);
+      const parsed = await readApiJson(res);
+      if (!res.ok || !parsed.success) {
+        const msg =
+          parsed.error?.message ||
+          (typeof parsed.error === 'string' ? parsed.error : null) ||
+          `HTTP ${res.status}`;
+        const err = new Error(msg);
+        err.status = res.status;
+        err.response = parsed;
+        throw err;
+      }
+      return parsed.data;
+    },
+    [api]
+  );
+
   return (
     <AuthContext.Provider
       value={{
@@ -268,6 +339,7 @@ export function AuthProvider({ children }) {
         login,
         logout,
         api,
+        apiJson,
         selectedTenantId,
         setSelectedTenantId,
         tryRefresh,

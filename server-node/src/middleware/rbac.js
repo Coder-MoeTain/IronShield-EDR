@@ -60,12 +60,20 @@ function requirePermission(permission) {
         401
       );
     }
-    const perms = await getUserPermissions(req.user.userId, req.user.role, req.tenantId ?? req.user.tenantId ?? null);
-    if (hasAnyPermission(perms, [permission])) {
-      return next();
+    try {
+      const perms = await getUserPermissions(
+        req.user.userId,
+        req.user.role,
+        req.tenantId ?? req.user.tenantId ?? null
+      );
+      if (hasAnyPermission(perms, [permission])) {
+        return next();
+      }
+      logger.warn({ userId: req.user.userId, permission }, 'Permission denied');
+      return sendErrorFromReq(res, req, ERROR_CODES.PERMISSION_DENIED, 'Insufficient permissions', 403);
+    } catch (err) {
+      return next(err);
     }
-    logger.warn({ userId: req.user.userId, permission }, 'Permission denied');
-    return sendErrorFromReq(res, req, ERROR_CODES.PERMISSION_DENIED, 'Insufficient permissions', 403);
   };
 }
 
@@ -80,11 +88,19 @@ function requireAnyPermission(...permissions) {
         401
       );
     }
-    const perms = await getUserPermissions(req.user.userId, req.user.role, req.tenantId ?? req.user.tenantId ?? null);
-    if (hasAnyPermission(perms, permissions)) {
-      return next();
+    try {
+      const perms = await getUserPermissions(
+        req.user.userId,
+        req.user.role,
+        req.tenantId ?? req.user.tenantId ?? null
+      );
+      if (hasAnyPermission(perms, permissions)) {
+        return next();
+      }
+      return sendErrorFromReq(res, req, ERROR_CODES.PERMISSION_DENIED, 'Insufficient permissions', 403);
+    } catch (err) {
+      return next(err);
     }
-    return sendErrorFromReq(res, req, ERROR_CODES.PERMISSION_DENIED, 'Insufficient permissions', 403);
   };
 }
 

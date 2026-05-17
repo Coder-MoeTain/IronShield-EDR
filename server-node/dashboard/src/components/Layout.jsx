@@ -11,9 +11,41 @@ import ThemeToggle from './ThemeToggle';
 import MockModeBanner from './MockModeBanner';
 import ConsoleModeToggle, { useConsoleUiMode } from './ConsoleModeToggle';
 import { useProfessionalView } from './ProfessionalViewToggle';
-import { IconShield } from './NavIcons';
+import { IconShield, IconLogout, IconChevronLeft, NavIcon } from './NavIcons';
 import styles from './Layout.module.css';
 import { getConsoleNavItems } from '../utils/consoleNav';
+
+const SIDEBAR_COLLAPSED_KEY = 'ironshield-sidebar-collapsed';
+
+function readSidebarCollapsed() {
+  try {
+    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeSidebarCollapsed(collapsed) {
+  try {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0');
+  } catch {
+    /* ignore */
+  }
+}
+
+function NavLinkItem({ item, collapsed }) {
+  return (
+    <NavLink
+      to={item.path}
+      end={item.end}
+      title={collapsed ? item.label : undefined}
+      className={({ isActive }) => (isActive ? styles.navActive : '')}
+    >
+      {item.icon ? <NavIcon name={item.icon} className={styles.navIcon} /> : null}
+      <span className={styles.navLabel}>{item.label}</span>
+    </NavLink>
+  );
+}
 
 export default function Layout() {
   const { user, logout, permissions } = useAuth();
@@ -21,11 +53,23 @@ export default function Layout() {
   const location = useLocation();
   const [professionalView] = useProfessionalView();
   const [uiMode] = useConsoleUiMode();
+  const [collapsed, setCollapsed] = React.useState(readSidebarCollapsed);
   const navItems = getConsoleNavItems(user, permissions, uiMode);
+
+  const overviewItem = navItems.find((item) => item.path === '/overview');
+  const workspaceItems = navItems.filter((item) => item.path !== '/overview');
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      writeSidebarCollapsed(next);
+      return next;
+    });
   };
 
   return (
@@ -34,35 +78,72 @@ export default function Layout() {
       <a href="#main-content" className="falcon-skip-link">
         Skip to main content
       </a>
-      <aside className={styles.sidebar}>
+      <aside
+        className={`${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : ''}`}
+        aria-label="Application navigation"
+      >
         <div className={styles.logo}>
           <span className={styles.logoMark} aria-hidden>
             <IconShield />
           </span>
-          <div className={styles.logoText}>
-            <span className={styles.logoTitle}>IronShield</span>
-            <span className={styles.logoSub}>EDR / XDR</span>
-          </div>
+          {!collapsed ? (
+            <div className={styles.logoText}>
+              <span className={styles.logoTitle}>IronShield</span>
+              <span className={styles.logoSub}>EDR / XDR</span>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            className={styles.collapseBtn}
+            onClick={toggleCollapsed}
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+            title={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+          >
+            <IconChevronLeft />
+          </button>
         </div>
         <nav className={styles.nav} aria-label="Primary">
-          {navItems.map((item) => (
-            <div key={item.path} className={styles.navItem}>
-              <NavLink
-                to={item.path}
-                end={item.end}
-                className={({ isActive }) => (isActive ? styles.navActive : '')}
-              >
-                {item.label}
-              </NavLink>
+          {overviewItem ? (
+            <div className={styles.navDashboardTop}>
+              <div className={styles.navItem}>
+                <NavLinkItem item={overviewItem} collapsed={collapsed} />
+              </div>
             </div>
-          ))}
+          ) : null}
+          {workspaceItems.length > 0 ? (
+            <>
+              {!collapsed ? <div className={styles.navSectionLabel}>Operations</div> : null}
+              {workspaceItems.map((item) => (
+                <div key={item.path} className={styles.navItem}>
+                  <NavLinkItem item={item} collapsed={collapsed} />
+                </div>
+              ))}
+            </>
+          ) : null}
         </nav>
-        <ConsoleModeToggle />
+        <ConsoleModeToggle collapsed={collapsed} />
         <div className={styles.user}>
-          <span className={styles.userName}>{user?.username}</span>
-          <span className={styles.userRole}>{user?.role}</span>
-          <button type="button" onClick={handleLogout} className={styles.logout}>
-            Sign out
+          {!collapsed ? (
+            <>
+              <span className={styles.userName}>{user?.username}</span>
+              <span className={styles.userRole}>{user?.role}</span>
+            </>
+          ) : (
+            <span className={styles.userAvatar} title={user?.username} aria-hidden>
+              {(user?.username || '?').charAt(0).toUpperCase()}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={handleLogout}
+            className={styles.logout}
+            title="Sign out"
+          >
+            <span className={styles.logoutIcon} aria-hidden>
+              <IconLogout />
+            </span>
+            {!collapsed ? <span>Sign out</span> : null}
           </button>
         </div>
       </aside>

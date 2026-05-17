@@ -49,6 +49,7 @@ const envSchema = z
     AGENT_KEY_PEPPER: z.string().optional(),
     RESPONSE_COMMAND_HMAC_KEY: z.string().optional(),
     RESPONSE_COMMAND_TTL_SEC: z.coerce.number().int().min(60).max(86400).optional(),
+    RESPONSE_COMMAND_SIGNING_REQUIRED: z.enum(['true', 'false']).optional(),
     INGEST_QUEUE_FIRST: z.enum(['true', 'false']).optional(),
     CORS_ORIGINS: z.string().optional(),
     TRUST_PROXY: z.enum(['true', 'false']).optional(),

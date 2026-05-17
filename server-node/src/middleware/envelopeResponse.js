@@ -31,13 +31,15 @@ function envelopeResponseMiddleware(req, res, next) {
           ? body.error
           : body?.error?.message || body?.message || 'Request failed';
       const code = body?.error?.code || body?.code || 'REQUEST_FAILED';
+      const details = body?.details ?? body?.error?.details ?? {};
+      if (body?.mfa_required) details.mfa_required = true;
+      if (body?.mfa_enrollment_required) details.mfa_enrollment_required = true;
       return origJson({
         success: false,
         error: {
           code,
           message,
-          ...(body?.details != null && { details: body.details }),
-          ...(body?.error?.details != null && { details: body.error.details }),
+          ...(Object.keys(details).length > 0 && { details }),
         },
         requestId,
       });

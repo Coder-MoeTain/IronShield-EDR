@@ -23,7 +23,7 @@ export function useConsoleUiMode() {
   return [mode, setMode];
 }
 
-export default function ConsoleModeToggle() {
+export default function ConsoleModeToggle({ collapsed = false }) {
   const { user } = useAuth();
   const [mode, setMode] = useConsoleUiMode();
   const showMssp = canSeeMsspAndTenants(user);
@@ -31,13 +31,17 @@ export default function ConsoleModeToggle() {
 
   React.useEffect(() => {
     const prefs = readWorkspacePreferences();
-    if (prefs.workspace_mode) setModeState(prefs.workspace_mode);
-  }, []);
+    if (prefs.workspace_mode) setMode(prefs.workspace_mode);
+  }, [setMode]);
 
   return (
-    <div className={styles.wrap} role="group" aria-label="Workspace mode">
-      <label className={styles.label} htmlFor="workspace-mode">
-        Workspace
+    <div
+      className={`${styles.wrap} ${collapsed ? styles.wrapCollapsed : ''}`}
+      role="group"
+      aria-label="Workspace mode"
+    >
+      <label className={styles.label} htmlFor="workspace-mode" title={collapsed ? 'Workspace' : undefined}>
+        {collapsed ? 'Mode' : 'Workspace'}
       </label>
       <select
         id="workspace-mode"

@@ -41,6 +41,7 @@
   <a href="docs/detection-upgrade-plan.md">Detection upgrade plan</a> •
   <a href="docs/crowdstrike-network-activity.md">Network Activity Console</a> •
   <a href="docs/enterprise-hardening.md">Enterprise hardening</a> •
+  <a href="docs/PROFESSIONAL_UPGRADE_AUDIT.md">Professional upgrade audit</a> •
   <a href="docs/UPGRADE_AUDIT.md">Enterprise upgrade (Phases 1–9)</a> •
   <a href="docs/FEATURE_STATUS.md">Feature status</a> •
   <a href="docs/FINAL_10_10_READINESS_AUDIT.md">10/10 readiness audit</a> •

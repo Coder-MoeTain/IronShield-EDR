@@ -33,7 +33,10 @@ async function getEffectiveTenantId(user, overrideTenantId = null) {
     const exists = await db.queryOne('SELECT id FROM tenants WHERE id = ? AND is_active = 1 LIMIT 1', [parsed]);
     return exists ? parsed : null;
   }
-  if (user.role === 'super_admin') return null;
+  if (user.role === 'super_admin') {
+    const defaultId = await getDefaultTenant();
+    return defaultId ?? DEFAULT_TENANT_ID;
+  }
   if (user.tenantId) return user.tenantId;
   const userRow = await db.queryOne('SELECT tenant_id FROM admin_users WHERE id = ?', [user.userId]);
   return userRow?.tenant_id ?? null;

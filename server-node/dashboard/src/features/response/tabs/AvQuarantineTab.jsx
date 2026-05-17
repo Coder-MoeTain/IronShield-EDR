@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
+import { coerceList } from '../../../utils/apiEnvelope';
 import { useConfirm } from '../../../context/ConfirmContext';
 import { useToast } from '../../../context/ToastContext';
 import PageShell from '../../../components/PageShell';
@@ -15,9 +16,13 @@ export default function AvQuarantine() {
 
   const fetchData = () => {
     setLoading(true);
-    api('/api/admin/av/quarantine')
-      .then((r) => r.json())
-      .then((d) => setItems(Array.isArray(d) ? d : (d.items || [])))
+    api('/api/admin/av/quarantine', { silent: true })
+      .then(async (r) => {
+        if (!r.ok) return [];
+        const d = await r.json();
+        return coerceList(d, 'items');
+      })
+      .then(setItems)
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
   };

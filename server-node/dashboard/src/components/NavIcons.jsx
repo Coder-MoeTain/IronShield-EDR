@@ -113,3 +113,41 @@ export function IconShield(props) {
     </svg>
   );
 }
+
+export function IconLogout(props) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden {...props}>
+      <path {...stroke} d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+    </svg>
+  );
+}
+
+export function IconChevronLeft(props) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden {...props}>
+      <path {...stroke} d="M15 18l-6-6 6-6" />
+    </svg>
+  );
+}
+
+/** Map consoleNav `icon` keys to components. */
+export const NAV_ICON_BY_KEY = {
+  activity: IconActivity,
+  hosts: IconHosts,
+  detections: IconDetections,
+  graph: IconGraph,
+  respond: IconRespond,
+  explore: IconExplore,
+  shield: IconShield,
+  config: IconConfig,
+};
+
+export function NavIcon({ name, className }) {
+  const Icon = NAV_ICON_BY_KEY[name];
+  if (!Icon) return null;
+  return (
+    <span className={className} aria-hidden>
+      <Icon />
+    </span>
+  );
+}

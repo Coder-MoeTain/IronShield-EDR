@@ -3,6 +3,10 @@
  */
 const db = require('../../utils/db');
 
+function isMissingTableError(err) {
+  return ['ER_NO_SUCH_TABLE', 'ER_BAD_TABLE_ERROR'].includes(String(err?.code || ''));
+}
+
 async function list(filters = {}) {
   let sql = `
     SELECT q.*, e.hostname
@@ -11,6 +15,10 @@ async function list(filters = {}) {
     WHERE 1=1
   `;
   const params = [];
+  if (filters.tenantId != null) {
+    sql += ' AND e.tenant_id = ?';
+    params.push(filters.tenantId);
+  }
   if (filters.endpointId) {
     sql += ' AND q.endpoint_id = ?';
     params.push(filters.endpointId);
@@ -21,7 +29,12 @@ async function list(filters = {}) {
   }
   sql += ' ORDER BY q.created_at DESC LIMIT ?';
   params.push(Math.min(parseInt(filters.limit) || 50, 200));
-  return db.query(sql, params);
+  try {
+    return await db.query(sql, params);
+  } catch (err) {
+    if (isMissingTableError(err)) return [];
+    throw err;
+  }
 }
 
 async function getById(id) {

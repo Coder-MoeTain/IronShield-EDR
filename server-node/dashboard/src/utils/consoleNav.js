@@ -16,14 +16,14 @@ export const CONSOLE_UI_MODES = WORKSPACE_MODES;
 const STORAGE_KEY = 'ironshield-workspace-mode';
 
 export const CONSOLE_NAV_ITEMS = [
-  { path: '/overview', label: 'Overview', end: true },
-  { path: '/endpoints', label: 'Endpoints' },
-  { path: '/detections', label: 'Detections' },
-  { path: '/investigation', label: 'Investigation' },
-  { path: '/response', label: 'Response', requiresResponse: true },
-  { path: '/hunting', label: 'Threat Hunting' },
-  { path: '/protection', label: 'Protection' },
-  { path: '/admin', label: 'Administration', requiresAdmin: true },
+  { path: '/overview', label: 'Overview', end: true, icon: 'activity' },
+  { path: '/endpoints', label: 'Endpoints', icon: 'hosts' },
+  { path: '/detections', label: 'Detections', icon: 'detections' },
+  { path: '/investigation', label: 'Investigation', icon: 'graph' },
+  { path: '/response', label: 'Response', requiresResponse: true, icon: 'respond' },
+  { path: '/hunting', label: 'Threat Hunting', icon: 'explore' },
+  { path: '/protection', label: 'Protection', icon: 'shield' },
+  { path: '/admin', label: 'Administration', requiresAdmin: true, icon: 'config' },
 ];
 
 export function readConsoleUiMode() {

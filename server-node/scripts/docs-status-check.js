@@ -46,6 +46,7 @@ const IMPLEMENTED = [
   { id: 'production_readiness', file: 'server-node/src/services/ProductionReadinessService.js' },
   { id: 'feature_status', file: 'docs/FEATURE_STATUS.md' },
   { id: 'readiness_audit', file: 'docs/FINAL_10_10_READINESS_AUDIT.md' },
+  { id: 'professional_upgrade_audit', file: 'docs/PROFESSIONAL_UPGRADE_AUDIT.md' },
 ];
 
 for (const item of IMPLEMENTED) {

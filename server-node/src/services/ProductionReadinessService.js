@@ -74,6 +74,13 @@ const CATEGORIES = [
         fix: 'Configure REDIS_URL and ensure Redis is reachable for nonce storage.',
         missing: 'Redis is configured but not healthy',
       },
+      {
+        id: 'command_signing',
+        label: 'Signed response commands',
+        weight: 8,
+        fix: 'Set RESPONSE_COMMAND_SIGNING_REQUIRED=true and RequireSignedResponseCommands on agents.',
+        missing: 'Response command signing is not required',
+      },
     ],
   },
   {
@@ -210,6 +217,13 @@ async function evaluateCheck(id) {
       return {
         ok: config.agent?.requestSigningRequired === true || config.env !== 'production',
         detail: config.agent?.requestSigningRequired ? 'signing required' : 'signing optional',
+      };
+    case 'command_signing':
+      return {
+        ok: config.response?.commandSigningRequired === true || config.env !== 'production',
+        detail: config.response?.commandSigningRequired
+          ? 'response commands signed'
+          : 'response command signing optional',
       };
     case 'agent_key_hash':
       return {
@@ -433,6 +447,7 @@ async function getScore() {
   const criticalIds = [
     'mtls',
     'agent_signing',
+    'command_signing',
     'agent_key_hash',
     'redis_nonce',
     'nonce_memory',

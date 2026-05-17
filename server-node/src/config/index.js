@@ -122,6 +122,13 @@ module.exports = {
     commandTimeoutSeconds: env.RTR_COMMAND_TIMEOUT_SECONDS ?? 120,
     maxOutputBytes: env.RTR_MAX_OUTPUT_BYTES ?? 65536,
   },
+  response: {
+    commandSigningRequired:
+      derivedEnv === 'production'
+        ? env.RESPONSE_COMMAND_SIGNING_REQUIRED !== 'false'
+        : env.RESPONSE_COMMAND_SIGNING_REQUIRED === 'true',
+    commandTtlSec: env.RESPONSE_COMMAND_TTL_SEC ?? 3600,
+  },
   kafka: {
     brokers: splitCsv(env.KAFKA_BROKERS || 'localhost:9092'),
     clientId: env.KAFKA_CLIENT_ID || 'ironshield-edr',

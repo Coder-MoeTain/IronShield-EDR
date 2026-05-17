@@ -10,12 +10,21 @@ namespace EDR.Agent.Core.Security;
 /// </summary>
 public static class ResponseCommandVerifier
 {
-    public static bool TryVerify(ResponseAction action, long endpointId, string agentKey, out string? error)
+    public static bool TryVerify(
+        ResponseAction action,
+        long endpointId,
+        string agentKey,
+        bool requireSigned,
+        out string? error)
     {
         error = null;
         if (string.IsNullOrWhiteSpace(action.CommandSignature))
         {
-            // Backward compatible: unsigned commands allowed until server enforces signing.
+            if (requireSigned)
+            {
+                error = "unsigned_command_rejected";
+                return false;
+            }
             return true;
         }
 

@@ -114,4 +114,9 @@ public class AgentConfig
     public bool SoftwareInventoryIncludeUserApps { get; set; } = true;
 
     public bool SoftwareInventoryIncludeExecutablePaths { get; set; } = true;
+
+    /// <summary>
+    /// When true, reject response commands without a valid HMAC signature (production recommended).
+    /// </summary>
+    public bool RequireSignedResponseCommands { get; set; } = false;
 }

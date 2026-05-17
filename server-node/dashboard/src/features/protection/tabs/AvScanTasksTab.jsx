@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
+import { coerceList } from '../../../utils/apiEnvelope';
 import PageShell from '../../../components/PageShell';
 import styles from './AvScanTasksTab.module.css';
 
@@ -15,16 +16,19 @@ export default function AvScanTasks() {
   const fetchData = () => {
     setLoading(true);
     Promise.all([
-      api('/api/admin/av/scan-tasks'),
-      api('/api/admin/endpoints'),
+      api('/api/admin/av/scan-tasks', { silent: true }),
+      api('/api/admin/endpoints', { silent: true }),
     ])
       .then(async ([tRes, eRes]) => {
-        const tData = await tRes.json();
-        const eData = await eRes.json();
-        setTasks(Array.isArray(tData) ? tData : (tData.tasks || []));
-        setEndpoints(eData.endpoints || eData || []);
+        const tData = tRes.ok ? await tRes.json() : [];
+        const eData = eRes.ok ? await eRes.json() : [];
+        setTasks(coerceList(tData, 'tasks', 'items'));
+        setEndpoints(coerceList(eData, 'endpoints', 'items'));
       })
-      .catch(() => { setTasks([]); setEndpoints([]); })
+      .catch(() => {
+        setTasks([]);
+        setEndpoints([]);
+      })
       .finally(() => setLoading(false));
   };
 

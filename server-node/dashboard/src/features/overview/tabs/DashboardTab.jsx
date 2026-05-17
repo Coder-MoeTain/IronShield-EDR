@@ -90,7 +90,7 @@ const chartOptions = {
 };
 
 export default function Dashboard() {
-  const { api } = useAuth();
+  const { apiJson } = useAuth();
   const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -106,13 +106,8 @@ export default function Dashboard() {
   const fetchData = useCallback(() => {
     setError(null);
     Promise.all([
-      api('/api/admin/dashboard/summary').then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      }),
-      api('/api/admin/soc/readiness')
-        .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null),
+      apiJson('/api/admin/dashboard/summary'),
+      apiJson('/api/admin/soc/readiness').catch(() => null),
     ])
       .then(([data, soc]) => {
         setSummary(data);
@@ -125,7 +120,7 @@ export default function Dashboard() {
         setSummary((prev) => (prev ? prev : null));
       })
       .finally(() => setLoading(false));
-  }, [api]);
+  }, [apiJson]);
 
   useEffect(() => {
     fetchData();

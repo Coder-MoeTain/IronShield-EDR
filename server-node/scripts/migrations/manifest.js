@@ -45,6 +45,8 @@ const LEGACY_SCRIPTS = [
   'migrate-soc-hardening.js',
   'migrate-audit-logs.js',
   'migrate-audit-hashchain.js',
+  'migrate-phase6.js',
+  'migrate-phase7.js',
 ];
 
 function legacyId(scriptName) {
@@ -106,6 +108,11 @@ const manifest = [
     id: '20260521120000_rbac_matrix_extend',
     description: 'Extended enterprise RBAC roles and permissions matrix',
     module: path.join(__dirname, '20260521120000_rbac_matrix_extend.js'),
+  },
+  {
+    id: '20260522120000_rbac_enterprise_core',
+    description: 'RBAC core tables, notification channels, retention policies, agent releases',
+    module: path.join(__dirname, '20260522120000_rbac_enterprise_core.js'),
   },
 ];
 

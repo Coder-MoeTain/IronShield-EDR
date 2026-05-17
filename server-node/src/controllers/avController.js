@@ -175,6 +175,7 @@ async function getDetection(req, res, next) {
 async function listQuarantine(req, res, next) {
   try {
     const filters = { ...req.query };
+    if (req.tenantId != null) filters.tenantId = req.tenantId;
     const rows = await AvQuarantineService.list(filters);
     res.json(rows);
   } catch (err) {
@@ -353,6 +354,7 @@ async function createScanTask(req, res, next) {
 async function listScanTasks(req, res, next) {
   try {
     const filters = { ...req.query };
+    if (req.tenantId != null) filters.tenantId = req.tenantId;
     const rows = await AvScanService.listTasks(filters);
     res.json(rows);
   } catch (err) {

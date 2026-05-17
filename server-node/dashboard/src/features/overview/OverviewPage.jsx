@@ -28,7 +28,7 @@ const TABS = [
 const VALID = TABS.map((t) => t.id);
 
 export default function OverviewPage() {
-  const { api } = useAuth();
+  const { apiJson } = useAuth();
   const [tab, setTab] = useConsoleTab('executive', VALID);
   const [searchParams] = useSearchParams();
   const agentHealthTab = searchParams.get('tab') === 'agent-health';
@@ -41,19 +41,13 @@ export default function OverviewPage() {
   const [softwareSummary, setSoftwareSummary] = useState(null);
 
   useEffect(() => {
-    api(apiPath('/api/console/overview'))
-      .then((r) => (r.ok ? r.json() : null))
+    apiJson(apiPath('/api/console/overview'), { silent: true })
       .then((data) => setKpis(data?.kpis || data))
       .catch(() => setKpis(null));
-    api(apiPath('/api/software/summary'), { silent: true })
-      .then(async (r) => {
-        if (!r.ok) return null;
-        const json = await r.json();
-        return json?.success && json.data ? json.data : json;
-      })
+    apiJson(apiPath('/api/software/summary'), { silent: true })
       .then(setSoftwareSummary)
       .catch(() => setSoftwareSummary(null));
-  }, [api]);
+  }, [apiJson]);
 
   const kpiItems = kpis
     ? [
