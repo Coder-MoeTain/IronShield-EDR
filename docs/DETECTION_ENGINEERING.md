@@ -1,6 +1,6 @@
 # Detection Engineering
 
-IronShield detection-as-code lives under `server-node/detections/`. Rules are versioned JSON with MITRE mapping, tests, and explainability metadata.
+IronShield detection-as-code lives under `server-node/detections/`. The current Windows pack contains **52** IRN-WIN rules (`server-node/detections/windows/**/IRN-WIN-*.json`). Phase 5 initially shipped **31** rules; the pack grew with subsequent releases. Rules are versioned JSON with MITRE mapping, tests, and explainability metadata.
 
 ## Lifecycle
 

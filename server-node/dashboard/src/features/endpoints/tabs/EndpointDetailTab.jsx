@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import PageShell from '../../../components/PageShell';
 import RtrHostPanel from '../../../components/RtrHostPanel';
+import AgentTrustPanel from '../components/AgentTrustPanel';
 import styles from './EndpointDetailTab.module.css';
 
 const MAIN_TABS = [
@@ -309,8 +310,10 @@ export default function EndpointDetail() {
             </div>
           </div>
 
+          <AgentTrustPanel endpoint={endpoint} />
+
           <div className={styles.grid}>
-            <div className={styles.card}>
+            <div className={styles.card} style={{ display: 'none' }} aria-hidden>
               <h3>Agent trust</h3>
               <dl>
                 <dt>Compliance</dt>
@@ -351,26 +354,6 @@ export default function EndpointDetail() {
                 </dd>
                 <dt>OS</dt>
                 <dd>{endpoint.os_version || '—'}</dd>
-                <dt>Agent key</dt>
-                <dd>
-                  {endpoint.agent_key_hash ? 'Hashed (server-side)' : endpoint.agent_key ? 'Legacy plaintext' : '—'}
-                  {endpoint.agent_key_created_at
-                    ? ` · created ${new Date(endpoint.agent_key_created_at).toLocaleDateString()}`
-                    : ''}
-                </dd>
-                <dt>Request signing</dt>
-                <dd>{endpoint.agent_key_revoked_at ? 'Revoked' : 'Expected when production-hardened'}</dd>
-                <dt>mTLS certificate</dt>
-                <dd>
-                  {endpoint.cert_fingerprint ? (
-                    <span className="mono" title={endpoint.cert_subject || ''}>
-                      {String(endpoint.cert_fingerprint).slice(0, 16)}…
-                    </span>
-                  ) : (
-                    'Not bound'
-                  )}
-                  {endpoint.cert_revoked_at ? ' (revoked)' : ''}
-                </dd>
                 <dt>User</dt>
                 <dd>{endpoint.logged_in_user || '—'}</dd>
                 <dt>IP / MAC</dt>

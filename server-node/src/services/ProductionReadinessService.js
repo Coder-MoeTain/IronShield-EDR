@@ -235,7 +235,7 @@ async function evaluateCheck(id) {
       };
     }
     case 'detections_test': {
-      const script = path.join(__dirname, '../../scripts/detections-test.js');
+      const script = path.join(__dirname, '../../detections/tools/testRules.js');
       return { ok: fs.existsSync(script), detail: fs.existsSync(script) ? 'script present' : 'missing script' };
     }
     case 'tenant_isolation': {
@@ -304,7 +304,27 @@ async function getScore() {
     });
   }
 
-  const score = total > 0 ? Math.round((earned / total) * 100) : 0;
+  let score = total > 0 ? Math.round((earned / total) * 100) : 0;
+
+  const isProd = config.env === 'production';
+  const criticalIds = ['mtls', 'agent_signing', 'agent_key_hash', 'redis_nonce'];
+  const criticalFailed = isProd
+    ? checks.filter((c) => criticalIds.includes(c.id) && !c.ok).map((c) => c.id)
+    : [];
+
+  let capped = false;
+  if (isProd && criticalFailed.length > 0 && score >= 90) {
+    score = 89;
+    capped = true;
+    fixNext.unshift({
+      id: 'critical_agent_trust',
+      label: 'Critical agent trust checks failed',
+      category: 'Agent trust',
+      fix: 'Enable AGENT_REQUEST_SIGNING_REQUIRED, AGENT_KEY_PEPPER, AGENT_MTLS_REQUIRED, and Redis nonce store.',
+      missing: `Failed: ${criticalFailed.join(', ')}`,
+      detail: 'Production score capped below 90 until resolved',
+    });
+  }
 
   return {
     version: 2,
@@ -312,6 +332,8 @@ async function getScore() {
     maxScore: 100,
     earned,
     total,
+    capped,
+    critical_failed: criticalFailed,
     categories,
     checks,
     fix_next: fixNext,

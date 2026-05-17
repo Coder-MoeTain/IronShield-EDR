@@ -32,5 +32,30 @@
     ]
   },
   "author": "IronShield",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "false_positives": [
+    "Legitimate administrative activity on managed endpoints"
+  ],
+  "response_guidance": [
+    "Review parent process and user context.",
+    "Correlate with network and file events on the endpoint."
+  ],
+  "data_sources": [
+    "process_creation"
+  ],
+  "explain": {
+    "summary": "Mshta Script Execution (defensive detection).",
+    "matched_fields": [
+      "process_name",
+      "command_line"
+    ]
+  },
+  "tests": [
+    "IRN-WIN-0011-benign-001",
+    "IRN-WIN-0011-malicious-001"
+  ],
+  "confidence": 75,
+  "category": "IRN-WIN-0011-mshta-script-execution",
+  "created_at": "2026-05-17",
+  "updated_at": "2026-05-17"
 }

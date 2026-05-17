@@ -1,0 +1,18 @@
+{
+  "id": "IRN-WIN-0092-benign-001",
+  "description": "Benign control for IRN-WIN-0092",
+  "events": [
+    {
+      "event_id": "evt-IRN-WIN-0092-benign",
+      "event_type": "process_create",
+      "event_time": "2026-05-17T12:00:00Z",
+      "endpoint_id": 1,
+      "process_name": "notepad.exe",
+      "command_line": "notepad.exe C:\\temp\\readme.txt"
+    }
+  ],
+  "expected_no_alerts": true,
+  "must_not_match": [
+    "IRN-WIN-0092"
+  ]
+}

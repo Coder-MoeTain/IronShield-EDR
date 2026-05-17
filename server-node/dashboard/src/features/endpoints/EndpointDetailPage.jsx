@@ -12,6 +12,7 @@ const ProcessTree = lazy(() => import('./tabs/ProcessTreeTab'));
 const Network = lazy(() => import('./tabs/NetworkTab'));
 const ResponseApprovals = lazy(() => import('../response/tabs/ResponseApprovalsTab'));
 const EndpointSoftware = lazy(() => import('./tabs/EndpointSoftwareTab'));
+const AgentTrust = lazy(() => import('./tabs/AgentTrustTab'));
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -89,7 +90,7 @@ export default function EndpointDetailPage() {
       )}
       {tab === 'trust' && (
         <EmbeddedPanel label="Agent trust">
-          <EndpointDetail />
+          <AgentTrust />
         </EmbeddedPanel>
       )}
     </ConsolePage>

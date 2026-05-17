@@ -102,6 +102,11 @@ const manifest = [
     description: 'Block policy lifecycle status, block reason, vulnerability needs_review',
     module: path.join(__dirname, '20260520120000_software_block_lifecycle.js'),
   },
+  {
+    id: '20260521120000_rbac_matrix_extend',
+    description: 'Extended enterprise RBAC roles and permissions matrix',
+    module: path.join(__dirname, '20260521120000_rbac_matrix_extend.js'),
+  },
 ];
 
 module.exports = { manifest, LEGACY_DIR };

@@ -131,6 +131,9 @@ Envelope: `{ success, data, requestId }` — `data` includes `meta`, `tabs`, `kp
 | `POST /inventory/:id/block` | `software:block` | implemented | `test:software` (safety) |
 | `POST /inventory/:id/accept-risk` | `software:accept_risk` | implemented | manual |
 | `GET/POST /block-policies` | `software:policy:manage` | implemented | manual |
+| `POST /vulnerabilities/import` | `software:vulnerability:manage` | implemented | `test:software` |
+| `POST /inventory/:id/create-incident` | `software:manage` | implemented | manual |
+| `POST /emergency-unblock` | `software:unblock` | implemented | manual |
 
 ### Agent software APIs (`/api/v1/agent`)
 
@@ -170,12 +173,29 @@ Report permissions: `report:view`, `report:create`, `report:export`, `report:del
 
 ---
 
+## Implemented platform features (not gaps)
+
+The following are **implemented** — do not document as missing:
+
+- Compact 8-page console (`/overview` … `/admin`)
+- `/api/v1` route alias and OpenAPI v1 paths
+- Console BFF (`GET /api/v1/console/*`)
+- Detection-as-code (**52** IRN-WIN rules; Phase 5 shipped **31**)
+- MITRE coverage dashboard tab
+- Reports (8 platform + 6 software types)
+- Docker `docker-compose.dev.yml` / `docker-compose.prod.yml`
+- Formal migrations: `npm run migrate` (use `migrate-all` only for legacy compatibility)
+
+See [FEATURE_STATUS.md](FEATURE_STATUS.md) and [FINAL_10_10_READINESS_AUDIT.md](FINAL_10_10_READINESS_AUDIT.md).
+
+---
+
 ## Missing coverage
 
 | Area | Gap | Priority |
 |------|-----|----------|
 | Tab E2E with live API | Most tabs lack Playwright tests against a running backend | medium |
-| BFF adoption in UI | Overview uses BFF; many tabs still call admin APIs directly | low |
+| BFF adoption in UI | All 8 console modules show BFF KPI strips; tabs still use admin APIs for detail | low |
 | Report permissions in DB seed | `report:*` permissions may need DB seed for custom roles | medium |
 | Workspace preferences API | Server `PATCH /users/me/preferences` optional / partial | low |
 | Investigation / response tab API matrix tests | Only Threat Graph in `test:dashboard-tabs` | medium |

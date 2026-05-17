@@ -163,10 +163,10 @@ Target calls for explicit **Agent Ingestion API → Queue → Normalizer Worker 
 | `agent_keys` (lifecycle) | **Partial** — `agent_key` on endpoints + migrate scripts |
 | `agent_nonces` (DB-backed replay) | **implemented** — MySQL/Redis via migration + config |
 | `normalized_events` as canonical UUID model | **Partial** — relational columns, no unified `event_id` UUID schema |
-| `detection_rule_versions` | **Missing** |
+| `detection_rule_versions` | **Implemented** — `20260516120000_phase2_tenant_isolation.js` migration |
 | `alert_evidence`, `alert_dispositions` | **Partial** — disposition API exists; dedicated tables unclear |
 | `incident_timeline`, `incident_notes` | **Partial** — incidents module; verify timeline persistence |
-| `approved_scripts` | **Missing** — script allowlist via agent config + policy only |
+| `approved_scripts` | **Implemented** — tenant-scoped table; agent config allowlist remains for bootstrap |
 | `siem_exports`, `integrations` (framework) | **Partial** — webhooks, `SiemPushService`, SIEM export route |
 | `system_jobs` | **Missing** |
 | `audit_exports` | **Missing** |
@@ -246,10 +246,10 @@ Legacy paths (`/alerts`, `/mitre`, `/audit-logs`, …) **redirect** to compact r
 
 | Requirement | Status |
 |-------------|--------|
-| Windows DPAPI for secrets | **Missing** — `config.json` plain text + env overrides (`ConfigService.cs`) |
-| Client certificates / mTLS | **Config flags exist** (`RequireHttps`, server TLS settings); agent cert enrollment not fully documented in-repo |
+| Windows DPAPI for secrets | **Implemented** — `SecretProtector.cs`, `AgentKeyProtected` in `ConfigService.cs` (migrates plaintext on save) |
+| Client certificates / mTLS | **Partial** — `AGENT_MTLS_REQUIRED`, `agentCertBinding.js`; see `docs/security/agent-mtls-enrollment.md` |
 | Per-request endpoint_id in signature payload | **Partial** — signing uses agent key; endpoint binding via Agent-Key lookup |
-| DB/Redis-backed nonce store | **Missing** on server for multi-instance |
+| DB/Redis-backed nonce store | **Implemented** — `AgentNonceService.js` (Redis preferred, MySQL fallback) |
 | Dedicated tamper module (binary integrity, config file watch) | **Partial** — server interprets heartbeat fields |
 | Bounded encrypted offline queue | **Partial** — queue depth reported; encryption not verified |
 | Policy-driven enable/disable per telemetry module | **Partial** — `EndpointPolicy` model; module health reporting incomplete |
@@ -275,7 +275,7 @@ Legacy paths (`/alerts`, `/mitre`, `/audit-logs`, …) **redirect** to compact r
 | Helmet, CORS allowlist, rate limits | `app.js` |
 | Request ID | `middleware/requestId.js`, `X-Request-ID` |
 | Structured logging | `pino` via `utils/logger.js` |
-| Agent request signing + replay cache | `middleware/auth.js` (in-memory nonces) |
+| Agent request signing + replay cache | `middleware/auth.js` + `AgentNonceService.js` (Redis/MySQL; in-memory dev only) |
 | Audit logging + hash chain | `AuditLogService` — `prev_hash`, `entry_hash`; verify endpoint |
 | Audit archive HMAC | Optional NDJSON archive + `AUDIT_ARCHIVE_HMAC_KEY` |
 | Response approval workflow | `response_action_approvals` migration columns + UI queue |
@@ -299,8 +299,8 @@ Legacy paths (`/alerts`, `/mitre`, `/audit-logs`, …) **redirect** to compact r
 |-----|------|
 | Zod config validation at boot | Weak secrets may start in dev; production fail-fast incomplete |
 | Agent signing optional by default | `AGENT_REQUEST_SIGNING_REQUIRED` not true by default |
-| In-memory nonce cache | Breaks replay protection with horizontal scale |
-| Plaintext agent secrets on disk | Credential theft from host |
+| In-memory nonce cache in production | Breaks replay protection with horizontal scale — use Redis/MySQL |
+| Legacy plaintext agent key in config | Migrate to DPAPI via agent save; remove plaintext after rotation |
 | RTR surface | Misconfiguration → unrestricted remote execution |
 | API response envelope inconsistency | Harder for SOAR integration |
 | Tenant isolation tests | Limited — `tenantService.security.test.js`, `requireTenantContext.test.js`; need cross-tenant data tests for alerts/events |
@@ -309,18 +309,22 @@ Legacy paths (`/alerts`, `/mitre`, `/audit-logs`, …) **redirect** to compact r
 
 ## 7. Current missing features (prioritized)
 
-### P0 — Production blockers
+### P0 — Production blockers (May 2026 status)
 
-1. Unified **`npm run migrate` / `migrate:status` / `migrate:rollback` / `seed`** (replace 40+ scripts).
-2. **`/api/v1`** with compatibility shims.
-3. **Canonical event model** + normalizer schema (UUID `event_id`, tenant_id on all event tables).
-4. **Professional permission matrix** aligned across DB, API, dashboard.
-5. **Detection-as-code** — `server-node/detections/` tree, `detections:validate|test|replay`, CI gate.
-6. **MITRE coverage API + dashboard page**.
-7. **DPAPI** + agent secret handling documentation.
-8. **Production Docker** — `docker-compose.dev.yml`, `docker-compose.prod.yml`, `.env.example.*`.
-9. **Reports module** (SOC summary, incident export, audit report).
-10. **“Why fired” alert evidence** structured for UI/SOAR.
+| Item | Status |
+|------|--------|
+| `npm run migrate` / status / rollback / seed | **Done** |
+| `/api/v1` + console BFF | **Done** |
+| Canonical event model + `event_id` idempotency | **Done** (tenant columns via migrations) |
+| Permission matrix | **Partial** — extend `detection_engineer` / integration perms in DB seed |
+| Detection-as-code + CI | **Done** (52 rules) |
+| MITRE coverage API + dashboard | **Done** |
+| DPAPI + agent secrets | **Done** (agent); enforce in all deployments |
+| Production Docker compose | **Done** |
+| Reports module | **Done** (8 platform + 6 software) |
+| Alert “why fired” evidence | **Done** |
+
+**Remaining P0:** mandatory `AGENT_REQUEST_SIGNING_REQUIRED` + `AGENT_MTLS_REQUIRED` in production; complete RBAC seed alignment.
 
 ### P1 — Enterprise completeness
 

@@ -21,10 +21,24 @@ jobs:
         run: npm ci
       - name: Syntax check
         run: node -c src/index.js && node -c src/app.js
+      - name: Docs status check
+        run: npm run docs:status-check
+      - name: Migration manifest validate
+        run: npm run migrate:validate
       - name: OpenAPI contract
         run: npm run test:openapi
+      - name: API envelope tests
+        run: npm run test:envelope
+      - name: RBAC tests
+        run: npm run test:rbac
+      - name: Tenant isolation tests
+        run: npm run test:tenant-isolation
+      - name: Software risk tests
+        run: npm run test:software
       - name: Lint backend
         run: npm run lint
+      - name: Generate SBOM (backend)
+        run: npm run sbom
       - name: Detection-as-code validate
         run: npm run detections:validate
       - name: Detection-as-code lint

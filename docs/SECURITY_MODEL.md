@@ -29,6 +29,12 @@ High-risk actions may require approval. Commands dispatched to agents include HM
 
 Administrative actions append to `audit_logs` with optional hash chain verification (`npm run audit:verify`).
 
+## RBAC (canonical permissions)
+
+Enterprise permissions use the `resource:action` form (e.g. `alert:triage`, `software:block`, `detection:approve`). Roles include `super_admin`, `tenant_admin`, `soc_manager`, `senior_analyst`, `analyst`, `detection_engineer`, `detection_reviewer`, `auditor`, and `viewer` (read-only). Separation of duty: users cannot approve their own high-risk response actions or software blocks; detection rule authors cannot approve their own stable rules.
+
+See `server-node/src/constants/permissions.js` and [FEATURE_STATUS.md](FEATURE_STATUS.md).
+
 ## Out of scope
 
 IronShield does not provide exploit development, C2 frameworks, or unauthorized access capabilities.

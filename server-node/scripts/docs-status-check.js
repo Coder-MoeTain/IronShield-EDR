@@ -44,6 +44,8 @@ const IMPLEMENTED = [
   { id: 'route_map', file: 'server-node/dashboard/src/routes/routeMap.jsx' },
   { id: 'legacy_redirects', file: 'server-node/dashboard/src/routes/legacyRedirects.js' },
   { id: 'production_readiness', file: 'server-node/src/services/ProductionReadinessService.js' },
+  { id: 'feature_status', file: 'docs/FEATURE_STATUS.md' },
+  { id: 'readiness_audit', file: 'docs/FINAL_10_10_READINESS_AUDIT.md' },
 ];
 
 for (const item of IMPLEMENTED) {

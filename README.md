@@ -42,6 +42,8 @@
   <a href="docs/crowdstrike-network-activity.md">Network Activity Console</a> •
   <a href="docs/enterprise-hardening.md">Enterprise hardening</a> •
   <a href="docs/UPGRADE_AUDIT.md">Enterprise upgrade (Phases 1–9)</a> •
+  <a href="docs/FEATURE_STATUS.md">Feature status</a> •
+  <a href="docs/FINAL_10_10_READINESS_AUDIT.md">10/10 readiness audit</a> •
   <a href="docs/ARCHITECTURE.md">Architecture</a> •
   <a href="docs/SECURITY_MODEL.md">Security model</a> •
   <a href="docs/security/README.md">Security assurance (threat model, controls)</a>

@@ -5,6 +5,13 @@ import PageShell from '../../../components/PageShell';
 import DetailDrawer from '../../../components/DetailDrawer';
 import { apiPath } from '../../../utils/apiPath';
 import { readApiJson } from '../../../utils/apiEnvelope';
+import {
+  NotifyUpdateModal,
+  NotifyUninstallModal,
+  BlockModal,
+  AcceptRiskModal,
+  ModalShell,
+} from '../../../components/software/SoftwareActionModals';
 import styles from './SoftwareRiskTab.module.css';
 
 const SUB_TABS = [
@@ -40,22 +47,6 @@ function riskTags(row) {
   if (row.needs_review) tags.push({ label: 'Needs Review', tone: 'warn' });
   if (!tags.length && (row.risk_score || 0) === 0) tags.push({ label: 'No Known Risk', tone: 'ok' });
   return tags;
-}
-
-function ModalShell({ open, title, onClose, onSubmit, children, submitLabel = 'Submit' }) {
-  if (!open) return null;
-  return (
-    <div className={styles.modalBackdrop}>
-      <div className={styles.modal} role="dialog" aria-modal="true">
-        <h3>{title}</h3>
-        {children}
-        <div className={styles.modalActions}>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="button" className={styles.primaryBtn} onClick={onSubmit}>{submitLabel}</button>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export default function SoftwareRiskTab() {
@@ -283,12 +274,17 @@ export default function SoftwareRiskTab() {
 
       {subTab === 'policies' && (
         <div>
-          <button type="button" className={styles.primaryBtn} onClick={() => { setModal('block-policy'); setForm({}); }}>
-            Create block policy
-          </button>
+          <div className={styles.filters}>
+            <button type="button" className={styles.primaryBtn} onClick={() => { setModal('block-policy'); setForm({}); }}>
+              Create block policy
+            </button>
+            <button type="button" onClick={() => { setModal('emergency-unblock'); setForm({}); }}>
+              Emergency unblock all
+            </button>
+          </div>
           <table className={styles.table}>
             <thead>
-              <tr><th>Name</th><th>Software</th><th>Action</th><th>Lifecycle</th><th>Enabled</th></tr>
+              <tr><th>Name</th><th>Software</th><th>Action</th><th>Lifecycle</th><th>Enabled</th><th /></tr>
             </thead>
             <tbody>
               {policies.map((p) => (
@@ -298,6 +294,25 @@ export default function SoftwareRiskTab() {
                   <td>{p.action}</td>
                   <td>{p.lifecycle_status || 'active'}</td>
                   <td>{p.enabled ? 'Yes' : 'No'}</td>
+                  <td>
+                    {p.lifecycle_status === 'pending_approval' && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const res = await api(apiPath(`/api/software/block-policies/${p.id}/approve`), { method: 'POST' });
+                            if (!res.ok) throw new Error('Approve failed');
+                            setActionMsg('Policy approved');
+                            load();
+                          } catch (e) {
+                            setActionMsg(e.message);
+                          }
+                        }}
+                      >
+                        Approve
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -324,6 +339,16 @@ export default function SoftwareRiskTab() {
       )}
 
       {subTab === 'vulndb' && (
+        <div>
+          <div className={styles.filters}>
+            <button
+              type="button"
+              className={styles.primaryBtn}
+              onClick={() => { setModal('vuln-import'); setForm({ json: '' }); }}
+            >
+              Import vulnerabilities (JSON)
+            </button>
+          </div>
         <table className={styles.table}>
           <thead><tr><th>CVE</th><th>Software</th><th>Severity</th><th>Expression</th><th>Fixed</th><th /></tr></thead>
           <tbody>
@@ -339,6 +364,7 @@ export default function SoftwareRiskTab() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
       <DetailDrawer open={!!selected} title={selected?.name} onClose={() => setSelected(null)}>
@@ -374,31 +400,27 @@ export default function SoftwareRiskTab() {
         )}
       </DetailDrawer>
 
-      <ModalShell
+      <NotifyUpdateModal
         open={modal === 'notify-update' && !!selected}
-        title={`Notify update: ${selected?.name}`}
+        selected={selected}
+        form={form}
+        setForm={setForm}
         onClose={() => setModal(null)}
         onSubmit={() => postAction(selected.id, 'notify-update', { title: form.title, message: form.message })}
-        submitLabel="Send notification"
-      >
-        <input placeholder="Title (optional)" value={form.title || ''} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-        <textarea placeholder="Message (optional)" value={form.message || ''} onChange={(e) => setForm({ ...form, message: e.target.value })} rows={4} />
-      </ModalShell>
-
-      <ModalShell
+      />
+      <NotifyUninstallModal
         open={modal === 'notify-uninstall' && !!selected}
-        title={`Notify uninstall: ${selected?.name}`}
+        selected={selected}
+        form={form}
+        setForm={setForm}
         onClose={() => setModal(null)}
         onSubmit={() => postAction(selected.id, 'notify-uninstall', { title: form.title, message: form.message })}
-        submitLabel="Send notification"
-      >
-        <input placeholder="Title (optional)" value={form.title || ''} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-        <textarea placeholder="Message (optional)" value={form.message || ''} onChange={(e) => setForm({ ...form, message: e.target.value })} rows={4} />
-      </ModalShell>
-
-      <ModalShell
+      />
+      <BlockModal
         open={modal === 'block' && !!selected}
-        title={`Block execution: ${selected?.name}`}
+        selected={selected}
+        form={form}
+        setForm={setForm}
         onClose={() => setModal(null)}
         onSubmit={() =>
           postAction(selected.id, 'block', {
@@ -407,23 +429,15 @@ export default function SoftwareRiskTab() {
             expires_at: form.expires_at || undefined,
           })
         }
-        submitLabel="Request block"
-      >
-        <textarea placeholder="Reason (required)" value={form.reason || ''} onChange={(e) => setForm({ ...form, reason: e.target.value })} rows={3} />
-        <input placeholder="Approver username (high-risk)" value={form.approved_by || ''} onChange={(e) => setForm({ ...form, approved_by: e.target.value })} />
-        <input type="datetime-local" value={form.expires_at || ''} onChange={(e) => setForm({ ...form, expires_at: e.target.value })} />
-      </ModalShell>
-
-      <ModalShell
+      />
+      <AcceptRiskModal
         open={modal === 'accept-risk' && !!selected}
-        title={`Accept risk: ${selected?.name}`}
+        selected={selected}
+        form={form}
+        setForm={setForm}
         onClose={() => setModal(null)}
         onSubmit={() => postAction(selected.id, 'accept-risk', { reason: form.reason, until: form.until })}
-        submitLabel="Accept risk"
-      >
-        <textarea placeholder="Reason (required)" value={form.reason || ''} onChange={(e) => setForm({ ...form, reason: e.target.value })} rows={3} />
-        <input type="datetime-local" value={form.until || ''} onChange={(e) => setForm({ ...form, until: e.target.value })} />
-      </ModalShell>
+      />
 
       <ModalShell
         open={modal === 'block-policy'}
@@ -449,6 +463,69 @@ export default function SoftwareRiskTab() {
         <input placeholder="Software name" value={form.software_name || ''} onChange={(e) => setForm({ ...form, software_name: e.target.value })} />
         <input placeholder="Version expression" value={form.version_expression || ''} onChange={(e) => setForm({ ...form, version_expression: e.target.value })} />
         <textarea placeholder="Block reason" value={form.block_reason || ''} onChange={(e) => setForm({ ...form, block_reason: e.target.value })} rows={2} />
+      </ModalShell>
+
+      <ModalShell
+        open={modal === 'emergency-unblock'}
+        title="Emergency unblock all software"
+        onClose={() => setModal(null)}
+        onSubmit={async () => {
+          try {
+            const res = await api(apiPath('/api/software/emergency-unblock'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reason: form.reason }),
+            });
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              throw new Error(err?.error?.message || 'Emergency unblock failed');
+            }
+            setModal(null);
+            setActionMsg('Emergency unblock completed');
+            load();
+          } catch (e) {
+            setActionMsg(e.message);
+          }
+        }}
+        submitLabel="Unblock all"
+      >
+        <textarea
+          placeholder="Reason (required, min 5 chars)"
+          value={form.reason || ''}
+          onChange={(e) => setForm({ ...form, reason: e.target.value })}
+          rows={3}
+        />
+      </ModalShell>
+
+      <ModalShell
+        open={modal === 'vuln-import'}
+        title="Import vulnerabilities"
+        onClose={() => setModal(null)}
+        onSubmit={async () => {
+          try {
+            const records = JSON.parse(form.json || '[]');
+            const res = await api(apiPath('/api/software/vulnerabilities/import'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ records }),
+            });
+            if (!res.ok) throw new Error('Import failed');
+            const { data } = await readApiJson(res);
+            setActionMsg(`Imported ${data?.imported ?? 0}, skipped ${data?.skipped ?? 0}`);
+            setModal(null);
+            load();
+          } catch (e) {
+            setActionMsg(e.message);
+          }
+        }}
+        submitLabel="Import"
+      >
+        <textarea
+          placeholder='[{"cve_id":"CVE-DEMO-0001","normalized_name":"chrome",...}]'
+          value={form.json || ''}
+          onChange={(e) => setForm({ ...form, json: e.target.value })}
+          rows={8}
+        />
       </ModalShell>
     </PageShell>
   );

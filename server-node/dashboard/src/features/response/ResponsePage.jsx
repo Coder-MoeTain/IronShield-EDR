@@ -4,6 +4,8 @@ import ConsolePage from '../../components/ConsolePage';
 import TabNav from '../../components/TabNav';
 import EmbeddedPanel from '../../components/EmbeddedPanel';
 import { useConsoleTab } from '../../utils/consoleTabs';
+import { useConsoleBff } from '../../hooks/useConsoleBff';
+import KpiStrip from '../../components/KpiStrip';
 import { isReadOnlyViewer } from '../../utils/socRoles';
 
 const ResponseApprovals = lazy(() => import('./tabs/ResponseApprovalsTab'));
@@ -24,9 +26,13 @@ const TABS = [
 const VALID = TABS.map((t) => t.id);
 
 export default function ResponsePage() {
-  const { user } = useAuth();
+  const { user, api } = useAuth();
   const readOnly = isReadOnlyViewer(user);
   const [tab, setTab] = useConsoleTab('approvals', VALID);
+  const { data: bff } = useConsoleBff(api, 'response');
+  const kpiItems = bff
+    ? [{ id: 'appr', label: 'Pending approvals', value: bff.kpis?.approvals_pending ?? '—' }]
+    : [];
 
   const tabs = TABS.map((t) => ({
     ...t,
@@ -41,6 +47,7 @@ export default function ResponsePage() {
       description="Approvals, remote response, playbooks, quarantine, and action history. High-risk actions require approval."
       tabs={<TabNav tabs={tabs} activeTab={tab} onChange={setTab} ariaLabel="Response sections" />}
     >
+      {kpiItems.length > 0 && <KpiStrip items={kpiItems} />}
       {tab === 'approvals' && (
         <EmbeddedPanel label="Pending approvals">
           <ResponseApprovals />

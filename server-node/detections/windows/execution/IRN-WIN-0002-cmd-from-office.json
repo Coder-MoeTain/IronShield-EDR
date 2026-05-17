@@ -6,12 +6,57 @@
   "severity": "high",
   "risk_score": 75,
   "platform": "windows",
-  "event_types": ["process_start"],
-  "mitre": { "tactics": ["Execution"], "techniques": ["T1059.003"] },
-  "conditions": {
-    "child_process": ["cmd.exe", "powershell.exe"],
-    "parent_process": ["WINWORD", "EXCEL", "POWERPNT", "OUTLOOK"]
+  "event_types": [
+    "process_start"
+  ],
+  "mitre": {
+    "tactics": [
+      "Execution"
+    ],
+    "techniques": [
+      "T1059.003"
+    ]
+  },
+  "logic": {
+    "all": [
+      {
+        "any": [
+          { "field": "process_name", "op": "contains", "value": "cmd.exe" },
+          { "field": "process_name", "op": "contains", "value": "powershell.exe" }
+        ]
+      },
+      {
+        "any": [
+          { "field": "parent_process_name", "op": "contains", "value": "winword" },
+          { "field": "parent_process_name", "op": "contains", "value": "excel" },
+          { "field": "parent_process_name", "op": "contains", "value": "powerpnt" },
+          { "field": "parent_process_name", "op": "contains", "value": "outlook" }
+        ]
+      }
+    ]
   },
   "author": "IronShield",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "false_positives": [
+    "Legitimate administrative activity on managed endpoints"
+  ],
+  "response_guidance": [
+    "Review parent process and user context.",
+    "Correlate with network and file events on the endpoint."
+  ],
+  "data_sources": [
+    "process_creation"
+  ],
+  "confidence": 75,
+  "category": "execution",
+  "created_at": "2026-05-17",
+  "updated_at": "2026-05-17",
+  "explain": {
+    "summary": "Detects cmd.exe or powershell.exe child of Office applications.",
+    "matched_fields": []
+  },
+  "tests": [
+    "IRN-WIN-0002-benign-001",
+    "IRN-WIN-0002-malicious-001"
+  ]
 }

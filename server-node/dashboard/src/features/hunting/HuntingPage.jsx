@@ -1,8 +1,11 @@
 import React, { lazy } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import ConsolePage from '../../components/ConsolePage';
 import TabNav from '../../components/TabNav';
 import EmbeddedPanel from '../../components/EmbeddedPanel';
+import KpiStrip from '../../components/KpiStrip';
 import { useConsoleTab } from '../../utils/consoleTabs';
+import { useConsoleBff } from '../../hooks/useConsoleBff';
 
 const Hunting = lazy(() => import('./tabs/HuntingTab'));
 const Events = lazy(() => import('./tabs/EventsTab'));
@@ -30,7 +33,12 @@ const TABS = [
 const VALID = TABS.map((t) => t.id);
 
 export default function HuntingPage() {
+  const { api } = useAuth();
   const [tab, setTab] = useConsoleTab('search', VALID);
+  const { data: bff } = useConsoleBff(api, 'hunting');
+  const kpiItems = bff
+    ? [{ id: 'evt', label: 'Events today', value: bff.kpis?.events_today ?? '—' }]
+    : [];
 
   return (
     <ConsolePage
@@ -40,6 +48,7 @@ export default function HuntingPage() {
       actions={<span className="ui-muted" style={{ fontSize: '0.8rem' }}>Ctrl+K</span>}
       tabs={<TabNav tabs={TABS} activeTab={tab} onChange={setTab} ariaLabel="Threat hunting sections" />}
     >
+      {kpiItems.length > 0 && <KpiStrip items={kpiItems} />}
       {tab === 'search' && (
         <EmbeddedPanel label="Hunt search">
           <Hunting />

@@ -185,9 +185,9 @@ function mountApiRoutes(basePath) {
   const enveloped = [envelopeResponseMiddleware];
   app.use(`${basePath}/auth`, ...enveloped, authRoutes);
   app.use(`${basePath}/admin`, ...enveloped, adminRoutes);
-  app.use(`${basePath}/software`, softwareRoutes);
+  app.use(`${basePath}/software`, ...enveloped, softwareRoutes);
   app.use(`${basePath}/detections`, ...enveloped, detectionRoutes);
-  app.use(`${basePath}/console`, consoleRoutes);
+  app.use(`${basePath}/console`, ...enveloped, consoleRoutes);
   app.use(`${basePath}/agent`, agentRoutes);
   app.use(`${basePath}/ingest`, ingestRoutes);
 }

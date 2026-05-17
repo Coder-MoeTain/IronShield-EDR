@@ -122,6 +122,19 @@ describe('requiresBlockApproval', () => {
   });
 });
 
+describe('softwareVulnerabilityService', () => {
+  const SoftwareVulnerabilityService = require('../src/modules/software/softwareVulnerabilityService');
+
+  it('importBatch skips invalid CVE records', async () => {
+    const result = await SoftwareVulnerabilityService.importBatch(
+      [{ cve_id: 'NOT-A-CVE', normalized_name: 'demo-app', severity: 'high' }],
+      'unit-test'
+    );
+    assert.equal(result.imported, 0);
+    assert.equal(result.skipped, 1);
+  });
+});
+
 describe('softwareReportService', () => {
   it('exports CSV header', () => {
     const csv = SoftwareReportService.toCsv({ rows: [] });

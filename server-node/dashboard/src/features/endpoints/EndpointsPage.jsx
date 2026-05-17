@@ -1,9 +1,12 @@
 import React, { lazy } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import ConsolePage from '../../components/ConsolePage';
 import TabNav from '../../components/TabNav';
 import EmbeddedPanel from '../../components/EmbeddedPanel';
+import KpiStrip from '../../components/KpiStrip';
 import { useConsoleTab } from '../../utils/consoleTabs';
+import { useConsoleBff } from '../../hooks/useConsoleBff';
 
 const Endpoints = lazy(() => import('./tabs/EndpointsTab'));
 const HostGroups = lazy(() => import('./tabs/HostGroupsTab'));
@@ -37,7 +40,16 @@ export default function EndpointsPage() {
         : view === 'timeline'
           ? 'timeline'
           : 'list';
+  const { api } = useAuth();
   const [tab, setTab] = useConsoleTab(defaultTab, VALID);
+  const { data: bff } = useConsoleBff(api, 'endpoints');
+  const ep = bff?.kpis?.endpoints || {};
+  const kpiItems = bff
+    ? [
+        { id: 'total', label: 'Endpoints', value: ep.total ?? '—' },
+        { id: 'online', label: 'Online', value: ep.online ?? '—' },
+      ]
+    : [];
 
   return (
     <ConsolePage
@@ -46,6 +58,7 @@ export default function EndpointsPage() {
       description="Hosts, groups, process activity, network telemetry, and agent health."
       tabs={<TabNav tabs={TABS} activeTab={tab} onChange={setTab} ariaLabel="Endpoint sections" />}
     >
+      {kpiItems.length > 0 && <KpiStrip items={kpiItems} />}
       {tab === 'list' && (
         <EmbeddedPanel label="Endpoints">
           <Endpoints />

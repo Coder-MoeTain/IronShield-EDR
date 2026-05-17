@@ -1,0 +1,23 @@
+{
+  "id": "IRN-WIN-0012-malicious-001",
+  "description": "Malicious sample for IRN-WIN-0012",
+  "events": [
+    {
+      "event_id": "evt-IRN-WIN-0012-mal",
+      "event_type": "process_create",
+      "event_time": "2026-05-17T12:00:00Z",
+      "endpoint_id": 1,
+      "process_name": "regsvr32.exe",
+      "command_line": "scrobj-trigger"
+    }
+  ],
+  "must_match": [
+    "IRN-WIN-0012"
+  ],
+  "expected_alerts": [
+    {
+      "rule_id": "IRN-WIN-0012",
+      "require_explanation": false
+    }
+  ]
+}

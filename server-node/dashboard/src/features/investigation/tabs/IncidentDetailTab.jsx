@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import PageShell from '../../../components/PageShell';
+import { readApiJson } from '../../../utils/apiEnvelope';
 import styles from './IncidentDetailTab.module.css';
+
+const LIFECYCLE_PHASES = ['triage', 'investigation', 'containment', 'eradication', 'recovery', 'closed'];
 
 export default function IncidentDetail() {
   const { id } = useParams();
@@ -16,6 +19,7 @@ export default function IncidentDetail() {
   const [msg, setMsg] = useState('');
   const [evidenceRows, setEvidenceRows] = useState([]);
   const [workflow, setWorkflow] = useState({
+    lifecycle_phase: 'triage',
     owner_username: '',
     sla_minutes: 240,
     due_at: '',
@@ -30,10 +34,15 @@ export default function IncidentDetail() {
 
   useEffect(() => {
     api(`/api/admin/incidents/${id}`)
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) throw new Error('load failed');
+        const { data } = await readApiJson(r);
+        return data;
+      })
       .then((data) => {
         setIncident(data);
         setWorkflow({
+          lifecycle_phase: data?.lifecycle_phase || 'triage',
           owner_username: data?.owner_username || '',
           sla_minutes: data?.sla_minutes || 240,
           due_at: data?.due_at ? new Date(data.due_at).toISOString().slice(0, 16) : '',
@@ -68,6 +77,7 @@ export default function IncidentDetail() {
     setMsg('');
     try {
       const payload = {
+        lifecycle_phase: workflow.lifecycle_phase,
         owner_username: workflow.owner_username || null,
         sla_minutes: Number(workflow.sla_minutes || 240),
         due_at: workflow.due_at ? new Date(workflow.due_at).toISOString().slice(0, 19).replace('T', ' ') : null,
@@ -84,6 +94,7 @@ export default function IncidentDetail() {
         prev
           ? {
               ...prev,
+              lifecycle_phase: payload.lifecycle_phase,
               owner_username: payload.owner_username,
               sla_minutes: payload.sla_minutes,
               due_at: payload.due_at,
@@ -261,6 +272,17 @@ export default function IncidentDetail() {
         <div className={styles.card}>
           <h3>Case workflow</h3>
           <div className={styles.workflowForm}>
+            <label>
+              Lifecycle phase
+              <select
+                value={workflow.lifecycle_phase}
+                onChange={(e) => setWorkflow((x) => ({ ...x, lifecycle_phase: e.target.value }))}
+              >
+                {LIFECYCLE_PHASES.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </label>
             <label>
               Owner username
               <input

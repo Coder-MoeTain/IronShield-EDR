@@ -1,0 +1,23 @@
+{
+  "id": "IRN-WIN-0019-malicious-001",
+  "description": "Malicious sample for IRN-WIN-0019",
+  "events": [
+    {
+      "event_id": "evt-IRN-WIN-0019-mal",
+      "event_type": "process_create",
+      "event_time": "2026-05-17T12:00:00Z",
+      "endpoint_id": 1,
+      "process_name": "forfiles.exe",
+      "command_line": "cmd.exe /c echo benign"
+    }
+  ],
+  "must_match": [
+    "IRN-WIN-0019"
+  ],
+  "expected_alerts": [
+    {
+      "rule_id": "IRN-WIN-0019",
+      "require_explanation": false
+    }
+  ]
+}

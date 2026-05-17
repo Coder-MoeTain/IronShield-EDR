@@ -5,6 +5,7 @@ const db = require('../../utils/db');
 const crypto = require('crypto');
 
 const LIFECYCLE_PHASES = [
+  'new',
   'triage',
   'investigation',
   'containment',
@@ -347,6 +348,45 @@ async function addEvidence(incidentId, evidence) {
   return result.insertId;
 }
 
+/** Link endpoint software inventory to an incident (evidence + timeline). */
+async function linkSoftwareInventory(incidentId, softwareInventoryId, actor = null, meta = {}) {
+  const inv = await db.queryOne(
+    `SELECT esi.id, esi.name, esi.version, esi.vendor, esi.endpoint_id, e.hostname
+     FROM endpoint_software_inventory esi
+     LEFT JOIN endpoints e ON e.id = esi.endpoint_id
+     WHERE esi.id = ?`,
+    [softwareInventoryId]
+  );
+  if (!inv) return null;
+
+  const storageUri = `software://inventory/${softwareInventoryId}`;
+  let evidenceId = null;
+  try {
+    evidenceId = await addEvidence(incidentId, {
+      evidence_type: 'software_inventory',
+      storage_uri: storageUri,
+      collected_by: actor || 'system',
+      custody_note: `Software risk: ${inv.name} ${inv.version || ''} on ${inv.hostname || inv.endpoint_id}`,
+    });
+  } catch {
+    /* evidence table optional on older schemas */
+  }
+
+  await addTimeline(
+    incidentId,
+    'software_linked',
+    `Software inventory linked: ${inv.name} ${inv.version || ''}`,
+    actor,
+    {
+      software_inventory_id: softwareInventoryId,
+      endpoint_id: inv.endpoint_id,
+      ...meta,
+    }
+  );
+
+  return { software_inventory_id: softwareInventoryId, evidence_id: evidenceId, inventory: inv };
+}
+
 module.exports = {
   LIFECYCLE_PHASES,
   list,
@@ -362,4 +402,5 @@ module.exports = {
   listEvidence,
   addEvidence,
   addTimeline,
+  linkSoftwareInventory,
 };

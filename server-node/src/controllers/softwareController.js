@@ -169,6 +169,19 @@ async function acceptRisk(req, res, next) {
 
 async function refreshInventory(req, res, next) {
   try {
+    const sw = await SoftwareInventoryService.getById(req.params.id, req.tenantId);
+    if (!sw) return sendErrorFromReq(res, req, ERROR_CODES.NOT_FOUND, 'Not found', 404);
+    const pending = await SoftwareRemediationService.hasPendingRefresh(sw.endpoint_id, req.tenantId);
+    if (pending) {
+      return sendErrorFromReq(
+        res,
+        req,
+        ERROR_CODES.VALIDATION_ERROR,
+        'Inventory refresh already pending for this endpoint',
+        409,
+        { code: 'REFRESH_PENDING' }
+      );
+    }
     const action = await SoftwareRemediationService.requestRefresh(
       req.params.id,
       req.tenantId,
@@ -301,6 +314,35 @@ async function exportReport(req, res, next) {
   }
 }
 
+async function importVulnerabilities(req, res, next) {
+  try {
+    const records = Array.isArray(req.body)
+      ? req.body
+      : Array.isArray(req.body?.records)
+        ? req.body.records
+        : null;
+    if (!records?.length) {
+      return sendErrorFromReq(
+        res,
+        req,
+        ERROR_CODES.VALIDATION_ERROR,
+        'Request body must be a JSON array or { records: [...] }',
+        400
+      );
+    }
+    const result = await SoftwareVulnerabilityService.importBatch(records, req.user?.username);
+    await AuditLogService.log({
+      username: req.user?.username,
+      action: 'software.vulnerability_import',
+      resourceType: 'software_vulnerability',
+      details: result,
+    });
+    ok(res, req, result, 201);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function createSoftwareIncident(req, res, next) {
   try {
     const sw = await SoftwareInventoryService.getById(req.params.id, req.tenantId);
@@ -314,9 +356,16 @@ async function createSoftwareIncident(req, res, next) {
       endpoint_id: sw.endpoint_id,
       tenant_id: req.tenantId,
       correlation_type: 'software_risk',
+      lifecycle_phase: 'triage',
       created_by: req.user?.username,
     });
-    ok(res, req, incident, 201);
+    const link = await IncidentService.linkSoftwareInventory(
+      incident.id,
+      req.params.id,
+      req.user?.username,
+      { risk_score: sw.risk_score, risk_level: sw.risk_level }
+    );
+    ok(res, req, { ...incident, software_link: link }, 201);
   } catch (err) {
     next(err);
   }
@@ -344,5 +393,6 @@ module.exports = {
   approveBlockPolicy,
   emergencyUnblock,
   exportReport,
+  importVulnerabilities,
   createSoftwareIncident,
 };

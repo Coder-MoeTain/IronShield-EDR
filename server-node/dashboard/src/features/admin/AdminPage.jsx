@@ -6,6 +6,8 @@ import SocRouteGuard from '../../components/SocRouteGuard';
 import { useConsoleTab } from '../../utils/consoleTabs';
 import { useAuth } from '../../context/AuthContext';
 import ProductionReadinessPanel from '../../components/ProductionReadinessPanel';
+import KpiStrip from '../../components/KpiStrip';
+import { useConsoleBff } from '../../hooks/useConsoleBff';
 import {
   canAccessAuditTab,
   canAccessIntegrationsTab,
@@ -37,7 +39,18 @@ const ALL_TABS = [
 ];
 
 export default function AdminPage() {
-  const { user, permissions } = useAuth();
+  const { user, permissions, api } = useAuth();
+  const { data: bff } = useConsoleBff(api, 'admin');
+  const kpiItems = bff
+    ? [
+        { id: 'tenants', label: 'Tenants', value: bff.kpis?.tenants?.total ?? '—' },
+        {
+          id: 'ready',
+          label: 'Readiness',
+          value: bff.production_readiness?.score != null ? `${bff.production_readiness.score}%` : '—',
+        },
+      ]
+    : [];
   const visibleTabs = ALL_TABS.filter((t) => !t.guard || t.guard(user, permissions)).map(({ id, label }) => ({
     id,
     label,
@@ -53,6 +66,7 @@ export default function AdminPage() {
       description="Users, tenants, RBAC, integrations, audit logs, reports, and platform health."
       tabs={<TabNav tabs={visibleTabs} activeTab={tab} onChange={setTab} ariaLabel="Administration sections" />}
     >
+      {kpiItems.length > 0 && <KpiStrip items={kpiItems} />}
       {(tab === 'system-health' || tab === 'settings') && <ProductionReadinessPanel />}
       {tab === 'settings' && (
         <SocRouteGuard allow={canAccessSettingsTab}>

@@ -37,6 +37,11 @@ router.post(
   requirePermission(PERMISSIONS.SOFTWARE_VULN_MANAGE),
   softwareController.createVulnerability
 );
+router.post(
+  '/vulnerabilities/import',
+  requirePermission(PERMISSIONS.SOFTWARE_VULN_MANAGE),
+  softwareController.importVulnerabilities
+);
 router.put(
   '/vulnerabilities/:id',
   requirePermission(PERMISSIONS.SOFTWARE_VULN_MANAGE),
