@@ -9,7 +9,7 @@
 
 ## Executive summary
 
-IronShield is already a **substantial, feature-rich defensive EDR foundation**—not a greenfield project. It ships multi-tenant RBAC, MFA/SSO hooks, audit hash chaining, agent request signing, enrollment tokens, BullMQ/Redis workers, optional Kafka, XDR event store, NGAV module, Falcon-style UI phases, response approvals, RTR (controlled), hunting, and CI (backend tests, agent .NET tests, dashboard Vitest/Playwright).
+IronShield is already a **substantial, feature-rich defensive EDR foundation**—not a greenfield project. It ships multi-tenant RBAC, MFA/SSO hooks, audit hash chaining, agent request signing, enrollment tokens, BullMQ/Redis workers, optional Kafka, XDR event store, NGAV module, Enterprise SOC UI phases, response approvals, RTR (controlled), hunting, Software Risk Management, and CI (backend tests, agent .NET tests, dashboard Vitest/Playwright).
 
 **May 2026 polish:** Compact 8-page console, `/api/v1` + console BFF, `npm run migrate`, tab-specific admin RBAC, production readiness score, workspace preferences, and aligned documentation (`docs/API_COVERAGE.md`, `npm run docs:status-check`).
 
@@ -60,7 +60,7 @@ Remaining gaps are mainly **depth and hardening**: full BFF adoption in every ta
 | XDR | `server-node/src/xdr/` | Store, mapper, detection, autoresponse |
 | Agent | `agent-csharp/src/` | `EDR.Agent.Service`, `EDR.Agent.Core`, `EDR.Agent.Updater` |
 | DB | `database/*.sql` + `server-node/scripts/migrate-*.js` | **Dual migration model** (SQL files + idempotent JS migrations) |
-| Dashboard | `server-node/dashboard/src/` | React 18, lazy routes, Falcon-style nav |
+| Dashboard | `server-node/dashboard/src/` | React 18, lazy routes, Enterprise SOC 8-page console |
 | API contract | `server-node/openapi/openapi.json` | Served at `GET /api/openapi.json` |
 | CI | `.github/workflows/ci.yml` | Backend tests, OpenAPI validate, detection replay, agent build/test, dashboard build/e2e |
 | Compose | `docker-compose.yml` | mysql, redis, kafka, backend, worker |
@@ -91,6 +91,8 @@ Target calls for explicit **Agent Ingestion API → Queue → Normalizer Worker 
 | `/api/agent` | **implemented** | Agent-Key + HMAC nonces | Register, heartbeat, events, AV, policy, RTR |
 | `/api/admin` | **implemented** | JWT + RBAC + tenant | Full SOC/admin surface |
 | `/api/ingest` | **implemented** | XDR ingest key | External XDR ingestion |
+| `/api/v1/software` | **implemented** | JWT + RBAC | Inventory, CVEs, block policies, remediation, reports |
+| `/api/v1/detections` | **implemented** | JWT + RBAC | Rule packs, replay, quality, MITRE, versions, rollback, Sigma import |
 | `/health`, `/healthz`, `/readyz`, `/metrics` | **implemented** | Mixed | Liveness, readiness, Prometheus |
 
 ### 2.2 Notable admin endpoints (representative)
@@ -158,7 +160,7 @@ Target calls for explicit **Agent Ingestion API → Queue → Normalizer Worker 
 
 | Target table | Status |
 |--------------|--------|
-| `endpoint_groups` | **Partial** — `host_groups` exists (Falcon parity naming) |
+| `endpoint_groups` | **Partial** — `host_groups` exists (legacy naming) |
 | `endpoint_health` | **Partial** — columns on `endpoints` + `endpoint_metrics` |
 | `agent_keys` (lifecycle) | **Partial** — `agent_key` on endpoints + migrate scripts |
 | `agent_nonces` (DB-backed replay) | **implemented** — MySQL/Redis via migration + config |
@@ -191,7 +193,8 @@ Target calls for explicit **Agent Ingestion API → Queue → Normalizer Worker 
 | `/investigation` | Investigation | **implemented** | Incidents, cases, graph, reports |
 | `/response` | Response | **implemented** | Approvals, RTR, playbooks, quarantine |
 | `/hunting` | Hunting | **implemented** | Events, IOCs, XDR realtime, network |
-| `/protection` | Protection | **implemented** | NGAV policies, quarantine, signatures |
+| `/protection` | Protection | **implemented** | NGAV policies, quarantine, signatures, Software Risk |
+| Endpoint detail → Installed Software | Endpoints | **implemented** | Per-host inventory tab with block/notify actions |
 | `/admin` | Administration | **implemented** | Tab-specific RBAC (settings, tenants, audit, …) |
 
 Legacy paths (`/alerts`, `/mitre`, `/audit-logs`, …) **redirect** to compact routes with `?tab=`.

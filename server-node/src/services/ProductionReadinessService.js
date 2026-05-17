@@ -136,9 +136,58 @@ const CATEGORIES = [
       {
         id: 'tenant_isolation',
         label: 'Tenant isolation tests',
-        weight: 10,
-        fix: 'Keep test/tenantIsolation.integration.test.js and run with RUN_DB_TESTS=true in CI.',
-        missing: 'tenantIsolation.integration.test.js not found',
+        weight: 6,
+        fix: 'Run npm run test:tenant-isolation in CI.',
+        missing: 'tenant isolation test files missing',
+      },
+      {
+        id: 'envelope_tests',
+        label: 'API envelope tests',
+        weight: 6,
+        fix: 'Run npm run test:envelope and fix failing routes.',
+        missing: 'envelope test files missing',
+      },
+      {
+        id: 'rbac_tests',
+        label: 'RBAC tests',
+        weight: 6,
+        fix: 'Run npm run test:rbac.',
+        missing: 'rbac test files missing',
+      },
+      {
+        id: 'software_tests',
+        label: 'Software safety tests',
+        weight: 6,
+        fix: 'Run npm run test:software.',
+        missing: 'software test files missing',
+      },
+      {
+        id: 'detection_unit_tests',
+        label: 'Detection unit tests',
+        weight: 6,
+        fix: 'Run npm run test:detections.',
+        missing: 'detection unit test files missing',
+      },
+      {
+        id: 'audit_verify',
+        label: 'Audit hash verification CLI',
+        weight: 6,
+        fix: 'Run npm run audit:verify after migrations.',
+        missing: 'audit:verify script missing',
+      },
+      {
+        id: 'jwt_secret',
+        label: 'JWT secret strength',
+        weight: 8,
+        fix: 'Set JWT_SECRET to a random string of at least 32 characters.',
+        missing: 'JWT_SECRET is weak or too short in production',
+      },
+      {
+        id: 'nonce_memory',
+        label: 'Nonce store not in-memory',
+        weight: 8,
+        fix: 'Set AGENT_NONCE_STORE=redis (or mysql) in production.',
+        missing: 'AGENT_NONCE_STORE=memory is not allowed in production',
       },
     ],
   },
@@ -167,14 +216,21 @@ async function evaluateCheck(id) {
         ok: Boolean(config.agent?.keyPepper) || isDev,
         detail: config.agent?.keyPepper ? 'pepper set' : isDev ? 'dev mode' : 'no pepper',
       };
-    case 'redis_nonce':
+    case 'redis_nonce': {
+      if (config.env === 'production' && config.agent?.nonceStore === 'memory') {
+        return { ok: false, detail: 'memory nonce store in production' };
+      }
       try {
         const r = await healthChecks.checkRedisIfConfigured();
-        if (!r?.configured) return { ok: true, detail: 'Redis not required' };
+        if (config.agent?.nonceStore === 'redis') {
+          return { ok: r?.ok === true, detail: r?.ok ? 'Redis OK' : 'Redis unreachable' };
+        }
+        if (!r?.configured) return { ok: config.agent?.nonceStore !== 'memory' || isDev, detail: 'MySQL nonce store' };
         return { ok: r.ok, detail: r.ok ? 'Redis OK' : 'Redis unreachable' };
       } catch {
         return { ok: false, detail: 'Redis check failed' };
       }
+    }
     case 'audit_chain':
       try {
         const row = await db.queryOne(
@@ -186,13 +242,18 @@ async function evaluateCheck(id) {
       } catch {
         return { ok: false, detail: 'DB unavailable' };
       }
-    case 'cors':
+    case 'cors': {
+      const origins = config.http?.corsOrigins || [];
+      const hasWildcard = origins.some((o) => o === '*' || o === 'null');
       return {
-        ok: (config.http?.corsOrigins || []).length > 0 || isDev,
-        detail: (config.http?.corsOrigins || []).length
-          ? `${config.http.corsOrigins.length} origin(s)`
-          : 'no CORS allowlist',
+        ok: (origins.length > 0 && !hasWildcard) || isDev,
+        detail: hasWildcard
+          ? 'CORS wildcard origin configured'
+          : origins.length
+            ? `${origins.length} origin(s)`
+            : 'no CORS allowlist',
       };
+    }
     case 'metrics':
       return {
         ok: !config.metrics?.enabled || Boolean(config.metrics?.token),
@@ -239,9 +300,71 @@ async function evaluateCheck(id) {
       return { ok: fs.existsSync(script), detail: fs.existsSync(script) ? 'script present' : 'missing script' };
     }
     case 'tenant_isolation': {
-      const testFile = path.join(__dirname, '../../test/tenantIsolation.integration.test.js');
-      return { ok: fs.existsSync(testFile), detail: fs.existsSync(testFile) ? 'test file present' : 'missing test' };
+      const files = [
+        'tenantIsolation.service.test.js',
+        'requireTenantContext.test.js',
+        'tenantQuery.test.js',
+      ].map((f) => path.join(__dirname, '../../test', f));
+      const ok = files.every((f) => fs.existsSync(f));
+      return { ok, detail: ok ? 'test files present' : 'missing tenant isolation tests' };
     }
+    case 'envelope_tests': {
+      const files = ['envelopeResponse.test.js', 'envelopeRoutes.integration.test.js'].map((f) =>
+        path.join(__dirname, '../../test', f)
+      );
+      const ok = files.every((f) => fs.existsSync(f));
+      return { ok, detail: ok ? 'envelope tests present' : 'missing envelope tests' };
+    }
+    case 'rbac_tests': {
+      const files = ['rbac.unit.test.js', 'rbacRouteMatrix.unit.test.js'].map((f) =>
+        path.join(__dirname, '../../test', f)
+      );
+      const ok = files.every((f) => fs.existsSync(f));
+      return { ok, detail: ok ? 'rbac tests present' : 'missing rbac tests' };
+    }
+    case 'software_tests': {
+      const files = ['software.unit.test.js', 'softwareTenantIsolation.test.js'].map((f) =>
+        path.join(__dirname, '../../test', f)
+      );
+      const ok = files.every((f) => fs.existsSync(f));
+      return { ok, detail: ok ? 'software tests present' : 'missing software tests' };
+    }
+    case 'detection_unit_tests': {
+      const files = ['detections.unit.test.js', 'detections.ruleReview.unit.test.js'].map((f) =>
+        path.join(__dirname, '../../test', f)
+      );
+      const ok = files.every((f) => fs.existsSync(f));
+      return { ok, detail: ok ? 'detection tests present' : 'missing detection tests' };
+    }
+    case 'audit_verify': {
+      const script = path.join(__dirname, '../../scripts/audit-verify-cli.js');
+      return { ok: fs.existsSync(script), detail: fs.existsSync(script) ? 'CLI present' : 'missing audit:verify' };
+    }
+    case 'jwt_secret': {
+      const secret = String(config.jwt?.secret || '');
+      const weak = new Set([
+        'secret',
+        'changeme',
+        'replace-me-with-a-strong-secret',
+        'your-secret-key',
+        'jwt-secret',
+      ]);
+      const ok =
+        isDev ||
+        (secret.length >= 32 && !weak.has(secret.toLowerCase()) && !/^test/i.test(secret));
+      return {
+        ok,
+        detail: ok ? 'JWT secret OK' : secret.length < 32 ? 'JWT_SECRET too short' : 'JWT_SECRET is weak',
+      };
+    }
+    case 'nonce_memory':
+      return {
+        ok: config.env !== 'production' || config.agent?.nonceStore !== 'memory',
+        detail:
+          config.agent?.nonceStore === 'memory'
+            ? 'memory store (dev only)'
+            : `store: ${config.agent?.nonceStore || 'mysql'}`,
+      };
     default:
       return { ok: false, detail: 'unknown check' };
   }
@@ -307,7 +430,24 @@ async function getScore() {
   let score = total > 0 ? Math.round((earned / total) * 100) : 0;
 
   const isProd = config.env === 'production';
-  const criticalIds = ['mtls', 'agent_signing', 'agent_key_hash', 'redis_nonce'];
+  const criticalIds = [
+    'mtls',
+    'agent_signing',
+    'agent_key_hash',
+    'redis_nonce',
+    'nonce_memory',
+    'jwt_secret',
+    'cors',
+    'metrics',
+    'openapi',
+    'envelope_tests',
+    'rbac_tests',
+    'tenant_isolation',
+    'software_tests',
+    'detection_unit_tests',
+    'detections_test',
+    'audit_verify',
+  ];
   const criticalFailed = isProd
     ? checks.filter((c) => criticalIds.includes(c.id) && !c.ok).map((c) => c.id)
     : [];
@@ -317,12 +457,12 @@ async function getScore() {
     score = 89;
     capped = true;
     fixNext.unshift({
-      id: 'critical_agent_trust',
-      label: 'Critical agent trust checks failed',
-      category: 'Agent trust',
-      fix: 'Enable AGENT_REQUEST_SIGNING_REQUIRED, AGENT_KEY_PEPPER, AGENT_MTLS_REQUIRED, and Redis nonce store.',
+      id: 'production_gate',
+      label: 'Production readiness gate failed',
+      category: 'Platform',
+      fix: 'Resolve failed checks: run test:envelope, test:openapi, test:rbac, test:tenant-isolation, test:software, test:detections, detections:test, audit:verify; fix JWT, CORS, metrics token, and nonce store.',
       missing: `Failed: ${criticalFailed.join(', ')}`,
-      detail: 'Production score capped below 90 until resolved',
+      detail: 'Score capped below 90 until all production gate checks pass',
     });
   }
 

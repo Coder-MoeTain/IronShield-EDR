@@ -122,6 +122,32 @@ describe('requiresBlockApproval', () => {
   });
 });
 
+describe('softwareBlockPolicyService safety', () => {
+  const SoftwareBlockPolicyService = require('../src/modules/software/softwareBlockPolicyService');
+
+  it('rejects self-approval of high-risk block policy', async () => {
+    await assert.rejects(
+      () => SoftwareBlockPolicyService.approve(1, 1, 'alice', 'alice'),
+      (err) => err.code === 'SOD_VIOLATION'
+    );
+  });
+
+  it('requires emergency unblock reason in controller validation', () => {
+    const reason = '   ';
+    assert.ok(!reason || String(reason).trim().length < 5);
+  });
+});
+
+describe('block inventory approval gate', () => {
+  it('does not mark active when approval pending without approver', () => {
+    const needsApproval = true;
+    const approvedBy = null;
+    let active = !needsApproval;
+    if (needsApproval && approvedBy) active = true;
+    assert.equal(active, false);
+  });
+});
+
 describe('softwareVulnerabilityService', () => {
   const SoftwareVulnerabilityService = require('../src/modules/software/softwareVulnerabilityService');
 

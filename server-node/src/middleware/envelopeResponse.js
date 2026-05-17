@@ -1,6 +1,7 @@
 /**
  * Wraps res.json success/error payloads in the standard API envelope when not already enveloped.
- * Applied to admin/auth/detections/console/software routes (not agent/ingest).
+ * Applied to all /api and /api/v1 route groups. Ingest producers and the Windows agent
+ * should accept { success, data } or legacy flat JSON (agent unwraps in HttpTransport).
  */
 const { requestIdFromReq } = require('../utils/apiResponse');
 

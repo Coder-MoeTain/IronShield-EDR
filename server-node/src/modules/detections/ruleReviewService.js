@@ -70,18 +70,93 @@ async function reject(ruleId, version, reviewerId, comments) {
 
 async function listVersions(ruleId) {
   const rows = await db.query(
-    `SELECT * FROM detection_rule_versions WHERE rule_id = ? OR definition_json LIKE ?
+    `SELECT id, rule_id, tenant_id, version, created_by, created_at
+     FROM detection_rule_versions
+     WHERE rule_id = ? OR definition_json LIKE ?
      ORDER BY created_at DESC LIMIT 50`,
     [ruleId, `%"id":"${ruleId}"%`]
   ).catch(() => []);
   return rows;
 }
 
+async function getVersion(versionId) {
+  const rows = await db.query('SELECT * FROM detection_rule_versions WHERE id = ?', [versionId]);
+  const row = rows?.[0];
+  if (!row) return null;
+  if (typeof row.definition_json === 'string') {
+    try {
+      row.definition_json = JSON.parse(row.definition_json);
+    } catch {
+      /* keep raw */
+    }
+  }
+  return row;
+}
+
+function shallowDiff(before, after) {
+  const keys = new Set([...Object.keys(before || {}), ...Object.keys(after || {})]);
+  const changes = [];
+  for (const key of keys) {
+    const a = before?.[key];
+    const b = after?.[key];
+    if (JSON.stringify(a) !== JSON.stringify(b)) {
+      changes.push({ field: key, before: a, after: b });
+    }
+  }
+  return changes;
+}
+
+async function diffVersions(ruleId, fromVersionId, toVersionId) {
+  const fromRow = await getVersion(fromVersionId);
+  const toRow = toVersionId ? await getVersion(toVersionId) : null;
+  if (!fromRow) {
+    const err = new Error('Source version not found');
+    err.code = 'NOT_FOUND';
+    throw err;
+  }
+  const fromDef = fromRow.definition_json || {};
+  let toDef = toRow?.definition_json;
+  if (!toDef) {
+    const DetectionRuleRepository = require('../../repositories/DetectionRuleRepository');
+    const current = await DetectionRuleRepository.getById(ruleId);
+    toDef = current || {};
+  }
+  return {
+    rule_id: ruleId,
+    from_version_id: fromVersionId,
+    to_version_id: toVersionId || null,
+    changes: shallowDiff(fromDef, toDef),
+  };
+}
+
+async function rollback(ruleId, versionId, actor) {
+  const row = await getVersion(versionId);
+  if (!row) {
+    const err = new Error('Version not found');
+    err.code = 'NOT_FOUND';
+    throw err;
+  }
+  const definition = row.definition_json || {};
+  const snapshot = await createVersion(ruleId, definition, {
+    version: definition.version || row.version,
+    changed_by: actor,
+    tenant_id: row.tenant_id,
+  });
+  return { rolled_back_to: versionId, snapshot };
+}
+
 async function listPendingReviews(tenantId = null) {
   await ensureTables();
-  return db.query(
-    `SELECT * FROM detection_rule_reviews WHERE decision = 'pending' ORDER BY created_at ASC`
-  );
+  const params = [];
+  let sql = `SELECT * FROM detection_rule_reviews WHERE decision = 'pending'`;
+  if (tenantId != null) {
+    sql += ` AND rule_id IN (
+      SELECT rule_id FROM detection_rule_versions WHERE tenant_id = ?
+    )`;
+    params.push(tenantId);
+  }
+  sql += ' ORDER BY created_at ASC';
+  return db.query(sql, params);
 }
 
 module.exports = {
@@ -90,6 +165,9 @@ module.exports = {
   approve,
   reject,
   listVersions,
+  getVersion,
+  diffVersions,
+  rollback,
   listPendingReviews,
   ensureTables,
 };

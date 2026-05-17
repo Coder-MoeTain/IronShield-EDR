@@ -175,12 +175,13 @@ async function submitReview(req, res, next) {
 async function approveRule(req, res, next) {
   try {
     const rule = await DetectionRuleRepository.getById(req.params.id);
+    const authorId = req.body.author_id ?? rule?.author_id ?? rule?.author;
     const result = await ruleReviewService.approve(
       req.params.id,
       req.body.version || rule?.version,
       req.user?.id,
       req.body.comments,
-      req.body.author_id
+      authorId
     );
     res.json(result);
   } catch (e) {
@@ -198,6 +199,74 @@ async function rejectRule(req, res, next) {
       req.body.comments
     );
     res.json(result);
+  } catch (e) {
+    next(e);
+  }
+}
+
+async function listRuleVersions(req, res, next) {
+  try {
+    const versions = await ruleReviewService.listVersions(req.params.id);
+    res.json({ rule_id: req.params.id, versions });
+  } catch (e) {
+    next(e);
+  }
+}
+
+async function rollbackRule(req, res, next) {
+  try {
+    const { version_id: versionId } = req.body || {};
+    if (!versionId) return res.status(400).json({ error: 'version_id is required' });
+    const result = await ruleReviewService.rollback(
+      req.params.id,
+      versionId,
+      req.user?.username || req.user?.email
+    );
+    res.json(result);
+  } catch (e) {
+    if (e.code === 'NOT_FOUND') return res.status(404).json({ error: e.message });
+    next(e);
+  }
+}
+
+async function diffRule(req, res, next) {
+  try {
+    const fromId = req.query.from_version_id || req.query.from;
+    const toId = req.query.to_version_id || req.query.to || null;
+    if (!fromId) return res.status(400).json({ error: 'from_version_id query param required' });
+    const result = await ruleReviewService.diffVersions(req.params.id, fromId, toId);
+    res.json(result);
+  } catch (e) {
+    if (e.code === 'NOT_FOUND') return res.status(404).json({ error: e.message });
+    next(e);
+  }
+}
+
+async function listRuleReviews(req, res, next) {
+  try {
+    const reviews = await ruleReviewService.listPendingReviews(tenantId(req));
+    res.json({ reviews });
+  } catch (e) {
+    next(e);
+  }
+}
+
+async function importSigma(req, res, next) {
+  try {
+    const { importSigmaYaml } = require('../modules/detections/sigmaImportService');
+    const yamlText = req.body?.yaml || req.body?.content;
+    if (!yamlText || typeof yamlText !== 'string') {
+      return res.status(400).json({ error: 'yaml or content string required' });
+    }
+    const draft = importSigmaYaml(yamlText);
+    draft.status = 'draft';
+    draft.enabled = false;
+    await ruleReviewService.createVersion(draft.id, draft, {
+      version: draft.version,
+      changed_by: req.user?.username,
+      tenant_id: tenantId(req),
+    });
+    res.status(201).json({ rule: draft, status: 'draft', message: 'Sigma import saved as draft — submit for review before enable' });
   } catch (e) {
     next(e);
   }
@@ -221,4 +290,9 @@ module.exports = {
   submitReview,
   approveRule,
   rejectRule,
+  listRuleVersions,
+  rollbackRule,
+  diffRule,
+  listRuleReviews,
+  importSigma,
 };

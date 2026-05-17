@@ -14,6 +14,9 @@ Maps compact UI tabs to backend APIs and automated tests.
 | `npm run test:legacy-redirects` | Legacy URL redirects |
 | `npm run test:command-center` | Global search API |
 | `npm run test:openapi` | OpenAPI sync + coverage |
+| `npm run test:envelope` | API envelope middleware + route integration |
+| `npm run test:software` | Software risk + block safety |
+| `npm run test:detections` | Detection engine + rule review SoD |
 | `npm run detections:test` | Detection-as-code pack |
 
 ---
@@ -58,6 +61,21 @@ Envelope: `{ success, data, requestId }` — `data` includes `meta`, `tabs`, `kp
 | Host groups | `GET /api/v1/admin/host-groups` | implemented | manual |
 | Timeline / processes / network | endpoint-scoped admin APIs | implemented | manual |
 | Telemetry quality | `GET /api/v1/admin/platform/telemetry-quality` | implemented | BFF endpoints module |
+
+---
+
+## Detection engineering APIs (`/api/v1/detections`)
+
+| Endpoint | Status | Test |
+|----------|--------|------|
+| `GET /rules`, `GET /rules/:id` | implemented | `test:detections` |
+| `GET /rules/:id/versions` | implemented | `test:detections` |
+| `GET /rules/:id/diff` | implemented | `test:detections` |
+| `POST /rules/:id/rollback` | implemented | `test:detections` |
+| `GET /rule-reviews` | implemented | `test:detections` |
+| `POST /import-sigma` | implemented (draft only) | `test:detections` |
+| `POST /rules/:id/approve` | implemented (SoD) | `test:detections` |
+| `POST /replay`, `GET /quality`, `GET /mitre-coverage` | implemented | `detections:test` |
 
 ---
 
@@ -144,7 +162,18 @@ Envelope: `{ success, data, requestId }` — `data` includes `meta`, `tabs`, `kp
 | `POST /software-policy-result` | implemented | manual |
 | `POST /software-notification-result` | implemented | manual |
 
-Envelope: `{ success, data, requestId }` on software admin + agent controllers.
+Envelope: `{ success, data, requestId }` on **all** `/api` and `/api/v1` route groups (auth, admin, software, detections, console, agent, ingest).
+
+### Raw / legacy exceptions
+
+| Route | Reason |
+|-------|--------|
+| `GET /health`, `GET /healthz`, `GET /readyz` | Load balancer probes (non-API) |
+| `GET /metrics` | Prometheus text exposition |
+| `GET /api/openapi.json` | OpenAPI document (not an API call) |
+| Static dashboard assets | SPA shell |
+
+Agent and ingest responses are enveloped; the Windows agent unwraps `data` in `HttpTransport` (see `ApiEnvelope.cs`).
 
 ---
 

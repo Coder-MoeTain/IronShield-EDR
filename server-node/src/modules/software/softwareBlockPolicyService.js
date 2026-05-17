@@ -262,16 +262,20 @@ async function blockInventoryItem(inventoryId, tenantId, actor, body = {}) {
   }
 
   const { id: policyId } = await create(tenantId, policyData, actor, { forceApproval: needsApproval });
+  let active = !needsApproval;
   if (needsApproval && approvedBy) {
     await approve(policyId, tenantId, approvedBy, actor);
+    active = true;
   } else if (!needsApproval) {
     await transitionLifecycle(policyId, tenantId, 'active', actor);
   }
 
-  await db.query(
-    'UPDATE endpoint_software_risk SET blocked = 1, recommended_action = ? WHERE software_inventory_id = ?',
-    ['block', inventoryId]
-  );
+  if (active) {
+    await db.query(
+      'UPDATE endpoint_software_risk SET blocked = 1, recommended_action = ? WHERE software_inventory_id = ?',
+      ['block', inventoryId]
+    );
+  }
 
   const SoftwareRemediationService = require('./softwareRemediationService');
   await SoftwareRemediationService.createAction({
@@ -289,8 +293,8 @@ async function blockInventoryItem(inventoryId, tenantId, actor, body = {}) {
 
   return {
     policy_id: policyId,
-    blocked: true,
-    lifecycle_status: needsApproval ? 'active' : 'active',
+    blocked: active,
+    lifecycle_status: active ? 'active' : 'pending_approval',
     requires_approval: needsApproval,
   };
 }

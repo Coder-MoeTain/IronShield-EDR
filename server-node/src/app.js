@@ -188,8 +188,8 @@ function mountApiRoutes(basePath) {
   app.use(`${basePath}/software`, ...enveloped, softwareRoutes);
   app.use(`${basePath}/detections`, ...enveloped, detectionRoutes);
   app.use(`${basePath}/console`, ...enveloped, consoleRoutes);
-  app.use(`${basePath}/agent`, agentRoutes);
-  app.use(`${basePath}/ingest`, ingestRoutes);
+  app.use(`${basePath}/agent`, ...enveloped, agentRoutes);
+  app.use(`${basePath}/ingest`, ...enveloped, ingestRoutes);
 }
 
 for (const prefix of API_PREFIXES) {

@@ -63,7 +63,7 @@
 | **Mar 2026** | **README screenshots** — Real UI captures live in [`docs/images/`](docs/images/) (PNG). Regenerate with Playwright after UI changes (see [Screenshots](#screenshots)). |
 | **Mar 2026** | **XDR UI + integrations** — XDR pages for `xdr_events` and `xdr_detections`, live **Realtime** feed (`/ws`), host/network bandwidth (RX/TX Mbps), and Enterprise settings for **3rd‑party IP blacklist feeds** → IOC watchlist (`/api/admin/xdr/ip-feeds`). |
 | **Mar 2025** | **Network Activity Console** — Explore page: KPI strip (`GET /api/admin/network/summary`), time window + endpoint filters, **Exclude localhost**, remote IP / process search, **Scope** badges, tabs (Connections, Outgoing IPs, Traffic by endpoint, Network logs). Docs: [crowdstrike-network-activity.md](docs/crowdstrike-network-activity.md). |
-| **Earlier** | Enterprise EDR parity phases (sensor telemetry, tenants, NGAV, EDR policy, policy compliance, host timeline), **Detection rules** (Custom IOA), **RTR**, **Threat graph**, **Hunting**, **IOC** watchlist — see [falcon-parity-features.md](docs/falcon-parity-features.md). |
+| **Earlier** | Enterprise EDR parity phases (sensor telemetry, tenants, NGAV, EDR policy, policy compliance, host timeline), **Detection rules** (Custom IOA), **RTR**, **Threat graph**, **Hunting**, **IOC** watchlist — see [Enterprise EDR feature parity](docs/falcon-parity-features.md) (historical filename). |
 
 ### Enterprise upgrade (Phases 1–9)
 

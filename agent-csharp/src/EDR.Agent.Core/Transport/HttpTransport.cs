@@ -196,7 +196,7 @@ public class HttpTransport
             ct);
         var body = await res.Content.ReadAsStringAsync(ct);
 
-        var result = JsonSerializer.Deserialize<RegistrationResult>(body, JsonOptions);
+        var result = ApiEnvelope.DeserializeData<RegistrationResult>(body, JsonOptions);
         return result ?? throw new InvalidOperationException("Invalid registration response");
     }
 
@@ -211,7 +211,7 @@ public class HttpTransport
             ct);
         var body = await res.Content.ReadAsStringAsync(ct);
 
-        return JsonSerializer.Deserialize<HeartbeatResult>(body, JsonOptions) ?? new HeartbeatResult();
+        return ApiEnvelope.DeserializeData<HeartbeatResult>(body, JsonOptions) ?? new HeartbeatResult();
     }
 
     /// <summary>
@@ -226,7 +226,8 @@ public class HttpTransport
             ct);
         var body = await res.Content.ReadAsStringAsync(ct);
 
-        return JsonSerializer.Deserialize<EventsBatchResult>(body, JsonOptions) ?? new EventsBatchResult { Inserted = list.Count };
+        return ApiEnvelope.DeserializeData<EventsBatchResult>(body, JsonOptions)
+            ?? new EventsBatchResult { Inserted = list.Count };
     }
 
     /// <summary>
@@ -238,7 +239,8 @@ public class HttpTransport
         var res = await _client.SendAsync(req, ct);
         var body = await res.Content.ReadAsStringAsync(ct);
         if (!res.IsSuccessStatusCode) throw new HttpRequestException($"Key rotation failed: {res.StatusCode} - {body}");
-        using var doc = JsonDocument.Parse(body);
+        var payload = ApiEnvelope.UnwrapPayload(body);
+        using var doc = JsonDocument.Parse(payload);
         if (!doc.RootElement.TryGetProperty("agent_key", out var k)) throw new InvalidOperationException("Invalid rotate response");
         return k.GetString() ?? throw new InvalidOperationException("Invalid agent_key");
     }
@@ -253,7 +255,7 @@ public class HttpTransport
         if (res.StatusCode == HttpStatusCode.NotFound) return null;
         if (!res.IsSuccessStatusCode) return null;
         var body = await res.Content.ReadAsStringAsync(ct);
-        return JsonSerializer.Deserialize<DetectionRulesSyncResponse>(body, DetectionRulesJsonOptions);
+        return ApiEnvelope.DeserializeData<DetectionRulesSyncResponse>(body, DetectionRulesJsonOptions);
     }
 
     /// <summary>
@@ -266,7 +268,7 @@ public class HttpTransport
         if (res.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
         res.EnsureSuccessStatusCode();
         var body = await res.Content.ReadAsStringAsync(ct);
-        return JsonSerializer.Deserialize<EndpointPolicy>(body, JsonOptions);
+        return ApiEnvelope.DeserializeData<EndpointPolicy>(body, JsonOptions);
     }
 
     /// <summary>
@@ -310,7 +312,7 @@ public class HttpTransport
         var res = await _client.SendAsync(req, ct);
         if (!res.IsSuccessStatusCode) return null;
         var body = await res.Content.ReadAsStringAsync(ct);
-        return JsonSerializer.Deserialize<AvPolicy>(body, AvJsonOptions);
+        return ApiEnvelope.DeserializeData<AvPolicy>(body, AvJsonOptions);
     }
 
     public async Task<AvSignaturesVersion?> GetAvSignaturesVersionAsync(CancellationToken ct = default)
@@ -319,7 +321,7 @@ public class HttpTransport
         var res = await _client.SendAsync(req, ct);
         if (!res.IsSuccessStatusCode) return null;
         var body = await res.Content.ReadAsStringAsync(ct);
-        return JsonSerializer.Deserialize<AvSignaturesVersion>(body, AvJsonOptions);
+        return ApiEnvelope.DeserializeData<AvSignaturesVersion>(body, AvJsonOptions);
     }
 
     public async Task<AvSignaturesDownload?> DownloadAvSignaturesAsync(string? version = null, CancellationToken ct = default)
@@ -330,7 +332,7 @@ public class HttpTransport
         var res = await _client.SendAsync(req, ct);
         if (!res.IsSuccessStatusCode) return null;
         var body = await res.Content.ReadAsStringAsync(ct);
-        return JsonSerializer.Deserialize<AvSignaturesDownload>(body, AvJsonOptions);
+        return ApiEnvelope.DeserializeData<AvSignaturesDownload>(body, AvJsonOptions);
     }
 
     public async Task SubmitAvScanResultAsync(long? taskId, IEnumerable<object> results, CancellationToken ct = default)
@@ -366,7 +368,7 @@ public class HttpTransport
         var res = await _client.SendAsync(req, ct);
         if (!res.IsSuccessStatusCode) return null;
         var body = await res.Content.ReadAsStringAsync(ct);
-        return JsonSerializer.Deserialize<SoftwarePoliciesResponse>(body, JsonOptions);
+        return ApiEnvelope.DeserializeData<SoftwarePoliciesResponse>(body, JsonOptions);
     }
 
     public async Task UploadSoftwareInventoryAsync(object payload, CancellationToken ct = default)
@@ -400,7 +402,7 @@ public class HttpTransport
         var res = await _client.SendAsync(req, ct);
         if (!res.IsSuccessStatusCode) return null;
         var body = await res.Content.ReadAsStringAsync(ct);
-        return JsonSerializer.Deserialize<WebUrlBlocklistResponse>(body, JsonOptions);
+        return ApiEnvelope.DeserializeData<WebUrlBlocklistResponse>(body, JsonOptions);
     }
 }
 

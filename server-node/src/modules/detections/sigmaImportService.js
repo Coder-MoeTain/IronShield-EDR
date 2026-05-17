@@ -71,7 +71,7 @@ function importSigmaYaml(yamlText, opts = {}) {
     id,
     name: meta.name || 'Imported Sigma Rule',
     description: meta.description || 'Imported from Sigma — requires manual review and tests.',
-    status: 'experimental',
+    status: 'draft',
     enabled: false,
     severity: meta.severity || 'medium',
     risk_score: 50,

@@ -47,6 +47,8 @@ jobs:
         run: npm run detections:test
       - name: Detection unit tests
         run: npm run test:detections
+      - name: Audit hash verification
+        run: npm run audit:verify
       - name: Detection coverage report
         run: npm run detections:coverage
       - name: Detection docs and index

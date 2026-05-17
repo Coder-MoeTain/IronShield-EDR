@@ -12,7 +12,13 @@
 | Compact 8-page console | implemented | `/overview` … `/admin` | Sidebar modules | `test:dashboard-tabs`, Playwright | README, ARCHITECTURE | 56 legacy redirects |
 | Console BFF | implemented | `GET /api/v1/console/*` | All module pages (KPIs) | `test:console-bff` | API_COVERAGE | Tabs may still call admin APIs |
 | API v1 alias | implemented | `/api/v1/*` mirrors `/api/*` | — | `test:openapi` | README, api.md | Dual mount in `app.js` |
-| Standard API envelope | partial | Admin, auth, detections, software | `apiEnvelope.js` | `test:envelope` | API_COVERAGE | Agent/ingest raw by design |
+| Standard API envelope | implemented | All `/api` and `/api/v1` groups | `apiEnvelope.js` | `test:envelope` | API_COVERAGE | Agent unwraps `data` in HttpTransport |
+| Detection rule versions | implemented | `GET /detections/rules/:id/versions` | Detections module | `test:detections` | DETECTION_ENGINEERING | DB table `detection_rule_versions` |
+| Detection rule rollback | implemented | `POST /detections/rules/:id/rollback` | — | `test:detections` | DETECTION_ENGINEERING | Version snapshot |
+| Detection rule diff | implemented | `GET /detections/rules/:id/diff` | — | `test:detections` | DETECTION_ENGINEERING | Query `from_version_id` |
+| Detection rule reviews | implemented | `GET /detections/rule-reviews` | — | `test:detections` | DETECTION_ENGINEERING | Pending queue |
+| Sigma import (draft) | implemented | `POST /detections/import-sigma` | — | `test:detections` | DETECTION_ENGINEERING | Never auto-enables |
+| Endpoint installed software | implemented | `GET /api/v1/software/inventory?endpoint_id=` | Endpoints → Installed Software | `test:software-ui` | SOFTWARE_RISK_MANAGEMENT | Block/notify actions |
 | RBAC permission matrix | partial | JWT + `requirePermission` | `PermissionGate`, tab guards | `test:rbac`, `test:permissions` | SECURITY_MODEL | Extend detection_engineer roles |
 | Tenant isolation | implemented | `req.tenantId` on scoped routes | Tenant switcher (super_admin) | `test:tenant-isolation` | SECURITY_MODEL | Events join via endpoint |
 | Agent key hashing | implemented | Agent register/rotate | Endpoint trust (partial UI) | `agentKeyHash.unit.test.js` | SECURITY_MODEL | `AGENT_KEY_PEPPER` in prod |

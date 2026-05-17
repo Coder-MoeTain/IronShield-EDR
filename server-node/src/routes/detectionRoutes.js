@@ -34,7 +34,12 @@ const suppress = requireAnyPermission(PERMISSIONS.DETECTION_SUPPRESS, PERMISSION
 
 router.get('/rules', view, detectionController.listRules);
 router.get('/rules/validate', view, detectionController.validateRulesHandler);
+router.get('/rule-reviews', review, detectionController.listRuleReviews);
+router.post('/import-sigma', manage, detectionController.importSigma);
 router.get('/rules/:id', view, detectionController.getRule);
+router.get('/rules/:id/versions', view, detectionController.listRuleVersions);
+router.get('/rules/:id/diff', view, detectionController.diffRule);
+router.post('/rules/:id/rollback', requireAnyPermission(PERMISSIONS.DETECTION_ROLLBACK, PERMISSIONS.DETECTION_MANAGE, '*'), detectionController.rollbackRule);
 router.post('/rules/:id/test', test, detectionController.testRule);
 router.post('/rules/:id/submit-review', manage, detectionController.submitReview);
 router.post('/rules/:id/approve', review, detectionController.approveRule);
